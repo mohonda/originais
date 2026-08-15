@@ -62,10 +62,10 @@ class _Dashboard extends State<Dashboard> {
                         const SizedBox(height: 24),
                         
 
-                        const SizedBox(
-                          height: 350,
-                          child: MonthlyPayments()
-                          ),
+                        // const SizedBox(
+                        //   height: 350,
+                        //   child: MonthlyPayments()
+                        //   ),
                       ],
                     ),
                   );

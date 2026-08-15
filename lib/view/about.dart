@@ -1,9 +1,93 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
-class About extends StatelessWidget {
+// Modelo simples para concentrar os dados dinâmicos do app
+class AppSystemDetails {
+  final String version;
+  final String buildNumber;
+  final String platform;
+
+  AppSystemDetails({
+    required this.version,
+    required this.buildNumber,
+    required this.platform,
+  });
+
+  static Future<AppSystemDetails> fetch() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    final platformName = kIsWeb
+        ? 'Web Browser'
+        : defaultTargetPlatform.name.toUpperCase();
+
+    return AppSystemDetails(
+      version: packageInfo.version,
+      buildNumber: packageInfo.buildNumber,
+      platform: platformName,
+    );
+  }
+}
+
+class About extends StatefulWidget {
   const About({super.key});
+
+  @override
+  State<About> createState() => _AboutState();
+}
+
+class _AboutState extends State<About> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Configuração do controlador da animação
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 1.15),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutBack,
+    ));
+
+    _startLoopAnimation();
+  }
+
+  // Loop para reanimar a imagem a cada 6 segundos
+  void _startLoopAnimation() async {
+    _controller.forward();
+
+    _controller.addStatusListener((status) async {
+      if (status == AnimationStatus.completed) {
+        await Future.delayed(const Duration(seconds: 6));
+        if (!mounted) return;
+        _controller.reset();
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,40 +95,154 @@ class About extends StatelessWidget {
       appBar: const CustomFloatingAppBar(title: 'About'),
       body: Padding(
         padding: const EdgeInsets.only(
-          left: 8.0,
-          right: 8.0,
-          top: 16.0,
-          bottom: 16.0,
-        ),
+                      left: 8.0,
+                      right: 8.0,
+                      top: 16.0,
+                      bottom: 16.0,
+                    ),
         child: SizedBox.expand(
           child: Card(
             elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
-              padding: const EdgeInsets.only(
-                left: 8.0,
-                right: 8.0,
-                top: 16.0,
-                bottom: 16.0,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 20.0,
               ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Sobre o Aplicativo',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  // 1. Logo Animada com Símbolo de Marca Registrada
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Image.asset(
+                        'lib/assets/images/logo.png',
+                        height: 240,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                          Icons.motorcycle,
+                          size: 100,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Versão 1.0.0\nDesenvolvido com Flutter.',
-                    textAlign: TextAlign.left,
-                  ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
 
-                  ElevatedButton(
-                    onPressed: () => context.go('/dashboard'),
-                    child: const Text('Voltar para Home'),
+                  // 2. Título do Aplicativo com ®
+                  RichText(
+                    textAlign: TextAlign.center,
+                    text: const TextSpan(
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      children: [
+                        TextSpan(text: 'Originais Moto Clube '),
+                        TextSpan(
+                          text: '®',
+                          style: TextStyle(fontSize: 26),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 3. Descrição do Projeto
+                  Text(
+                    'Originais Sempre, Sempre Originais',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Orgulho Em Pertencer 100',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 12),
+                  Text(
+                    'LIBERDADE, IGUALDADE E IRMANDADE',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+
+                  const Divider(),
+                  const SizedBox(height: 16),
+
+                  // 4. Detalhes do Sistema (Carregados Dinamicamente)
+                  FutureBuilder<AppSystemDetails>(
+                    future: AppSystemDetails.fetch(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const CircularProgressIndicator.adaptive();
+                      }
+
+                      final info = snapshot.data;
+                      final versionText = info != null
+                          ? '${info.version} (${info.buildNumber})'
+                          : '1.0.0';
+                      final platformText = info?.platform ?? 'N/A';
+
+                      return Column(
+                        children: [
+                          _buildInfoRow('Software de Gestão', ""),
+                          const SizedBox(height: 6),
+                          _buildInfoRow('Versão:', versionText),
+                          const SizedBox(height: 6),
+                          _buildInfoRow('Backend Supabase:', 'v2.x'),
+                          const SizedBox(height: 6),
+                          _buildInfoRow('Plataforma:', platformText),
+                        ],
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // 6. Rodapé do Desenvolvedor / Copyright
+                  Text(
+                    'Desenvolvido por Eu.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '© 2026 Originais Moto Clube.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Todos os direitos reservados.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
@@ -52,6 +250,30 @@ class About extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  // Helper para criar as linhas de informação padronizadas
+  Widget _buildInfoRow(String title, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          '$title ',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: Colors.white,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            color: Colors.white,
+          ),
+        ),
+      ],
     );
   }
 }

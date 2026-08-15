@@ -29,13 +29,13 @@ class RouterModel {
       path: '/dashboard',
       builder: (context, state) => const Dashboard(),
     ),
-    RouterModel (
-      label: 'Itens',
-      icon: Icons.person_2_outlined,
-      selectedIcon: Icons.person_2,
-      path: '/itens',
-      builder: (context, state) => const Itens(),
-    ),
+    // RouterModel (
+    //   label: 'Itens',
+    //   icon: Icons.person_2_outlined,
+    //   selectedIcon: Icons.person_2,
+    //   path: '/itens',
+    //   builder: (context, state) => const Itens(),
+    // ),
     RouterModel (
       label: 'Mensalidades',
       icon: Icons.person_2_outlined,
