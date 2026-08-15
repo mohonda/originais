@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:file_picker/file_picker.dart';
@@ -9,7 +9,7 @@ import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gorouter_exemplo/models/mensalidades_model.dart';
 import 'package:gorouter_exemplo/services/bd_monthlypayments_service.dart';
-
+import 'dart:typed_data';
 
 final getItbdMonthlyPaymentsController = GetIt.instance;
 
@@ -84,38 +84,48 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
 
   Future selecionarEEnviarFoto(String id, String mes, String ano) async {
     final supabase = Supabase.instance.client;
-
+    
+    final isLinux = !kIsWeb && Platform.isLinux;
+    final isWebOrLinux = kIsWeb || isLinux;
+    
     final FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['png', 'jpg', 'jpeg', 'tiff', 'pdf'],
       allowMultiple: false,
+      withData:
+          true, // Garante que 'file.bytes' não venha nulo no Android/iOS/Desktop
     );
 
     if (result == null || result.files.isEmpty) return;
 
     final PlatformFile file = result.files.single;
-    if (file.path == null) return;
-
     final String ext = file.extension?.toLowerCase() ?? '';
+    final Uint8List? rawBytes = file.bytes;
     Uint8List? compressedBytes;
+
+    if (rawBytes == null) {
+      debugPrint('Erro: Os bytes do arquivo não puderam ser carregados.');
+      return;
+    }
 
     // ==========================================
     // Lógica: PDF ou Imagem
     // ==========================================
     if (ext == 'pdf') {
-      final pdfBytes = await File(file.path!).readAsBytes();
       Uint8List? rawImageBytes;
 
-      await for (final page in
-        Printing.raster(
-          pdfBytes,
+      try {
+        await for (final page in Printing.raster(
+          rawBytes,
           pages: [0],
           dpi: 200,
-        )
-      )
-      {
-        rawImageBytes = await page.toPng();
-        break; // Pega apenas a primeira página e sai do loop
+        )) {
+          rawImageBytes = await page.toPng();
+          break; // Pega apenas a primeira página
+        }
+      } catch (e) {
+        debugPrint('Erro ao processar PDF: $e');
+        return;
       }
 
       if (rawImageBytes == null) {
@@ -123,13 +133,9 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
         return;
       }
 
-      // 3. Comprime os bytes gerados pelo PDF
-      compressedBytes = await _compressImageBytes(rawImageBytes);
+      compressedBytes = await _compressImageBytes(rawImageBytes, isLinux );
     } else {
-      debugPrint('Imagem detectada: ${file.path}');
-      // 3. Lê o arquivo de imagem e comprime
-      final imageBytes = await File(file.path!).readAsBytes();
-      compressedBytes = await _compressImageBytes(imageBytes);
+      compressedBytes = await _compressImageBytes(rawBytes, isLinux);
     }
 
     // ==========================================
@@ -140,13 +146,12 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       return;
     }
 
-    final isLinux = Platform.isLinux;
-    final fileExt = isLinux ? 'jpg' : 'webp';
-    final mimeType = isLinux ? 'image/jpeg' : 'image/webp';
-    final timestamp = DateTime.now();
+    final fileExt = isWebOrLinux ? 'jpg' : 'webp';
+    final mimeType = isWebOrLinux ? 'image/jpeg' : 'image/webp';
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
     final filePath = '$id/${ano}_${mes}_monthlypayments_$timestamp.$fileExt';
 
-    supabase.storage
+    await supabase.storage
         .from('monthypayments')
         .uploadBinary(
           filePath,
@@ -159,14 +164,14 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
         .getPublicUrl(filePath);
 
     // Salva a URL no perfil do banco de dados
-    updateComprovante(id, mes, ano, imageUrl);
+    await updateComprovante(id, mes, ano, imageUrl);
   }
 
   // ==========================================
   // Compressor Baseado em Bytes (Memória)
   // ==========================================
-  Future<Uint8List?> _compressImageBytes(Uint8List bytes) async {
-    if (Platform.isLinux) {
+  Future<Uint8List?> _compressImageBytes(Uint8List bytes, bool isLinux) async {
+    if ( isLinux ) {
       // Tratamento puro em Dart para Linux
       final decodedImage = img.decodeImage(bytes);
       if (decodedImage == null) return null;
@@ -200,7 +205,6 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
 
       await bdMonthlyPaymentsService.updateComprovante(id, mes, ano, avatarUrl);
       // await loadMonthlyPaymentsIndividual( id, mes, ano );
-      
     } catch (e) {
       monthlyPaymentsIndividual.value = null;
       errorNotifier.value = 'BdProfileController::updateComprovante: $e';

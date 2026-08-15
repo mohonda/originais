@@ -21,7 +21,7 @@ void main() async {
       size: Size(1024, 768),
       minimumSize: Size(500, 820),
       center: true,
-      title: 'Originais Moto Clube (R)',
+      title: ' Originais Moto Clube \u00AE ',
     );
  
     windowManager.waitUntilReadyToShow(
@@ -34,12 +34,18 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Supabase.initialize(
-      // url: 'https://ubqhcvvyexmgyzzckzis.supabase.co',
-      // anonKey: 'sb_publishable_wo-dg-_T1UJActeZRCCuhQ_bdCr_RJM',
-      url: const String.fromEnvironment('SUPABASE_URL'),
-      anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
-    );
+    if ( kIsWeb ){
+      await Supabase.initialize(
+        url: const String.fromEnvironment('SUPABASE_URL'),
+        anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
+      );
+    } else {
+      await Supabase.initialize(
+        url: 'https://ubqhcvvyexmgyzzckzis.supabase.co',
+        anonKey: 'sb_publishable_wo-dg-_T1UJActeZRCCuhQ_bdCr_RJM',
+      );
+    }
+    
     debugPrint('✅ Supabase inicializado com sucesso!');
   } catch (error) {
     debugPrint('❌ Erro ao inicializar o Supabase: $error');
