@@ -46,6 +46,7 @@ void main() async {
     return;
   }
 
+
   setupGetItSupabaseConnectedUser();
   setupGetItBdItemController();
   setupGetItDashboardNotifier();
