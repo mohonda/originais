@@ -35,8 +35,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await Supabase.initialize(
-      url: 'https://ubqhcvvyexmgyzzckzis.supabase.co',
-      anonKey: 'sb_publishable_wo-dg-_T1UJActeZRCCuhQ_bdCr_RJM',
+      // url: 'https://ubqhcvvyexmgyzzckzis.supabase.co',
+      // anonKey: 'sb_publishable_wo-dg-_T1UJActeZRCCuhQ_bdCr_RJM',
+      url: const String.fromEnvironment('SUPABASE_URL'),
+      anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
     );
     debugPrint('✅ Supabase inicializado com sucesso!');
   } catch (error) {
