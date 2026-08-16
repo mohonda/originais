@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gorouter_exemplo/view/dashboard.dart';
-import 'package:gorouter_exemplo/view/itens.dart';
+// import 'package:gorouter_exemplo/view/itens.dart';
 import 'package:gorouter_exemplo/view/about.dart';
 import 'package:gorouter_exemplo/view/profile.dart';
 import 'package:gorouter_exemplo/view/monthly_payments.dart';

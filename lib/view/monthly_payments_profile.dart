@@ -340,17 +340,13 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
                           child: SizedBox(
                             height:
                                 0, // A MÁGICA ESTÁ AQUI: Impede a imagem de ditar a altura da linha
-                            child: ValueListenableBuilder(
-                              valueListenable: bdMonthlyPaymentsController
-                                  .monthlyPaymentsIndividual,
-                              builder: (context, value, child) {
-                                final url = value?.comprovantepag ?? "";
-
-                                return GestureDetector(
-                                  // onTap: carregarNovoComprovante,
-                                  onTap: selecionarEEnviarFoto,
-                                  child: Container(
-                                    clipBehavior: Clip.antiAlias,
+                            child: ValueListenableBuilder<bool>(
+                              valueListenable:
+                                  bdMonthlyPaymentsController.loadingNotifier,
+                              builder: (context, isLoading, child) {
+                                // 1. Exibe o indicador de carregamento durante o upload
+                                if (isLoading) {
+                                  return Container(
                                     decoration: BoxDecoration(
                                       color: Colors.grey[200],
                                       borderRadius: BorderRadius.circular(8),
@@ -359,56 +355,122 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
                                         width: 1,
                                       ),
                                     ),
-                                    child: url.isNotEmpty
-                                        ? SingleChildScrollView(
-                                            // 👈 Envolve a imagem em um ScrollView
-                                            physics:
-                                                const BouncingScrollPhysics(), // Opcional: efeito de rolagem mais suave
-                                            child: Image.network(
-                                              url,
-                                              fit: BoxFit.fitWidth,
-                                              errorBuilder:
-                                                  (
-                                                    context,
-                                                    error,
-                                                    stackTrace,
-                                                  ) => const Center(
-                                                    child: Padding(
-                                                      padding: EdgeInsets.all(
-                                                        20.0,
-                                                      ),
-                                                      child: Icon(
-                                                        Icons.broken_image,
-                                                        size: 48,
-                                                        color: Colors.redAccent,
-                                                      ),
-                                                    ),
-                                                  ),
-                                            ),
-                                          )
-                                        : const Center(
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Icon(
-                                                  Icons.add_a_photo,
-                                                  size: 48,
-                                                  color: Colors.black45,
-                                                ),
-                                                SizedBox(height: 8),
-                                                Text(
-                                                  'Toque para\nadicionar',
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    color: Colors.black45,
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              ],
+                                    child: const Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          CircularProgressIndicator(),
+                                          SizedBox(height: 12),
+                                          Text(
+                                            'Enviando...',
+                                            style: TextStyle(
+                                              color: Colors.black54,
+                                              fontSize: 12,
                                             ),
                                           ),
-                                  ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                // 2. Exibe a imagem ou o botão de adicionar
+                                return ValueListenableBuilder(
+                                  valueListenable: bdMonthlyPaymentsController
+                                      .monthlyPaymentsIndividual,
+                                  builder: (context, value, child) {
+                                    final url = value?.comprovantepag ?? "";
+
+                                    return GestureDetector(
+                                      onTap: selecionarEEnviarFoto,
+                                      child: Container(
+                                        clipBehavior: Clip.antiAlias,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[200],
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.grey.shade400,
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: url.isNotEmpty
+                                            ? SingleChildScrollView(
+                                                physics:
+                                                    const BouncingScrollPhysics(),
+                                                child: Image.network(
+                                                  url,
+                                                  fit: BoxFit.fitWidth,
+                                                  // Indicador enquanto baixa a imagem da web
+                                                  loadingBuilder:
+                                                      (
+                                                        context,
+                                                        child,
+                                                        loadingProgress,
+                                                      ) {
+                                                        if (loadingProgress ==
+                                                            null)
+                                                          return child;
+                                                        return const Center(
+                                                          child: Padding(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                  24.0,
+                                                                ),
+                                                            child:
+                                                                CircularProgressIndicator(),
+                                                          ),
+                                                        );
+                                                      },
+                                                  errorBuilder:
+                                                      (
+                                                        context,
+                                                        error,
+                                                        stackTrace,
+                                                      ) => const Center(
+                                                        child: Padding(
+                                                          padding:
+                                                              EdgeInsets.all(
+                                                                20.0,
+                                                              ),
+                                                          child: Icon(
+                                                            Icons.broken_image,
+                                                            size: 48,
+                                                            color: Colors
+                                                                .redAccent,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                ),
+                                              )
+                                            : const Center(
+                                                child: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.add_a_photo,
+                                                      size: 48,
+                                                      color: Colors.black45,
+                                                    ),
+                                                    SizedBox(height: 8),
+                                                    Text(
+                                                      'Toque para\nadicionar',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: TextStyle(
+                                                        color: Colors.black45,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                      ),
+                                    );
+                                  },
                                 );
                               },
                             ),

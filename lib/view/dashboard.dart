@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gorouter_exemplo/view/dashboard_widgetItens.dart';
 import 'package:gorouter_exemplo/view/dashboard_widgetUsers.dart';
-import 'package:gorouter_exemplo/view/monthly_payments.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
 
 class Dashboard extends StatefulWidget {

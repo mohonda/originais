@@ -8,7 +8,7 @@ class RouterSettings {
   static final GoRouter router = GoRouter(
     initialLocation: 'login',
     routes: <RouteBase> [
-      GoRoute(path: '/login', builder: (context, state) => LoginHero()),
+      GoRoute(path: '/login', builder: (context, state) => Login()),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainWindow(navigationShell: navigationShell);

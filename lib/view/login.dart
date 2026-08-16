@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:gorouter_exemplo/controllers/login_controller.dart';
 
-class LoginHero extends StatefulWidget {
-  const LoginHero({super.key});
+class Login extends StatefulWidget {
+  const Login({super.key});
 
   @override
-  _LoginHeroState createState() => _LoginHeroState();
+  LoginState createState() => LoginState();
 }
 
-class _LoginHeroState extends State with SingleTickerProviderStateMixin {
+class LoginState extends State with SingleTickerProviderStateMixin {
   final LoginController loginController = LoginController();
 
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  final FocusNode _emailFocusNode = FocusNode();
+  final FocusNode _senhaFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -27,27 +29,55 @@ class _LoginHeroState extends State with SingleTickerProviderStateMixin {
     );
 
     // Animação de Opacidade (de 0.0 invisível para 1.0 visível)
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
     // Animação de Movimento (de um pouco mais acima para a posição original)
     _slideAnimation = Tween(
-      begin: const Offset(0, -0.5), 
-      end: Offset.zero
-    ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+      begin: const Offset(0, -0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+
+    // _definirFocoInicial();
+    loginController.emailController.addListener(_tratarMudancaEmail);
 
     // Inicia a animação assim que a tela abre
-    _controller.forward();
+    // _controller.forward();
+        _startLoopAnimation();
 
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _emailFocusNode.dispose();
+    _senhaFocusNode.dispose();
     super.dispose();
+  }
+    
+  void _startLoopAnimation() async {
+    _controller.forward();
+
+    _controller.addStatusListener((status) async {
+      if (status == AnimationStatus.completed) {
+        await Future.delayed(const Duration(seconds: 6));
+        if (!mounted) return;
+        _controller.reset();
+        _controller.forward();
+      }
+    });
+  }
+
+  void _tratarMudancaEmail() {
+    // Quando o controller receber um valor e a senha ainda não tiver o foco
+    if (loginController.emailController.text.trim().isNotEmpty &&
+        !_senhaFocusNode.hasFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _senhaFocusNode.requestFocus();
+      });
+    }
   }
 
   @override
@@ -57,149 +87,164 @@ class _LoginHeroState extends State with SingleTickerProviderStateMixin {
 
     return Scaffold(
       body: Center(
-      child: SizedBox(
-        width: 500,
-        height: 820,
-      child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          children: [
-            const SizedBox(height: 40),
-            FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Image.asset(
-                    'lib/assets/images/logo.png',
-                    height: 240,
+        child: SizedBox(
+          width: 500,
+          height: 820,
+          child: SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              children: [
+                const SizedBox(height: 40),
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: Image.asset(
+                      'lib/assets/images/logo.png',
+                      height: 240,
+                    ),
                   ),
                 ),
-              ),
-            
-            const SizedBox(height: 40),
-            Text(
-              'Welcome',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Sign in to continue to your account',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: loginController.emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.mail_outline),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ValueListenableBuilder<bool>(
-              valueListenable: loginController.obscureNotifier,
-              builder: (context, isObscure, child) {
-                return TextField(
-                  controller: loginController.senhaController,
-                  obscureText: isObscure,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        isObscure ? Icons.visibility_off : Icons.visibility,
-                      ),
-                      onPressed: () =>
-                          loginController.obscureNotifier.value = !isObscure,
-                    ),
-                  ),
-                );
-              },
-            ),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+                const SizedBox(height: 40),
+                Text(
+                  'Welcome',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Sign in to continue to your account',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+                TextField(
+                  controller: loginController.emailController,
+                  focusNode: _emailFocusNode, // Atribui o foco do E-mail
+
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction:
+                      TextInputAction.next, // Tecla "Avançar" no teclado
+                  onSubmitted: (_) => _senhaFocusNode
+                      .requestFocus(), // Pressionar Enter vai para a senha
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.mail_outline),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+                ValueListenableBuilder<bool>(
+                  valueListenable: loginController.obscureNotifier,
+                  builder: (context, isObscure, child) {
+                    return TextField(
+                      controller: loginController.senhaController,
+                      focusNode: _senhaFocusNode, // Atribui o foco da Senha
+                      obscureText: isObscure,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) =>
+                          loginController.submeter(false, context),
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            isObscure ? Icons.visibility_off : Icons.visibility,
+                          ),
+                          onPressed: () =>
+                              loginController.obscureNotifier.value =
+                                  !isObscure,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ValueListenableBuilder<bool>(
-                      valueListenable: loginController.rememberNotifier,
-                      builder: (context, isRemember, child) {
-                        return Checkbox(
-                          value: isRemember,
-                          onChanged: (v) =>
-                              loginController.rememberNotifier.value = v ?? false,
-                        );
-                      },
+                    Row(
+                      children: [
+                        ValueListenableBuilder<bool>(
+                          valueListenable: loginController.rememberNotifier,
+                          builder: (context, isRemember, child) {
+                            return Checkbox(
+                              value: isRemember,
+                              onChanged: (v) =>
+                                  loginController.rememberNotifier.value =
+                                      v ?? false,
+                            );
+                          },
+                        ),
+                        const Text('Remember me'),
+                      ],
                     ),
-                    const Text('Remember me'),
+                    TextButton(
+                      onPressed: () {},
+                      child: const Text('Forgot password?'),
+                    ),
                   ],
                 ),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text('Forgot password?'),
+
+                const SizedBox(height: 8),
+
+                ValueListenableBuilder<bool>(
+                  valueListenable: loginController.isLoadingNotifier,
+                  builder: (context, isLoading, child) {
+                    return Column(
+                      children: [
+                        SizedBox(
+                          height: 52,
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: isLoading
+                                ? null
+                                : () =>
+                                      loginController.submeter(false, context),
+                            child: isLoading
+                                ? const SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text('Sign in'),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Don't have an account?",
+                              style: TextStyle(color: scheme.onSurfaceVariant),
+                            ),
+                            TextButton(
+                              onPressed: isLoading
+                                  ? null
+                                  : () =>
+                                        loginController.submeter(true, context),
+                              child: const Text('Sign up'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
-
-            const SizedBox(height: 8),
-
-            ValueListenableBuilder<bool>(
-              valueListenable: loginController.isLoadingNotifier,
-              builder: (context, isLoading, child) {
-                return Column(
-                  children: [
-                    SizedBox(
-                      height: 52,
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: isLoading
-                            ? null
-                            : () => loginController.submeter(false, context),
-                        child: isLoading
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text('Sign in'),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Don't have an account?",
-                          style: TextStyle(color: scheme.onSurfaceVariant),
-                        ),
-                        TextButton(
-                          onPressed: isLoading
-                              ? null
-                              : () => loginController.submeter(true, context),
-                          child: const Text('Sign up'),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
-            ),
-          ],
+          ),
         ),
-      ),
-      ),
       ),
     );
   }
-
 }

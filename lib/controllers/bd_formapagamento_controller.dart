@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:gorouter_exemplo/models/formapagamento_model.dart';
-import 'package:gorouter_exemplo/services/bd_formapagamento_service.dart';
+import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
 
 final getItBdFormaPagamentoController = GetIt.instance;
 
@@ -12,7 +12,7 @@ void setupGetItBdFormaPagamentoController() {
 }
 
 class BdFormaPagamentoController extends ChangeNotifier {
-  final BdFormaPagamentoService bdFormaPagamentoService = BdFormaPagamentoService();
+  final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
 
   final ValueNotifier<List<FormaPagamentoModel>> formaPagamentoNotifier =
     ValueNotifier<List<FormaPagamentoModel>>([]);
@@ -20,17 +20,27 @@ class BdFormaPagamentoController extends ChangeNotifier {
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
 
+  // ==========================================
   Future<void> loadFormaPagamento() async {
     try {
+      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
+
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      formaPagamentoNotifier.value = await bdFormaPagamentoService.loadFormaPagamento();
-    } catch (e) {
-      formaPagamentoNotifier.value = ([]);
-      errorNotifier.value = 'Erro BdFormaPagamentoController::loadFormaPagamento: $e';
+      final resposta = await supaBaseInstance
+        .from('forma_pagamento')
+        .select();
+
+    formaPagamentoNotifier.value = resposta.map((item) =>
+      FormaPagamentoModel.fromJson(item)).toList();
+
+    } catch (e, stackTrace) {
+      formaPagamentoNotifier.value = [];
+      errorNotifier.value = "BdFormaPagamentoController::loadFormaPagamento: $e\n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
   }
+
 }

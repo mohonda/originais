@@ -5,7 +5,7 @@ import 'package:gorouter_exemplo/controllers/auth_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_item_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
-import 'package:gorouter_exemplo/services/supabase_connected_user_service.dart';
+import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
 import 'package:window_manager/window_manager.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -22,12 +22,13 @@ class MainWindow extends StatefulWidget {
 class _MainWindow extends State<MainWindow> {
   bool _menuEstendido = true;
 
-  final supabaseConnectedUser =
-      getItSupabaseConnectedUser<SupabaseConnectedUser>();
+  final mySupabaseClient =
+      getItMySupabaseClient<MySupabaseClient>();
 
   final bdProfileController = getItBdProfileController<BdProfileController>();
   final bdItemController = getItBdItemController<BdItemController>();
-  final bdMonthlyPaymentsController = getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
+  final bdMonthlyPaymentsController =
+      getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
 
   int win = 0;
 
@@ -35,7 +36,7 @@ class _MainWindow extends State<MainWindow> {
   void initState() {
     super.initState();
 
-    final userId = supabaseConnectedUser.getUserId();
+    final userId = mySupabaseClient.getUserId();
     bdProfileController.checkUserProfileExist(userId);
     bdProfileController.fetchProfilesById(userId);
 
@@ -99,13 +100,13 @@ class _MainWindow extends State<MainWindow> {
           ),
         ),
         Positioned(
-          bottom: 0,
-          right: 0,
+          bottom: -2,
+          right: -2,
           child: CircleAvatar(
-            radius: 16,
-            backgroundColor: Theme.of(context).primaryColor,
+            radius: 12,
+            backgroundColor: Theme.of(context).primaryColorLight.withValues(alpha: 0.4),
             child: IconButton(
-              icon: const Icon(Icons.camera_alt, size: 12, color: Colors.white),
+              icon: const Icon(Icons.camera_alt, size: 12, color: Colors.white70),
               onPressed: () async {
                 final newUrl = await bdProfileController
                     .selecionarEEnviarFoto();
@@ -124,19 +125,17 @@ class _MainWindow extends State<MainWindow> {
 
   @override
   Widget build(BuildContext context) {
-final destinations = [
-  ...RouterSettings.buildMobileDestinations(),
-  const NavigationDestination(
-    icon: Icon(
-      Icons.logout,
-      color: Colors.redAccent,
-    ),
-    label: 'Sair',
-  ),
-];
+    final destinations = [
+      ...RouterSettings.buildMobileDestinations(),
+      const NavigationDestination(
+        icon: Icon(Icons.logout, color: Colors.redAccent),
+        label: 'Sair',
+      ),
+    ];
 
-    final userEmail = supabaseConnectedUser.getUserEmail();
-    if ( win == 0 && !kIsWeb &&
+    final userEmail = mySupabaseClient.getUserEmail();
+    if (win == 0 &&
+        !kIsWeb &&
         (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       windowManager.setSize(Size(1024, 768));
       win++;
@@ -173,11 +172,13 @@ final destinations = [
                                     valueListenable: bdProfileController
                                         .pessoaSelecionadaNotifier,
                                     builder: (context, pessoa, child) {
+                                      
                                       final fullName =
                                           pessoa?.full_name ?? "NoNe";
-                                      final userName = fullName.length > 15
+                                      final nickName = pessoa?.nickname ?? fullName;
+                                      final userName = nickName.length > 15
                                           ? '${fullName.substring(0, 15)}...'
-                                          : fullName;
+                                          : nickName;
                                       return Column(
                                         children: [
                                           buildAvatar(pessoa?.avatar_url ?? ""),
@@ -221,8 +222,7 @@ final destinations = [
                               ),
                               child: _menuEstendido
                                   ? TextButton.icon(
-                                      onPressed: () async =>
-                                          confirmLogout(),
+                                      onPressed: () async => confirmLogout(),
                                       icon: const Icon(
                                         Icons.logout,
                                         color: Colors.redAccent,
@@ -236,8 +236,7 @@ final destinations = [
                                       ),
                                     )
                                   : IconButton(
-                                      onPressed: () async =>
-                                          confirmLogout(),
+                                      onPressed: () async => confirmLogout(),
                                       icon: const Icon(
                                         Icons.logout,
                                         color: Colors.redAccent,
@@ -299,7 +298,7 @@ final destinations = [
               onDestinationSelected: (int index) {
                 // Intercepta o clique no último item (logout)
                 if (index == destinations.length - 1) {
-                   confirmLogout();
+                  confirmLogout();
                   return;
                 }
 
@@ -316,7 +315,7 @@ final destinations = [
     );
   }
 
-   void confirmLogout() async {
+  void confirmLogout() async {
     final bool? confirmar = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -329,7 +328,8 @@ final destinations = [
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
+              // onPressed: () => Navigator.pop(context, true),
+              onPressed: () => context.go('/login'),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text(
                 'Logout',
@@ -342,9 +342,7 @@ final destinations = [
     );
 
     if (confirmar == true && context.mounted) {
-      
-        AuthController().logout();
-      
-      }
+      AuthController().logout();
     }
+  }
 }

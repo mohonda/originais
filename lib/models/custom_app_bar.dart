@@ -20,6 +20,7 @@ class CustomFloatingAppBar extends StatelessWidget implements PreferredSizeWidge
         ),
         decoration: BoxDecoration(
           color: Colors.grey.withValues( alpha: 0.05),
+          // color: Colors.grey,
           
           borderRadius: BorderRadius.circular(15.0),
           boxShadow: [

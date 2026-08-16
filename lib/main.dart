@@ -7,9 +7,10 @@ import 'package:gorouter_exemplo/view/settings/router_app.dart';
 import 'package:gorouter_exemplo/controllers/bd_item_controller.dart';
 import 'package:gorouter_exemplo/view/dashboard_injector.dart';
 import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
-import 'package:gorouter_exemplo/services/supabase_connected_user_service.dart';
+import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
 import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_formapagamento_controller.dart';
+import 'package:gorouter_exemplo/services/general_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,12 +54,13 @@ void main() async {
   }
 
 
-  setupGetItSupabaseConnectedUser();
+  setupGetItMySupabaseClient();
   setupGetItBdItemController();
   setupGetItDashboardNotifier();
   setupGetItProfileBdItemController();
   setupGetItBdMonthlyPaymentsController();
   setupGetItBdFormaPagamentoController();
+  setupGetItGeneralService();
 
   runApp(const RouterApp());
 }

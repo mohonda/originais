@@ -227,10 +227,10 @@ class _ProfileState extends State<Profile> {
                                 },
                                 child: TextFormField(
                                   controller: urlController,
-                                  enabled: true,
+                                  enabled: false,
                                   readOnly: true,
                                   decoration: const InputDecoration(
-                                    labelText: 'URL:',
+                                    labelText: 'Avatar URL (click to load...):',
                                     prefixIcon: Icon(Icons.photo_album_sharp),
                                     border: OutlineInputBorder(),
                                   ),
