@@ -71,13 +71,13 @@ class LoginState extends State with SingleTickerProviderStateMixin {
   }
 
   void _tratarMudancaEmail() {
-    // Quando o controller receber um valor e a senha ainda não tiver o foco
-    if (loginController.emailController.text.trim().isNotEmpty &&
-        !_senhaFocusNode.hasFocus) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _senhaFocusNode.requestFocus();
-      });
-    }
+    // // Quando o controller receber um valor e a senha ainda não tiver o foco
+    // if (loginController.emailController.text.trim().isNotEmpty &&
+    //     !_senhaFocusNode.hasFocus) {
+    //   WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     if (mounted) _senhaFocusNode.requestFocus();
+    //   });
+    // }
   }
 
   @override
