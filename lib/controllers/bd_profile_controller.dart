@@ -15,6 +15,8 @@ void setupGetItProfileBdItemController() {
 
 class BdProfileController extends ChangeNotifier {
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
+  late SupabaseClient supabaseClient;
+
 
   final ValueNotifier<List<ProfileModel>> profilesNotifier =
       ValueNotifier<List<ProfileModel>>([]);
@@ -25,6 +27,11 @@ class BdProfileController extends ChangeNotifier {
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
   final ValueNotifier<bool> isChangedNotifier = ValueNotifier<bool>(false);
+  
+  // ==========================================
+  BdProfileController() {
+    supabaseClient = mySupabaseClient.getSupabaseClient();
+  }
 
   // ==========================================
   void changedNotifier(bool value) {
@@ -34,12 +41,10 @@ class BdProfileController extends ChangeNotifier {
   // ==========================================
   Future<void> loadProfiles() async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-      
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await supaBaseInstance
+      final resposta = await supabaseClient
         .from('profiles')
         .select()
         .order('full_name', ascending: true);
@@ -58,12 +63,10 @@ class BdProfileController extends ChangeNotifier {
   // ==========================================
   Future<void> fetchProfilesById( String id ) async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final data = await supaBaseInstance
+      final data = await supabaseClient
         .from( 'profiles' )
         .select()
         .eq( 'id', id )
@@ -87,12 +90,10 @@ class BdProfileController extends ChangeNotifier {
   // ==========================================
   Future<void> checkUserProfileExist( String id ) async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final data = await supaBaseInstance
+      final data = await supabaseClient
         .from( 'profiles' )
         .select()
         .eq( 'id', id )
@@ -110,7 +111,7 @@ class BdProfileController extends ChangeNotifier {
           bio: "",
         );
 
-        await supaBaseInstance
+        await supabaseClient
           .from( 'profiles' )
           .upsert( profileData.toJson() );
 
@@ -133,8 +134,6 @@ class BdProfileController extends ChangeNotifier {
     String bio,
   ) async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
@@ -147,7 +146,7 @@ class BdProfileController extends ChangeNotifier {
         bio: bio,
       );
 
-      await supaBaseInstance
+      await supabaseClient
         .from( 'profiles' )
         .upsert( profileData.toJson() );
       
@@ -167,7 +166,6 @@ class BdProfileController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
       final picker = ImagePicker();
       String? imageUrl = "";
 
@@ -188,7 +186,7 @@ class BdProfileController extends ChangeNotifier {
       final filePath = '$userId/profile_picture_$dateTime.$fileExt';
 
       try {
-        await supaBaseInstance.storage
+        await supabaseClient.storage
           .from( 'avatars' )
           .uploadBinary(
             filePath,
@@ -205,7 +203,7 @@ class BdProfileController extends ChangeNotifier {
       }
 
       try {
-        imageUrl = supaBaseInstance.storage
+        imageUrl = supabaseClient.storage
           .from( 'avatars' )
           .getPublicUrl( filePath );
           
@@ -229,12 +227,11 @@ class BdProfileController extends ChangeNotifier {
   // ==========================================
   Future<void> updateAvatar( String id, String avatarUrl ) async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      await supaBaseInstance.from( 'profiles' )
+      await supabaseClient
+        .from( 'profiles' )
         .update({
           'updated_at': DateTime.now().toIso8601String(),
           'avatar_url': avatarUrl })

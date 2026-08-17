@@ -11,6 +11,16 @@ class LoginController {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController senhaController = TextEditingController();
 
+  // ==========================================
+  void dispose() {
+    rememberNotifier.dispose();
+    obscureNotifier.dispose();
+    isLoadingNotifier.dispose();
+    emailController.dispose();
+    senhaController.dispose();
+  }
+
+  // ==========================================
   Future<void> carregarPreferencias() async {
     final prefs = await SharedPreferences.getInstance();
     final bool remembered = prefs.getBool('remember_me') ?? false;
@@ -21,6 +31,7 @@ class LoginController {
     }
   }
 
+  // ==========================================
   Future<void> _salvarPreferencias() async {
     final prefs = await SharedPreferences.getInstance();
     
@@ -33,6 +44,7 @@ class LoginController {
     }
   }
 
+  // ==========================================
   Future<void> submeter(bool ehCadastro, BuildContext context) async {
     final email = emailController.text.trim();
     final senha = senhaController.text.trim();
@@ -73,11 +85,4 @@ class LoginController {
     }
   }
 
-  void dispose() {
-    rememberNotifier.dispose();
-    obscureNotifier.dispose();
-    isLoadingNotifier.dispose();
-    emailController.dispose();
-    senhaController.dispose();
-  }
 }

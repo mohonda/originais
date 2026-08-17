@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import '../models/item_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
 
 final getItBdItemController = GetIt.instance;
@@ -13,21 +14,25 @@ void setupGetItBdItemController() {
 
 class BdItemController extends ChangeNotifier {
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
+  late SupabaseClient supabaseClient;
 
   final ValueNotifier<List<ItemModel>> itensNotifier =
     ValueNotifier<List<ItemModel>>([]);
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
+  
+  // ==========================================
+  BdItemController() {
+    supabaseClient = mySupabaseClient.getSupabaseClient();
+  }
 
   // ==========================================
   Future<void> loadItems() async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await supaBaseInstance
+      final resposta = await supabaseClient
         .from('itens')
         .select()
         .order('nome', ascending: true);
@@ -46,14 +51,12 @@ class BdItemController extends ChangeNotifier {
   // ==========================================
   Future<void> saveItem(String name) async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
       final newItem = ItemModel( id: DateTime.now().toString(), nome: name );
 
-      await supaBaseInstance
+      await supabaseClient
         .from('itens')
         .update({ 'nome': newItem.nome })
         .eq( 'id', newItem.id ); 
@@ -71,15 +74,13 @@ class BdItemController extends ChangeNotifier {
     // ==========================================
   Future<void> updateItem(String id, String name) async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
       final index = itensNotifier.value.indexWhere( (item) => item.id == id );
 
       if (index != -1) {
-        await supaBaseInstance
+        await supabaseClient
           .from('itens')  
           .update({ 'nome': name })
           .eq( 'id', id ); 
@@ -97,12 +98,10 @@ class BdItemController extends ChangeNotifier {
   // ==========================================
   Future<void> deleteItem(String id) async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      await supaBaseInstance.from( 'itens' )
+      await supabaseClient.from( 'itens' )
         .delete()
         .eq( 'id', id );
 

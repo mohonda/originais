@@ -10,8 +10,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gorouter_exemplo/models/mensalidades_model.dart';
 import 'dart:typed_data';
 import 'package:gorouter_exemplo/services/general_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
-
 
 final getItbdMonthlyPaymentsController = GetIt.instance;
 
@@ -24,6 +24,7 @@ void setupGetItBdMonthlyPaymentsController() {
 
 class BdMonthlyPaymentsController extends ChangeNotifier {
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
+  late SupabaseClient supabaseClient;
 
   final ValueNotifier<List<MensalidadesModel>> monthlyPaymentsNotifier =
       ValueNotifier<List<MensalidadesModel>>([]);
@@ -37,17 +38,19 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
   final generalService = getItGeneralService<GeneralService>();
 
   // ==========================================
+  BdMonthlyPaymentsController() {
+    supabaseClient = mySupabaseClient.getSupabaseClient();
+  }
+    // ==========================================
   Future<void> loadCurrentMonthlyPayment() async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
       final String month = DateTime.now().month.toString().padLeft(2, '0');
       final String year = DateTime.now().year.toString();
 
-      final resposta = await supaBaseInstance
+      final resposta = await supabaseClient
         .from('vmensalidades')
         .select()
         .eq('mes_referencia', month)
@@ -72,12 +75,10 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
     String year,
   ) async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
       
-      final resposta = await supaBaseInstance
+      final resposta = await supabaseClient
           .from('vmensalidades')
           .select()
           .eq('id', id)
@@ -104,12 +105,10 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
     String comprovantePag,
   ) async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await supaBaseInstance
+      final resposta = await supabaseClient
         .from('mensalidades')
         .update({'comprovante_pag': comprovantePag})
         .eq('mes_referencia', mesReferencia)
@@ -137,15 +136,13 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
     String formapagamento,
   ) async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
       String dataSupabase = generalService.date2Supabase( datapagamento.toString() );
       String valorSupabase = generalService.value2Supabase( valor.toString() );
 
-      final resposta = await supaBaseInstance
+      final resposta = await supabaseClient
         .from('mensalidades')
         .update({
           'valor': valorSupabase,
@@ -175,8 +172,6 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
   // ==========================================
   Future selecionarEEnviarFoto(String id, String mes, String ano) async {
   try {
-      final supabase = Supabase.instance.client;
-      
       final isLinux = !kIsWeb && Platform.isLinux;
       final isWebOrLinux = kIsWeb || isLinux;
       
@@ -246,7 +241,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final filePath = '$id/${ano}_${mes}_monthlypayments_$timestamp.$fileExt';
 
-      await supabase.storage
+      await supabaseClient.storage
           .from('monthypayments')
           .uploadBinary(
             filePath,
@@ -254,7 +249,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
             fileOptions: FileOptions(upsert: true, contentType: mimeType),
           );
 
-      final imageUrl = supabase.storage
+      final imageUrl = supabaseClient.storage
           .from('monthypayments')
           .getPublicUrl(filePath);
 

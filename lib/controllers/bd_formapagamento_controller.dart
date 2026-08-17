@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:gorouter_exemplo/models/formapagamento_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
-
 final getItBdFormaPagamentoController = GetIt.instance;
 
 void setupGetItBdFormaPagamentoController() {
@@ -13,6 +13,7 @@ void setupGetItBdFormaPagamentoController() {
 
 class BdFormaPagamentoController extends ChangeNotifier {
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
+  late SupabaseClient supabaseClient;
 
   final ValueNotifier<List<FormaPagamentoModel>> formaPagamentoNotifier =
     ValueNotifier<List<FormaPagamentoModel>>([]);
@@ -21,14 +22,17 @@ class BdFormaPagamentoController extends ChangeNotifier {
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
 
   // ==========================================
+  BdFormaPagamentoController() {
+    supabaseClient = mySupabaseClient.getSupabaseClient();
+  }
+
+  // ==========================================
   Future<void> loadFormaPagamento() async {
     try {
-      final supaBaseInstance = mySupabaseClient.getSupabaseClient();
-
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await supaBaseInstance
+      final resposta = await supabaseClient
         .from('forma_pagamento')
         .select();
 

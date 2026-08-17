@@ -17,6 +17,7 @@ class LoginState extends State with SingleTickerProviderStateMixin {
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _senhaFocusNode = FocusNode();
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
@@ -40,15 +41,12 @@ class LoginState extends State with SingleTickerProviderStateMixin {
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
-    // _definirFocoInicial();
-    loginController.emailController.addListener(_tratarMudancaEmail);
-
     // Inicia a animação assim que a tela abre
-    // _controller.forward();
         _startLoopAnimation();
 
   }
 
+  // ==========================================
   @override
   void dispose() {
     _controller.dispose();
@@ -57,12 +55,13 @@ class LoginState extends State with SingleTickerProviderStateMixin {
     super.dispose();
   }
     
+  // ==========================================
   void _startLoopAnimation() async {
     _controller.forward();
 
     _controller.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
-        await Future.delayed(const Duration(seconds: 6));
+        await Future.delayed(const Duration(seconds: 4));
         if (!mounted) return;
         _controller.reset();
         _controller.forward();
@@ -70,16 +69,7 @@ class LoginState extends State with SingleTickerProviderStateMixin {
     });
   }
 
-  void _tratarMudancaEmail() {
-    // // Quando o controller receber um valor e a senha ainda não tiver o foco
-    // if (loginController.emailController.text.trim().isNotEmpty &&
-    //     !_senhaFocusNode.hasFocus) {
-    //   WidgetsBinding.instance.addPostFrameCallback((_) {
-    //     if (mounted) _senhaFocusNode.requestFocus();
-    //   });
-    // }
-  }
-
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -124,13 +114,11 @@ class LoginState extends State with SingleTickerProviderStateMixin {
                 const SizedBox(height: 24),
                 TextField(
                   controller: loginController.emailController,
-                  focusNode: _emailFocusNode, // Atribui o foco do E-mail
-
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction:
-                      TextInputAction.next, // Tecla "Avançar" no teclado
+                  focusNode: _emailFocusNode, 
+                  autofocus: 
+                    loginController.emailController.text.trim().isNotEmpty,
                   onSubmitted: (_) => _senhaFocusNode
-                      .requestFocus(), // Pressionar Enter vai para a senha
+                      .requestFocus(),
                   decoration: const InputDecoration(
                     labelText: 'Email',
                     prefixIcon: Icon(Icons.mail_outline),
@@ -144,7 +132,9 @@ class LoginState extends State with SingleTickerProviderStateMixin {
                   builder: (context, isObscure, child) {
                     return TextField(
                       controller: loginController.senhaController,
-                      focusNode: _senhaFocusNode, // Atribui o foco da Senha
+                      focusNode: _senhaFocusNode,
+                       autofocus: 
+                        loginController.emailController.text.trim().isNotEmpty,
                       obscureText: isObscure,
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) =>
@@ -247,4 +237,5 @@ class LoginState extends State with SingleTickerProviderStateMixin {
       ),
     );
   }
+
 }
