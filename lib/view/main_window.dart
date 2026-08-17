@@ -172,13 +172,17 @@ class _MainWindow extends State<MainWindow> {
                                     valueListenable: bdProfileController
                                         .pessoaSelecionadaNotifier,
                                     builder: (context, pessoa, child) {
-                                      
-                                      final fullName =
-                                          pessoa?.full_name ?? "NoNe";
-                                      final nickName = pessoa?.nickname ?? fullName;
-                                      final userName = nickName.length > 15
-                                          ? '${fullName.substring(0, 15)}...'
-                                          : nickName;
+                                      String name;
+                                      String fName = pessoa?.full_name ?? "NoNe";
+                                      String nName = pessoa?.full_name ?? "";
+                                      if ( nName.isNotEmpty ){
+                                        name = nName;
+                                      } else {
+                                        name = fName;
+                                      }
+                                      final userName = name.length > 15
+                                          ? '${name.substring(0, 15)}...'
+                                          : name;
                                       return Column(
                                         children: [
                                           buildAvatar(pessoa?.avatar_url ?? ""),
