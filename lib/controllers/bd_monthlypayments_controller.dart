@@ -37,11 +37,20 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
 
   final generalService = getItGeneralService<GeneralService>();
 
+  String idConfirmacao = '';
+
+  String nameConfirmacao = '';
+
   // ==========================================
   BdMonthlyPaymentsController() {
     supabaseClient = mySupabaseClient.getSupabaseClient();
+    
+    idConfirmacao = mySupabaseClient.getUserId();
+
+    loadCashierName( idConfirmacao );
   }
-    // ==========================================
+  
+  // ==========================================
   Future<void> loadCurrentMonthlyPayment() async {
     try {
       loadingNotifier.value = true;
@@ -148,6 +157,8 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
           'valor': valorSupabase,
           'data_pagamento': dataSupabase,
           'forma_pagamento': formapagamento,
+          'id_confirmacao': null,
+          'data_confirmacao': null,
         })
         .eq('mes_referencia', mes)
         .eq('ano_referencia', ano)
@@ -167,6 +178,118 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
   }
 
   // ==========================================
+  Future<void> updatePaymentsCashier(
+    String id,
+    String mes,
+    String ano,
+    String valor,
+    String datapagamento,
+    String formapagamento,
+    String idCashier,
+    String dateCashier,
+  ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      String dataSupabase = generalService.date2Supabase( datapagamento.toString() );
+      String valorSupabase = generalService.value2Supabase( valor.toString() );
+      String dataCashierSupabase = generalService.date2Supabase( dateCashier.toString() );
+
+      final resposta = await supabaseClient
+        .from('mensalidades')
+        .update({
+          'valor': valorSupabase,
+          'data_pagamento': dataSupabase,
+          'forma_pagamento': formapagamento,
+          'id_confirmacao': idCashier,
+          'data_confirmacao': dataCashierSupabase,
+        })
+        .eq('mes_referencia', mes)
+        .eq('ano_referencia', ano)
+        .eq('id', id )
+        .select()
+        .single();
+
+      monthlyPaymentsIndividual.value = MensalidadesModel.fromJson( resposta );
+
+    } catch (e, stackTrace) {
+      monthlyPaymentsIndividual.value = null;
+      debugPrint('BdMonthlyPaymentsController::updatePaymentsCashier:  $e\n$stackTrace');
+      errorNotifier.value = 'BdMonthlyPaymentsController::updatePaymentsCashier:  $e\n$stackTrace';
+    } finally {
+      loadCurrentMonthlyPayment();
+      loadingNotifier.value = false;
+    }
+  }
+
+// ==========================================
+  Future<void> cancelPaymentsCashier(
+    String id,
+    String mes,
+    String ano,
+    String idCashier,
+    String dateCashier,
+  ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      String dataCashierSupabase = generalService.date2Supabase( dateCashier.toString() );
+
+      final resposta = await supabaseClient
+        .from('mensalidades')
+        .update({
+          'valor': null,
+          'data_pagamento': null,
+          'forma_pagamento': null,
+          'comprovante_pag': null,
+          'id_confirmacao': idCashier,
+          'data_confirmacao': dataCashierSupabase,
+        })
+        .eq('mes_referencia', mes)
+        .eq('ano_referencia', ano)
+        .eq('id', id )
+        .select()
+        .single();
+
+      monthlyPaymentsIndividual.value = MensalidadesModel.fromJson( resposta );
+
+    } catch (e, stackTrace) {
+      monthlyPaymentsIndividual.value = null;
+      debugPrint('BdMonthlyPaymentsController::cancelPaymentsCashier:  $e\n$stackTrace');
+      errorNotifier.value = 'BdMonthlyPaymentsController::cancelPaymentsCashier:  $e\n$stackTrace';
+    } finally {
+      loadCurrentMonthlyPayment();
+      loadingNotifier.value = false;
+    }
+  }
+
+  // ==========================================
+   Future<void> loadCashierName( String id ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      final data = await supabaseClient
+        .from( 'profiles' )
+        .select('full_name')
+        .eq( 'id', id )
+        .maybeSingle();
+
+      if ( data != null ) {
+        nameConfirmacao = data['full_name'] as String? ?? '';
+      }
+
+    } catch ( e, stackTrace ) {
+      nameConfirmacao = '';
+      errorNotifier.value = "BdMonthlyPaymentsController::loadCashierName: $e \n$stackTrace";
+    } finally {
+      loadingNotifier.value = false;
+    }
+  }
+
+  // ==========================================
   // ==========================================
   // ==========================================
   // ==========================================
@@ -179,8 +302,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
         type: FileType.custom,
         allowedExtensions: ['png', 'jpg', 'jpeg', 'tiff', 'pdf'],
         allowMultiple: false,
-        withData:
-            true, // Garante que 'file.bytes' não venha nulo no Android/iOS/Desktop
+        withData: true, // Check data null do Android/iOS/Desktop
       );
 
       if (result == null || result.files.isEmpty) return;

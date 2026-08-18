@@ -5,18 +5,23 @@ import 'package:gorouter_exemplo/controllers/bd_item_controller.dart';
 class DashboardWidgetItens extends StatefulWidget {
   const DashboardWidgetItens({super.key});
 
+  // ==========================================
   @override
   State<DashboardWidgetItens> createState() => _DashboardWidgetItens();
 }
 
 class _DashboardWidgetItens extends State<DashboardWidgetItens> {
+
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     final bdItemController = getItBdItemController<BdItemController>();
 
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12)
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -28,9 +33,14 @@ class _DashboardWidgetItens extends State<DashboardWidgetItens> {
               children: [
                 Text(
                   'Total de Itens',
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(
+                    color: Colors.grey[600]
+                  ),
                 ),
-                const Icon(Icons.verified_user, color: Colors.green),
+                const Icon(
+                  Icons.verified_user,
+                  color: Colors.green
+                ),
               ],
             ),
 
@@ -73,4 +83,5 @@ class _DashboardWidgetItens extends State<DashboardWidgetItens> {
       ),
     );
   }
+
 }

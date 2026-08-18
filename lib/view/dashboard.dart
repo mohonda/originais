@@ -6,17 +6,20 @@ import 'package:gorouter_exemplo/models/custom_app_bar.dart';
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
 
+  // ==========================================
   @override
   State<Dashboard> createState() => _Dashboard();
 }
 
 class _Dashboard extends State<Dashboard> {
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,8 +62,9 @@ class _Dashboard extends State<Dashboard> {
                         ),
 
                         const SizedBox(height: 24),
-                        
-
+                      
+                        // ==========================================
+                        // box grande
                         // const SizedBox(
                         //   height: 350,
                         //   child: MonthlyPayments()
@@ -76,4 +80,5 @@ class _Dashboard extends State<Dashboard> {
       ),
     );
   }
+
 }

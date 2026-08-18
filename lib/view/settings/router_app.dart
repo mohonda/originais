@@ -4,6 +4,7 @@ import 'package:gorouter_exemplo/view/settings/router_settings.dart';
 class RouterApp extends StatelessWidget {
   const RouterApp({super.key});
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(

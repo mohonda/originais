@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class CustomFloatingAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
 
+  // ==========================================
   const CustomFloatingAppBar({
     super.key,
     required this.title,
   });
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -19,13 +21,18 @@ class CustomFloatingAppBar extends StatelessWidget implements PreferredSizeWidge
           top: 16.0,
         ),
         decoration: BoxDecoration(
-          color: Colors.grey.withValues( alpha: 0.05),
-          // color: Colors.grey,
+          color: Colors.grey.withValues(
+            alpha: 0.05
+          ),
           
-          borderRadius: BorderRadius.circular(15.0),
+          borderRadius: BorderRadius.circular(
+            15.0
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.transparent.withValues(alpha: 0.1),
+              color: Colors.transparent.withValues(
+                alpha: 0.1
+              ),
               blurRadius: 5,
               offset: const Offset(0, 5),
             ),
@@ -42,6 +49,8 @@ class CustomFloatingAppBar extends StatelessWidget implements PreferredSizeWidge
     );
   }
 
+  // ==========================================
   @override
-  Size get preferredSize => const Size.fromHeight(80.0);
+  Size get preferredSize =>
+    const Size.fromHeight(80.0);
 }

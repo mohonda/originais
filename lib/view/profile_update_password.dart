@@ -7,8 +7,10 @@ import 'package:gorouter_exemplo/controllers/auth_controller.dart';
 class ProfileUpdatePassword extends StatefulWidget {
   const ProfileUpdatePassword({super.key});
 
+  // ==========================================
   @override
   State<ProfileUpdatePassword> createState() => ProfileUpdatePasswordState();
+
 }
 
 class ProfileUpdatePasswordState extends State<ProfileUpdatePassword> {
@@ -24,6 +26,7 @@ class ProfileUpdatePasswordState extends State<ProfileUpdatePassword> {
   final ValueNotifier<bool> isObscurePassword1 = ValueNotifier<bool>(true);
   final ValueNotifier<bool> isObscurePassword2 = ValueNotifier<bool>(true);
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
@@ -31,18 +34,25 @@ class ProfileUpdatePasswordState extends State<ProfileUpdatePassword> {
     initValues();
   }
 
+  // ==========================================
   @override
   void dispose() {
     super.dispose();
   }
 
+  // ==========================================
   void initValues() {
     idController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.id ?? "";
+        bdProfileController
+          .pessoaSelecionadaNotifier
+          .value?.id ?? "";
     fullNameController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.full_name ?? "";
+        bdProfileController
+          .pessoaSelecionadaNotifier
+          .value?.full_name ?? "";
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     const double distance = 12;
@@ -182,7 +192,9 @@ class ProfileUpdatePasswordState extends State<ProfileUpdatePassword> {
                             label: const Text('Cancelar'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.indigo,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16
+                              ),
                             ),
                           ),
                         ),
@@ -192,7 +204,6 @@ class ProfileUpdatePasswordState extends State<ProfileUpdatePassword> {
                           child: ElevatedButton.icon(
                             onPressed: () async {
                               if (_formKey.currentState!.validate()) {
-                                // ProfileUpdatePassword(password1.text.trim());
                                 try {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
@@ -201,27 +212,34 @@ class ProfileUpdatePasswordState extends State<ProfileUpdatePassword> {
                                   );
 
                                   AuthController authController = AuthController();
-                                  await authController.updatePassword(password1.text.trim());
+                                  await authController
+                                    .updatePassword(
+                                      password1.text.trim()
+                                    );
 
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Senha alterada com sucesso!',
+                                    ScaffoldMessenger
+                                      .of(context)
+                                      .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Senha alterada com sucesso!',
+                                          ),
+                                          backgroundColor: Colors.green,
                                         ),
-                                        backgroundColor: Colors.green,
-                                      ),
-                                    );
-                                    context.pop();
+                                      );
+                                      context.pop();
                                   }
                                 } catch (error) {
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(error.toString()),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
+                                    ScaffoldMessenger
+                                      .of(context)
+                                      .showSnackBar(
+                                        SnackBar(
+                                          content: Text(error.toString()),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
                                   }
                                 }
                               }
@@ -231,7 +249,9 @@ class ProfileUpdatePasswordState extends State<ProfileUpdatePassword> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.indigo,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16
+                              ),
                             ),
                           ),
                         ),

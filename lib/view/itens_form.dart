@@ -10,6 +10,7 @@ class ItensForm extends StatefulWidget {
 
   const ItensForm({super.key, required this.bdItemController, this.itemAtual});
 
+  // ==========================================
   @override
   State<ItensForm> createState() => _FormViewState();
 }
@@ -18,6 +19,7 @@ class _FormViewState extends State<ItensForm> {
   final _formKey = GlobalKey<FormState>();
   final _textController = TextEditingController();
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
@@ -26,12 +28,14 @@ class _FormViewState extends State<ItensForm> {
     }
   }
 
+  // ==========================================
   @override
   void dispose() {
     _textController.dispose();
     super.dispose();
   }
 
+  // ==========================================
   Future<void> _salvar() async {
     if (_formKey.currentState!.validate()) {
       try {
@@ -39,27 +43,32 @@ class _FormViewState extends State<ItensForm> {
           context: context,
           barrierDismissible: false,
           builder: (context) =>
-              const Center(child: CircularProgressIndicator()),
+              const Center(
+                child: CircularProgressIndicator()
+              ),
         );
 
         if (widget.itemAtual == null) {
-          await widget.bdItemController.saveItem(_textController.text);
+          await widget.bdItemController
+            .saveItem(_textController.text);
         } else {
-          await widget.bdItemController.updateItem(
-            widget.itemAtual!.id,
-            _textController.text,
-          );
+          await widget.bdItemController
+            .updateItem(
+              widget.itemAtual!.id,
+              _textController.text,
+            );
         }
 
-        if (mounted) Navigator.pop(context);
+        if (mounted) Navigator.pop( context );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Item salvo com sucesso!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
+          ScaffoldMessenger.of( context )
+            .showSnackBar(
+              const SnackBar(
+                content: Text('Item salvo com sucesso!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
           );
           context.pop();
         }
@@ -67,17 +76,19 @@ class _FormViewState extends State<ItensForm> {
         if (mounted) Navigator.pop(context);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erro ao salvar. Verifique sua conexão.'),
-              backgroundColor: Colors.red,
-            ),
+          ScaffoldMessenger.of(context)
+            .showSnackBar(
+              const SnackBar(
+                content: Text('Erro ao salvar. Verifique sua conexão.'),
+                backgroundColor: Colors.red,
+              ),
           );
         }
       }
     }
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     final bool editando = widget.itemAtual != null;
@@ -132,7 +143,9 @@ class _FormViewState extends State<ItensForm> {
                             label: const Text('Cancelar'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.indigo,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16
+                              ),
                             ),                            
                           ),
                         ),
@@ -146,7 +159,9 @@ class _FormViewState extends State<ItensForm> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.indigo,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16
+                              ),
                             ),
                             label: Text(editando ? 'Salvar Alterações' : 'Cadastrar'),
                           ),
@@ -162,4 +177,5 @@ class _FormViewState extends State<ItensForm> {
       ),
     );
   }
+
 }

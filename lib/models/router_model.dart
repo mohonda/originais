@@ -13,6 +13,7 @@ class RouterModel {
   final String path;
   final Widget Function(BuildContext, GoRouterState) builder;
 
+  // ==========================================
   const RouterModel ( {
     required this.label,
     required this.icon,
@@ -21,6 +22,7 @@ class RouterModel {
     required this.builder,
   } );
 
+  // ==========================================
   static List<RouterModel> get routerModelList => [
     RouterModel(
       label: 'Dashboard',
@@ -58,4 +60,5 @@ class RouterModel {
       builder: (context, state) => const About(),
     ),
   ];
+
 }

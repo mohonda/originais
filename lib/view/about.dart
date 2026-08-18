@@ -42,6 +42,7 @@ class _AboutState extends State<About> with SingleTickerProviderStateMixin {
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
@@ -60,31 +61,40 @@ class _AboutState extends State<About> with SingleTickerProviderStateMixin {
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 1.15),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutBack
+        )
+      );
 
     _startLoopAnimation();
   }
 
-  // Loop para reanimar a imagem a cada 6 segundos
+  // ==========================================
   void _startLoopAnimation() async {
     _controller.forward();
 
-    _controller.addStatusListener((status) async {
-      if (status == AnimationStatus.completed) {
-        await Future.delayed(const Duration(seconds: 6));
-        if (!mounted) return;
+    _controller.addStatusListener( (status) async {
+      if ( status == AnimationStatus.completed ) {
+        await Future.delayed(
+          const Duration(seconds: 6)
+        );
+        if ( !mounted ) return;
         _controller.reset();
         _controller.forward();
       }
     });
   }
 
+  // ==========================================
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -210,7 +220,7 @@ class _AboutState extends State<About> with SingleTickerProviderStateMixin {
                   FutureBuilder<AppSystemDetails>(
                     future: AppSystemDetails.fetch(),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
+                      if ( snapshot.connectionState == ConnectionState.waiting ) {
                         return const CircularProgressIndicator.adaptive();
                       }
 
@@ -224,10 +234,13 @@ class _AboutState extends State<About> with SingleTickerProviderStateMixin {
                         children: [
                           _buildInfoRow('Software de Gestão', ""),
                           const SizedBox(height: 3),
+
                           _buildInfoRow('Versão:', versionText),
                           const SizedBox(height: 3),
+
                           _buildInfoRow('Backend Supabase:', 'v2.x'),
                           const SizedBox(height: 3),
+
                           _buildInfoRow('Plataforma:', platformText),
                         ],
                       );
@@ -245,7 +258,10 @@ class _AboutState extends State<About> with SingleTickerProviderStateMixin {
                   const SizedBox(height: 12),
                   Text(
                     '© 2026 Originais Moto Clube. Todos os direitos reservados.',
-                    style: TextStyle(fontSize: 11, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -257,6 +273,7 @@ class _AboutState extends State<About> with SingleTickerProviderStateMixin {
     );
   }
 
+  // ==========================================
   // Helper para criar as linhas de informação padronizadas
   Widget _buildInfoRow(String title, String value) {
     return Row(
@@ -270,15 +287,24 @@ class _AboutState extends State<About> with SingleTickerProviderStateMixin {
             color: Colors.white,
           ),
         ),
-        Text(value, style: const TextStyle(fontSize: 13, color: Colors.white)),
+        Text(value, style: const TextStyle(
+          fontSize: 13,
+          color: Colors.white
+        )),
       ],
     );
   }
 
+  // ==========================================
   Future<void> _abrirInstagram() async {
-    final Uri url = Uri.parse('https://www.instagram.com/originaismc');
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+    final Uri url = Uri
+      .parse('https://www.instagram.com/originaismc');
+    if (!await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication)
+      ) {
       debugPrint('Não foi possível abrir o link $url');
     }
   }
+
 }

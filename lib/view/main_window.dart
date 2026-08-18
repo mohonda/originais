@@ -32,6 +32,7 @@ class _MainWindow extends State<MainWindow> {
 
   int win = 0;
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
@@ -46,6 +47,7 @@ class _MainWindow extends State<MainWindow> {
     bdMonthlyPaymentsController.loadCurrentMonthlyPayment();
   }
 
+  // ==========================================
   Widget buildNameEmail(String nome, String email) {
     return Column(
       children: [
@@ -81,6 +83,7 @@ class _MainWindow extends State<MainWindow> {
     );
   }
 
+  // ==========================================
   Widget buildAvatar(String avatarUrl) {
     return Stack(
       children: [
@@ -123,6 +126,7 @@ class _MainWindow extends State<MainWindow> {
     );
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     final destinations = [
@@ -273,7 +277,8 @@ class _MainWindow extends State<MainWindow> {
                             width: 28,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Theme.of(context).scaffoldBackgroundColor,
+                              color: Theme.of(context)
+                                .scaffoldBackgroundColor,
                             ),
                             child: Icon(
                               _menuEstendido
@@ -308,7 +313,8 @@ class _MainWindow extends State<MainWindow> {
 
                 widget.navigationShell.goBranch(
                   index,
-                  initialLocation: index == widget.navigationShell.currentIndex,
+                  initialLocation:
+                    index == widget.navigationShell.currentIndex,
                 );
               },
               destinations: destinations,
@@ -319,6 +325,7 @@ class _MainWindow extends State<MainWindow> {
     );
   }
 
+  // ==========================================
   void confirmLogout() async {
     final bool? confirmar = await showDialog<bool>(
       context: context,
@@ -334,7 +341,9 @@ class _MainWindow extends State<MainWindow> {
             ElevatedButton(
               // onPressed: () => Navigator.pop(context, true),
               onPressed: () => context.go('/login'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red
+              ),
               child: const Text(
                 'Logout',
                 style: TextStyle(color: Colors.white),

@@ -6,6 +6,7 @@ class ProfileModel {
   String avatar_url;
   String bio;
 
+  // ==========================================
   ProfileModel ( {
     required this.id,
     required this.updated_at,
@@ -15,8 +16,10 @@ class ProfileModel {
     required this.bio,
   } );
 
-  // Converte o JSON vindo do Supabase em um objeto PessoaModel
-  factory ProfileModel.fromJson(Map<String, dynamic> json) {
+  // ==========================================
+  factory ProfileModel
+    .fromJson(Map<String, dynamic> json)
+  {
     return ProfileModel(
       id: json['id'] as String,
       updated_at: json['updated_at'] as String? ?? '',
@@ -27,7 +30,7 @@ class ProfileModel {
     );
   }
 
-  // Converte o objeto PessoaModel para formato JSON aceito pelo Supabase
+  // ==========================================
   Map<String, dynamic> toJson() {
     return {
       if ( id.isNotEmpty ) 

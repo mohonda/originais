@@ -4,10 +4,12 @@ import 'package:gorouter_exemplo/models/custom_app_bar.dart';
 import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
 import 'package:gorouter_exemplo/models/mensalidades_model.dart';
 import 'package:gorouter_exemplo/view/monthly_payments_profile.dart';
+import 'package:gorouter_exemplo/view/monthly_payments_cashier.dart';
 
 class MonthlyPayments extends StatefulWidget {
   const MonthlyPayments({super.key});
 
+  // ==========================================
   @override
   State<MonthlyPayments> createState() => _MonthlyPayments();
 }
@@ -19,6 +21,7 @@ class _MonthlyPayments extends State<MonthlyPayments> {
   String _searchQuery = '';
   String _filtroStatus = 'Todos';
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
@@ -27,6 +30,7 @@ class _MonthlyPayments extends State<MonthlyPayments> {
         getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,7 +54,8 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                     return ChoiceChip(
                       label: Text(status),
                       selected: isSelected,
-                      onSelected: (_) => setState(() => _filtroStatus = status),
+                      onSelected: (_) =>
+                        setState( () => _filtroStatus = status ),
                     );
                   }).toList(),
                 ),
@@ -102,10 +107,12 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                                       .contains(_searchQuery.toLowerCase());
                                   final isPago = m.datapagamento.isNotEmpty;
 
-                                  if (_filtroStatus == 'Pagas')
+                                  if (_filtroStatus == 'Pagas') {
                                     return nomeMatch && isPago;
-                                  if (_filtroStatus == 'Pendentes')
+                                  }
+                                  if (_filtroStatus == 'Pendentes') {
                                     return nomeMatch && !isPago;
+                                  }
                                   return nomeMatch;
                                 }).toList();
 
@@ -144,6 +151,7 @@ class _MonthlyPayments extends State<MonthlyPayments> {
     );
   }
 
+  // ==========================================
   Future<void> monthlyPaymentsIndividual(
     MensalidadesModel mensalidade,
     BuildContext context,
@@ -160,7 +168,8 @@ class _MonthlyPayments extends State<MonthlyPayments> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const MonthlyPaymentsProfile(),
+            builder: (context) =>
+              const MonthlyPaymentsProfile(),
           ),
         );
       }
@@ -169,18 +178,52 @@ class _MonthlyPayments extends State<MonthlyPayments> {
     }
   }
 
+  // ==========================================
+  Future<void> monthlyPaymentsCashier(
+    MensalidadesModel mensalidade,
+    BuildContext context,
+  ) async {
+    try {
+      await bdMonthlyPaymentsController.loadMonthlyPaymentsIndividual(
+        mensalidade.id,
+        mensalidade.mesreferencia,
+        mensalidade.anoreferencia,
+      );
+
+      // Abre a tela somente após carregar os dados com sucesso
+      if (context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+              const MonthlyPaymentsCashier(),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('monthlyPaymentsIndividual error: $e');
+    }
+  }
+
+  // ==========================================
   Widget _buildMensalidadeCard(MensalidadesModel mensalidade) {
     final bool isPago = mensalidade.datapagamento.isNotEmpty;
     final bool isConfirmado = mensalidade.dataconfirmacao.isNotEmpty;
+    late bool isCancelado = false;
+    if( !isPago && isConfirmado ){
+      isCancelado = true;
+    }
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      margin: const EdgeInsets.only( bottom: 8 ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10)
+      ),
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               flex: 1, // Ocupa 3/8 do espaço horizontal
@@ -195,8 +238,13 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                             ? Colors.green.shade100
                             : Colors.orange.shade100,
                         child: Icon(
-                          isPago ? Icons.check_circle : Icons.pending_actions,
-                          color: isPago ? Colors.green : Colors.orange,
+                          isPago
+                            ? Icons.check_circle
+                            : Icons.pending_actions,
+                          color:
+                            isPago 
+                              ? Colors.green
+                              : Colors.orange,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -240,8 +288,15 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Valor Ref: ${generalService.currencyMoneyBr(mensalidade.valor_normal)}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                    'Valor Ref: ${
+                      generalService.currencyMoneyBr(
+                        mensalidade.valor_normal
+                      )
+                    }',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[700]
+                    ),
                   ),
                 ],
               ),
@@ -256,7 +311,6 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                 children: [
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      // backgroundColor: Colors.blue,
                       backgroundColor: isPago
                             ? Colors.green
                             : Colors.orange,
@@ -273,91 +327,94 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                   ),
                   Text(
                     generalService.currencyMoneyBr(mensalidade.valor),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
+                      color: isCancelado 
+                        ? Colors.redAccent 
+                        :Colors.white
                     ),
                   ),
                   const SizedBox(height: 2),
-                  // if (isPago) ...[
                   Text(
-                    'Data: ${generalService.formatarDataBr(mensalidade.datapagamento)}',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[800]),
+                    'Data: ${
+                      generalService
+                      .formatarDataBr(
+                        mensalidade.datapagamento
+                      )
+                    }',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isCancelado 
+                        ? Colors.redAccent 
+                        :Colors.grey[800]
+                    ),
                   ),
                   Text(
                     'Forma: ${mensalidade.descricao}',
-                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isCancelado 
+                        ? Colors.redAccent 
+                        : Colors.grey[600]
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-
-                  // ] else
                 ],
               ),
             ),
 
-            const VerticalDivider(width: 16, thickness: 1), // Divisória visual
+            const VerticalDivider(width: 16, thickness: 1),
             // ================= COLUNA 3: CONFIRMAÇÃO DO TESOUREIRO =================
             Expanded(
               flex: 2, // Ocupa 2/8 do espaço horizontal
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment:
+                  CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Tesouraria',
-                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(width: 2),
-                      Icon(
-                        isConfirmado ? Icons.verified : Icons.hourglass_empty,
-                        color: isConfirmado ? Colors.blue : Colors.grey,
-                        size: 14,
-                      ),
-                    ],
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isPago
+                            ? Colors.green
+                            : Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: const Size(0, 28),
+                    ),
+                    onPressed: () =>{ isPago ? monthlyPaymentsCashier(mensalidade, context):()},
+                    child: const Text(
+                      'Cashier',
+                      style: TextStyle(fontSize: 11),
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  if (isConfirmado) ...[
-                    Text(
-                      generalService.formatarDataBr(
-                        mensalidade.dataconfirmacao,
-                      ),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  Text(
+                    'Date: ${ 
+                      isConfirmado || isCancelado
+                      ? generalService.formatarDataBr(
+                          mensalidade.dataconfirmacao)
+                      : ""
+                    }',
+                    
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
                     ),
-                    Text(
-                      'ID: ${mensalidade.idconfirmacao}',
-                      style: TextStyle(fontSize: 9, color: Colors.grey[600]),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Cashier: ${
+                      isConfirmado || isCancelado
+                      ? mensalidade.full_name_confirmacao
+                      : ""
+                    }',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600]
                     ),
-                  ] else if (isPago) ...[
-                    // Botão para o tesoureiro validar o pagamento já efetuado
-                    IconButton(
-                      icon: const Icon(
-                        Icons.check_circle_outline,
-                        color: Colors.blue,
-                        size: 22,
-                      ),
-                      tooltip: 'Confirmar como Tesoureiro',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      // onPressed: () => _validarTesouraria(mensalidade),
-                      onPressed: () {},
-                    ),
-                  ] else
-                    Text(
-                      'Aguardando',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[500],
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
@@ -366,4 +423,5 @@ class _MonthlyPayments extends State<MonthlyPayments> {
       ),
     );
   }
+
 }

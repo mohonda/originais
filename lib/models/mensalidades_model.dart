@@ -15,7 +15,9 @@ class MensalidadesModel {
   String descricao;
   String dataconfirmacao;
   String idconfirmacao;
+  String full_name_confirmacao;
 
+  // ==========================================
   MensalidadesModel ( {
     required this.mesreferencia,
     required this.anoreferencia,
@@ -32,10 +34,14 @@ class MensalidadesModel {
     required this.formapagamento,
     required this.descricao,
     required this.dataconfirmacao,
-    required this.idconfirmacao
+    required this.idconfirmacao,
+    required this.full_name_confirmacao
   } );
 
-  factory MensalidadesModel.fromJson(Map<String, dynamic> json) {
+   // ==========================================
+  factory MensalidadesModel
+  .fromJson(Map<String, dynamic> json)
+  {
       return MensalidadesModel(
         mesreferencia: json['mes_referencia']?.toString() ?? "",
         anoreferencia: json['ano_referencia']?.toString() ?? "",
@@ -53,6 +59,8 @@ class MensalidadesModel {
         descricao: json['descricao']?.toString() ?? "",
         dataconfirmacao: json['data_confirmacao']?.toString() ?? "",
         idconfirmacao: json['id_confirmacao']?.toString() ?? "",
+        full_name_confirmacao: json['full_name_confirmacao']?.toString() ?? "",
     );
   }
+
 }

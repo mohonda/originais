@@ -5,18 +5,23 @@ import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
 class DashboardWidgetUsers extends StatefulWidget {
   const DashboardWidgetUsers({super.key});
 
+  // ==========================================
   @override
   State<DashboardWidgetUsers> createState() => _DashboardWidgetUsers();
 }
 
 class _DashboardWidgetUsers extends State<DashboardWidgetUsers> {
+
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     final bdProfileController = getItBdProfileController<BdProfileController>();
 
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12)
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -28,9 +33,14 @@ class _DashboardWidgetUsers extends State<DashboardWidgetUsers> {
               children: [
                 Text(
                   'Total de Usuários',
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(
+                    color: Colors.grey[600]
+                  ),
                 ),
-                const Icon(Icons.verified_user, color: Colors.green),
+                const Icon(
+                  Icons.verified_user,
+                  color: Colors.green
+                ),
               ],
             ),
 
@@ -73,4 +83,5 @@ class _DashboardWidgetUsers extends State<DashboardWidgetUsers> {
       ),
     );
   }
+
 }

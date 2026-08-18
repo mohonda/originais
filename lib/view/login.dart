@@ -116,7 +116,8 @@ class LoginState extends State with SingleTickerProviderStateMixin {
                   controller: loginController.emailController,
                   focusNode: _emailFocusNode, 
                   autofocus: 
-                    loginController.emailController.text.trim().isNotEmpty,
+                    loginController.emailController
+                      .text.trim().isNotEmpty,
                   onSubmitted: (_) => _senhaFocusNode
                       .requestFocus(),
                   decoration: const InputDecoration(
@@ -134,7 +135,8 @@ class LoginState extends State with SingleTickerProviderStateMixin {
                       controller: loginController.senhaController,
                       focusNode: _senhaFocusNode,
                        autofocus: 
-                        loginController.emailController.text.trim().isNotEmpty,
+                        loginController.emailController
+                          .text.trim().isNotEmpty,
                       obscureText: isObscure,
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) =>
@@ -162,13 +164,15 @@ class LoginState extends State with SingleTickerProviderStateMixin {
                     Row(
                       children: [
                         ValueListenableBuilder<bool>(
-                          valueListenable: loginController.rememberNotifier,
+                          valueListenable: loginController
+                            .rememberNotifier,
                           builder: (context, isRemember, child) {
                             return Checkbox(
                               value: isRemember,
                               onChanged: (v) =>
-                                  loginController.rememberNotifier.value =
-                                      v ?? false,
+                                  loginController
+                                    .rememberNotifier.value =
+                                     v ?? false,
                             );
                           },
                         ),
@@ -196,7 +200,8 @@ class LoginState extends State with SingleTickerProviderStateMixin {
                             onPressed: isLoading
                                 ? null
                                 : () =>
-                                      loginController.submeter(false, context),
+                                      loginController
+                                        .submeter(false, context),
                             child: isLoading
                                 ? const SizedBox(
                                     height: 24,
@@ -215,13 +220,16 @@ class LoginState extends State with SingleTickerProviderStateMixin {
                           children: [
                             Text(
                               "Don't have an account?",
-                              style: TextStyle(color: scheme.onSurfaceVariant),
+                              style: TextStyle(
+                                color: scheme.onSurfaceVariant
+                              ),
                             ),
                             TextButton(
                               onPressed: isLoading
                                   ? null
                                   : () =>
-                                        loginController.submeter(true, context),
+                                        loginController
+                                          .submeter(true, context),
                               child: const Text('Sign up'),
                             ),
                           ],

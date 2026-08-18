@@ -5,14 +5,14 @@ import 'package:gorouter_exemplo/controllers/bd_formapagamento_controller.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
 import 'package:gorouter_exemplo/services/general_service.dart';
 
-class MonthlyPaymentsProfile extends StatefulWidget {
-  const MonthlyPaymentsProfile({super.key});
+class MonthlyPaymentsCashier extends StatefulWidget {
+  const MonthlyPaymentsCashier({super.key});
 
   @override
-  State<MonthlyPaymentsProfile> createState() => MonthlyPaymentsProfileState();
+  State<MonthlyPaymentsCashier> createState() => MonthlyPaymentsCashierState();
 }
 
-class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
+class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
   final GeneralService generalService = GeneralService();
 
   final bdMonthlyPaymentsController =
@@ -31,6 +31,9 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
   final datapagamento = TextEditingController();
   final comprovantepag = TextEditingController();
   String? formaPagamentoSelecionada = "";
+  final dataconfirmacao = TextEditingController();
+  final idconfirmacao = TextEditingController();
+  final nameConfirmacao = TextEditingController();
 
   // ==========================================
   @override
@@ -49,6 +52,10 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
     valor.dispose();
     datapagamento.dispose();
     comprovantepag.dispose();
+    dataconfirmacao.dispose();
+    idconfirmacao.dispose();
+    nameConfirmacao.dispose();
+
     super.dispose();
   }
 
@@ -95,6 +102,19 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
     comprovantepag.text = payment?.comprovantepag.toString() ?? "";
 
     formaPagamentoSelecionada = payment?.formapagamento.toString() ?? "";
+
+    tdata = payment?.dataconfirmacao.toString() ?? "";
+    if (tdata.length < 2) {
+      dataconfirmacao.text = generalService.formatarDataBr(
+        DateTime.now().toString(),
+      );
+    } else {
+      dataconfirmacao.text = generalService.formatarDataBr( tdata );
+    }
+
+    idconfirmacao.text = bdMonthlyPaymentsController.idConfirmacao;
+
+    nameConfirmacao.text = bdMonthlyPaymentsController.nameConfirmacao;
   }
 
   // ==========================================
@@ -116,7 +136,7 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
 
     return Scaffold(
       appBar: const CustomFloatingAppBar(
-        title: 'Comprovante de Pagamento'
+        title: 'Cashier'
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -355,7 +375,7 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
                                     final url = value?.comprovantepag ?? "";
 
                                     return GestureDetector(
-                                      onTap: selecionarEEnviarFoto,
+                                      // onTap: selecionarEEnviarFoto,
                                       child: Container(
                                         clipBehavior: Clip.antiAlias,
                                         decoration: BoxDecoration(
@@ -452,6 +472,115 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
                     ),
                   ),
 
+                  const SizedBox(height: distance),
+                  const Divider(),
+                  const SizedBox(height: distance),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: TextFormField(
+                          controller: idconfirmacao,
+                          enabled: false,
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(
+                            color: Colors.deepOrange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Cashier ID:',
+                            labelStyle: TextStyle(
+                              color: Colors.blue
+                            ),
+                            prefixIcon: Icon(
+                              Icons.attach_money_sharp,
+                              color: Colors.blue,
+                            ),
+                            disabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.blue.shade200,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: distance),
+                                      Expanded(
+                        flex: 1,
+                        child: TextFormField(
+                          controller: nameConfirmacao,
+                          enabled: false,
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(
+                            color: Colors.deepOrange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Cashier Name:',
+                            labelStyle: TextStyle(
+                              color: Colors.blue
+                            ),
+                            prefixIcon: Icon(
+                              Icons.attach_money_sharp,
+                              color: Colors.blue,
+                            ),
+                            disabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.blue.shade200,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: distance),
+                      Expanded(
+                        flex: 1,
+                        child: TextFormField(
+                          controller: dataconfirmacao,
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(
+                            color: Colors.deepOrange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Cashier Date:',
+                            floatingLabelStyle: TextStyle(
+                              color: Colors.blue,
+                            ),
+                            labelStyle: TextStyle(
+                              color: Colors.blue
+                            ),
+                            prefixIcon: Icon(
+                              Icons.calendar_month,
+                              color: Colors.blue,
+                              ),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.blue.shade200,
+                                width: 2,
+                              ),
+                            ),
+                            border: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.blue.shade200,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                          validator: (dataconfirmacao) =>
+                              dataconfirmacao == null ||
+                                  dataconfirmacao.trim().isEmpty
+                              ? 'Informe a data'
+                              : null,
+                        ),
+                      ),
+                    ],
+                  ),
+
+
                   const SizedBox(height: distance * 2),
 
                   // --- BOTÕES DE AÇÃO ---
@@ -473,11 +602,28 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
                         child: ElevatedButton.icon(
                           onPressed: () async {
                             if (_formKey.currentState!.validate()) {
-                              updatePaymentsProfile();
+                              cancelPaymentsCashier( context );
                             }
                           },
                           icon: const Icon(Icons.save),
-                          label: const Text('Salvar'),
+                          label: const Text('Cashier Cancel'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepOrange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: distance),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            if (_formKey.currentState!.validate()) {
+                              updatePaymentsCashier();
+                            }
+                          },
+                          icon: const Icon(Icons.save),
+                          label: const Text('Cashier Confirm'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.indigo,
                             foregroundColor: Colors.white,
@@ -528,6 +674,95 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
         );
       }
     }
+  }
+  
+  // ==========================================
+  void updatePaymentsCashier() async {
+    try {
+      bdMonthlyPaymentsController.updatePaymentsCashier(
+        idController.text,
+        myreferencia.text.split('/')[0],
+        myreferencia.text.split('/')[1],
+        valor.text,
+        datapagamento.text,
+        formaPagamentoSelecionada ?? "",
+        idconfirmacao.text,
+        dataconfirmacao.text
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error dados não atualizados!'),
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dados atualizados com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  // ==========================================
+  void cancelPaymentsCashier( BuildContext context ) async {
+  showDialog(
+    context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Profile Payment?'),
+        content: const Text('Data Profile Payment will be lost!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            child: const Text('Confirmar'),
+            onPressed: () {
+
+              Navigator.pop(context);
+              try {
+                bdMonthlyPaymentsController.cancelPaymentsCashier(
+                  idController.text,
+                  myreferencia.text.split('/')[0],
+                  myreferencia.text.split('/')[1],
+                  idconfirmacao.text,
+                  dataconfirmacao.text
+                );
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Error dados não atualizados!'),
+                      backgroundColor: Colors.redAccent,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } finally {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Dados atualizados com sucesso!'),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }           
+            },
+          ),
+        ],
+      ),
+    );
   }
 
 }

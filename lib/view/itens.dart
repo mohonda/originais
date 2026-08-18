@@ -6,19 +6,26 @@ import 'package:gorouter_exemplo/models/custom_app_bar.dart';
 class Itens extends StatefulWidget {
   const Itens({super.key});
 
+  // ==========================================
   @override
   State<Itens> createState() => _Itens();
 }
 
 class _Itens extends State<Itens> {
-  final bdItemController = getItBdItemController<BdItemController>();
+  final bdItemController =
+    getItBdItemController<BdItemController>();
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
   }
 
-  Future<void> _confirmarExclusao(BuildContext context, String id) async {
+  // ==========================================
+  Future<void> _confirmarExclusao(
+    BuildContext context,
+    String id
+  ) async {
     final bool? confirmar = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -32,7 +39,9 @@ class _Itens extends State<Itens> {
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red
+              ),
               child: const Text(
                 'Excluir',
                 style: TextStyle(color: Colors.white),
@@ -45,11 +54,13 @@ class _Itens extends State<Itens> {
 
     if (confirmar == true && context.mounted) {
       try {
-        await bdItemController.deleteItem(id);
+        await bdItemController.deleteItem( id );
         if (context.mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('Item excluído!')));
+          ).showSnackBar(const SnackBar(
+            content: Text( 'Item excluído!' )
+          ));
         }
       } catch (e) {
         if (context.mounted) {
@@ -64,12 +75,18 @@ class _Itens extends State<Itens> {
     }
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomFloatingAppBar(title: 'Lista de Itens'),
+      appBar: const CustomFloatingAppBar(
+        title: 'Lista de Itens'
+      ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8.0,
+          vertical: 16.0
+        ),
         child: SizedBox.expand(
           child: Card(
             elevation: 4,
@@ -87,9 +104,14 @@ class _Itens extends State<Itens> {
                       bdItemController.itensNotifier,
                     ]),
                     builder: (context, _) {
-                      final isLoading = bdItemController.loadingNotifier.value;
-                      final errorMessage = bdItemController.errorNotifier.value;
-                      final itens = bdItemController.itensNotifier.value;
+                      final isLoading =
+                        bdItemController.loadingNotifier.value;
+                      
+                      final errorMessage =
+                        bdItemController.errorNotifier.value;
+                      
+                      final itens =
+                        bdItemController.itensNotifier.value;
 
                       if (errorMessage != null && !isLoading) {
                         return _buildErrorState(errorMessage);
@@ -122,10 +144,11 @@ class _Itens extends State<Itens> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ItensForm(
-                            bdItemController: bdItemController,
-                            itemAtual: null,
-                          ),
+                          builder: (context) =>
+                            ItensForm(
+                              bdItemController: bdItemController,
+                              itemAtual: null,
+                            ),
                         ),
                       );
                     },
@@ -140,7 +163,7 @@ class _Itens extends State<Itens> {
     );
   }
 
-
+  // ==========================================
   Widget _buildErrorState(String errorMessage) {
     return Center(
       child: Column(
@@ -148,7 +171,9 @@ class _Itens extends State<Itens> {
         children: [
           Text(
             errorMessage,
-            style: const TextStyle(color: Colors.red),
+            style: const TextStyle(
+              color: Colors.red
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
@@ -162,20 +187,26 @@ class _Itens extends State<Itens> {
     );
   }
 
+  // ==========================================
   Widget _buildEmptyState() {
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: const Center(child: Text('Nenhum item cadastrado.')),
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight
+            ),
+            child: const Center(
+              child: Text('Nenhum item cadastrado.')
+            ),
           ),
         );
       },
     );
   }
 
+  // ==========================================
   Widget _buildListView(List<dynamic> itens) {
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -192,17 +223,24 @@ class _Itens extends State<Itens> {
             borderRadius: BorderRadius.circular(12.0),
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4.0),
+            padding: const EdgeInsets.symmetric(
+              vertical: 4.0
+            ),
             child: ListTile(
               title: Text(
                 item.nome,
-                style: const TextStyle(fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500
+                ),
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.orange),
+                    icon: const Icon(
+                      Icons.edit,
+                      color: Colors.orange
+                    ),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -216,8 +254,12 @@ class _Itens extends State<Itens> {
                     },
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _confirmarExclusao(context, item.id),
+                    icon: const Icon(
+                      Icons.delete,
+                      color: Colors.red
+                    ),
+                    onPressed: () =>
+                      _confirmarExclusao(context, item.id),
                   ),
                 ],
               ),
@@ -227,4 +269,5 @@ class _Itens extends State<Itens> {
       },
     );
   }
+
 }
