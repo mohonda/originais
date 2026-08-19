@@ -62,8 +62,9 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       final resposta = await supabaseClient
         .from('vmensalidades')
         .select()
-        .eq('mes_referencia', month)
-        .eq('ano_referencia', year);
+        .eq('mes_mes_referencia', month)
+        .eq('mes_ano_referencia', year)
+        .eq('mes_hld_id', '1');
 
       monthlyPaymentsNotifier.value = 
           resposta.map((item) =>
@@ -90,9 +91,10 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       final resposta = await supabaseClient
           .from('vmensalidades')
           .select()
-          .eq('id', id)
-          .eq('mes_referencia', month)
-          .eq('ano_referencia', year)
+          .eq('mes_pfl_id', id)
+          .eq('mes_hld_id', '1')
+          .eq('mes_mes_referencia', month)
+          .eq('mes_ano_referencia', year)
           .single();
 
       monthlyPaymentsIndividual.value =
@@ -119,10 +121,11 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
 
       final resposta = await supabaseClient
         .from('mensalidades')
-        .update({'comprovante_pag': comprovantePag})
-        .eq('mes_referencia', mesReferencia)
-        .eq('ano_referencia', anoReferencia)
-        .eq('id', id)
+        .update({'mes_comprovante_pag': comprovantePag})
+        .eq('mes_mes_referencia', mesReferencia)
+        .eq('mes_ano_referencia', anoReferencia)
+        .eq('mes_pfl_id', id)
+        .eq('mes_hld_id', '1')
         .select()
         .single();
         
@@ -154,15 +157,19 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       final resposta = await supabaseClient
         .from('mensalidades')
         .update({
-          'valor': valorSupabase,
-          'data_pagamento': dataSupabase,
-          'forma_pagamento': formapagamento,
-          'id_confirmacao': null,
-          'data_confirmacao': null,
+          'mes_valor': valorSupabase,
+          'mes_data_pagamento': dataSupabase,
+          'mes_fpg_id': formapagamento,
+          'mes_fpg_hld_id': '1',
+
+          'mes_pfl_id_confirmacao': null,
+          'mes_hld_id_confirmacao': null,
+          'mes_data_confirmacao': null,
         })
-        .eq('mes_referencia', mes)
-        .eq('ano_referencia', ano)
-        .eq('id', id )
+        .eq('mes_mes_referencia', mes)
+        .eq('mes_ano_referencia', ano)
+        .eq('mes_pfl_id', id )
+        .eq('mes_hld_id', '1' )
         .select()
         .single();
 
@@ -199,15 +206,19 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       final resposta = await supabaseClient
         .from('mensalidades')
         .update({
-          'valor': valorSupabase,
-          'data_pagamento': dataSupabase,
-          'forma_pagamento': formapagamento,
-          'id_confirmacao': idCashier,
-          'data_confirmacao': dataCashierSupabase,
+          'mes_valor': valorSupabase,
+          'mes_data_pagamento': dataSupabase,
+          'mes_fpg_id': formapagamento,
+          'mes_fpg_hld_id': '1',
+
+          'mes_pfl_id_confirmacao': idCashier,
+          'mes_hld_id_confirmacao': '1',
+          'mes_data_confirmacao': dataCashierSupabase,
         })
-        .eq('mes_referencia', mes)
-        .eq('ano_referencia', ano)
-        .eq('id', id )
+        .eq('mes_mes_referencia', mes)
+        .eq('mes_ano_referencia', ano)
+        .eq('mes_pfl_id', id )
+        .eq('mes_hld_id', '1' )
         .select()
         .single();
 
@@ -240,16 +251,20 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       final resposta = await supabaseClient
         .from('mensalidades')
         .update({
-          'valor': null,
-          'data_pagamento': null,
-          'forma_pagamento': null,
-          'comprovante_pag': null,
-          'id_confirmacao': idCashier,
-          'data_confirmacao': dataCashierSupabase,
+          'mes_valor': null,
+          'mes_data_pagamento': null,
+          'mes_fpg_id': null,
+          'mes_fpg_hld_id': null,
+          
+          'mes_comprovante_pag': null,
+          'mes_pfl_id_confirmacao': idCashier,
+          'mes_hld_id_confirmacao': '1',
+          'mes_data_confirmacao': dataCashierSupabase,
         })
-        .eq('mes_referencia', mes)
-        .eq('ano_referencia', ano)
-        .eq('id', id )
+        .eq('mes_mes_referencia', mes)
+        .eq('mes_ano_referencia', ano)
+        .eq('mes_pfl_id', id )
+        .eq('mes_hld_id', '1' )
         .select()
         .single();
 
@@ -273,12 +288,13 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
 
       final data = await supabaseClient
         .from( 'profiles' )
-        .select('full_name')
-        .eq( 'id', id )
+        .select('pfl_full_name')
+        .eq( 'pfl_id', id )
+        .eq( 'hld_id', '1' )
         .maybeSingle();
 
       if ( data != null ) {
-        nameConfirmacao = data['full_name'] as String? ?? '';
+        nameConfirmacao = data['pfl_full_name'] as String? ?? '';
       }
 
     } catch ( e, stackTrace ) {

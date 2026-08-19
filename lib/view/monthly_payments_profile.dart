@@ -58,14 +58,14 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
 
     final payment = bdMonthlyPaymentsController.monthlyPaymentsIndividual.value;
 
-    idController.text = payment?.id ?? "";
-    fullNameController.text = payment?.fullname ?? "";
+    idController.text = payment?.mes_pfl_id ?? "";
+    fullNameController.text = payment?.pfl_full_name ?? "";
 
-    final mes = payment?.mesreferencia.toString().padLeft(2, '0') ?? "";
-    final ano = payment?.anoreferencia ?? "";
+    final mes = payment?.mes_mes_referencia.toString().padLeft(2, '0') ?? "";
+    final ano = payment?.mes_ano_referencia ?? "";
     myreferencia.text = (mes.isNotEmpty && ano.isNotEmpty) ? '$mes/$ano' : "";
 
-    String tdata = payment?.datapagamento.toString() ?? "";
+    String tdata = payment?.mes_data_pagamento.toString() ?? "";
     if (tdata.length < 2) {
       datapagamento.text = generalService.formatarDataBr(
         DateTime.now().toString(),
@@ -74,27 +74,27 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
       datapagamento.text = generalService.formatarDataBr(tdata);
     }
 
-    String rawValor = payment?.valor.toString() ?? "0.00";
+    String rawValor = payment?.mes_valor.toString() ?? "0.00";
     if (rawValor.length < 2) rawValor = "0.00";
 
     if (rawValor == "0.00" || rawValor == "0") {
       final int diaAtual = DateTime.now().day;
       final String diaDescontoStr =
-          payment?.dia_valor_desconto.toString() ?? "0";
+          payment?.vpg_dia_valor_desconto.toString() ?? "0";
       final int diaLimiteDesconto = int.tryParse(diaDescontoStr) ?? 0;
       if (diaLimiteDesconto > 0 && diaAtual <= diaLimiteDesconto) {
-        rawValor = payment?.valor_desconto.toString() ?? "0.00";
+        rawValor = payment?.vpg_valor_desconto.toString() ?? "0.00";
       } else {
-        rawValor = payment?.valor_normal.toString() ?? "0.00";
+        rawValor = payment?.vpg_valor_normal.toString() ?? "0.00";
       }
     }
 
     String formattedValor = generalService.currencyMoneyBr(rawValor);
     valor.text = formattedValor.replaceAll("R\$ ", "").trim();
 
-    comprovantepag.text = payment?.comprovantepag.toString() ?? "";
+    comprovantepag.text = payment?.mes_comprovante_pag.toString() ?? "";
 
-    formaPagamentoSelecionada = payment?.formapagamento.toString() ?? "";
+    formaPagamentoSelecionada = payment?.fpg_descricao.toString() ?? "";
   }
 
   // ==========================================
@@ -105,8 +105,8 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
     void selecionarEEnviarFoto() {
       final payment =
           bdMonthlyPaymentsController.monthlyPaymentsIndividual.value;
-      final mes = payment?.mesreferencia.toString().padLeft(2, '0') ?? "";
-      final ano = payment?.anoreferencia ?? "";
+      final mes = payment?.mes_mes_referencia.toString().padLeft(2, '0') ?? "";
+      final ano = payment?.mes_ano_referencia ?? "";
       bdMonthlyPaymentsController.selecionarEEnviarFoto(
         idController.text,
         mes,
@@ -248,7 +248,7 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
                                   }
                                   bool valorExisteNaLista = listaFormas.any(
                                     (forma) =>
-                                        forma.id.toString() ==
+                                        forma.fpg_id.toString() ==
                                         formaPagamentoSelecionada,
                                   );
                                   if (!valorExisteNaLista) {
@@ -265,8 +265,8 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
                                     hint: const Text('Selecione...'),
                                     items: listaFormas.map((forma) {
                                       return DropdownMenuItem<String>(
-                                        value: forma.id.toString(),
-                                        child: Text(forma.descricao.toString()),
+                                        value: forma.fpg_id.toString(),
+                                        child: Text(forma.fpg_descricao.toString()),
                                       );
                                     }).toList(),
                                     onChanged: (String? newValue) {
@@ -352,7 +352,7 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
                                   valueListenable: bdMonthlyPaymentsController
                                       .monthlyPaymentsIndividual,
                                   builder: (context, value, child) {
-                                    final url = value?.comprovantepag ?? "";
+                                    final url = value?.mes_comprovante_pag ?? "";
 
                                     return GestureDetector(
                                       onTap: selecionarEEnviarFoto,

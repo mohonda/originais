@@ -47,7 +47,8 @@ class BdProfileController extends ChangeNotifier {
       final resposta = await supabaseClient
         .from('profiles')
         .select()
-        .order('full_name', ascending: true);
+        .eq('hld_id', '1')
+        .order('pfl_full_name', ascending: true);
 
       profilesNotifier.value = resposta.map((item) =>
         ProfileModel.fromJson(item)).toList();
@@ -69,7 +70,8 @@ class BdProfileController extends ChangeNotifier {
       final data = await supabaseClient
         .from( 'profiles' )
         .select()
-        .eq( 'id', id )
+        .eq( 'pfl_id', id )
+        .eq('hld_id', '1')
         .maybeSingle();
 
       if ( data != null ) {
@@ -96,19 +98,21 @@ class BdProfileController extends ChangeNotifier {
       final data = await supabaseClient
         .from( 'profiles' )
         .select()
-        .eq( 'id', id )
+        .eq( 'pfl_id', id )
+        .eq('hld_id', '1')
         .maybeSingle();
 
       if ( data != null ) {
         pessoaSelecionadaNotifier.value = ProfileModel.fromJson( data );
       } else {
         final profileData = ProfileModel(
-          id: id,
-          updated_at: DateTime.now().toIso8601String(),
-          full_name: "Name",
-          nickname: "",
-          avatar_url: "",
-          bio: "",
+          pfl_id: id,
+          hld_id: '1',
+          pfl_updated_at: DateTime.now().toIso8601String(),
+          pfl_full_name: "Name",
+          pfl_nick_name: "",
+          pfl_avatar_url: "",
+          pfl_bio: "",
         );
 
         await supabaseClient
@@ -138,12 +142,13 @@ class BdProfileController extends ChangeNotifier {
       errorNotifier.value = null;
 
       final profileData = ProfileModel(
-        id: id,
-        updated_at: DateTime.now().toIso8601String(),
-        full_name: fullname,
-        nickname: nickname,
-        avatar_url: avatarurl,
-        bio: bio,
+        pfl_id: id,
+        hld_id: '1',
+        pfl_updated_at: DateTime.now().toIso8601String(),
+        pfl_full_name: fullname,
+        pfl_nick_name: nickname,
+        pfl_avatar_url: avatarurl,
+        pfl_bio: bio,
       );
 
       await supabaseClient
@@ -233,9 +238,10 @@ class BdProfileController extends ChangeNotifier {
       await supabaseClient
         .from( 'profiles' )
         .update({
-          'updated_at': DateTime.now().toIso8601String(),
-          'avatar_url': avatarUrl })
-        .eq('id', id);
+          'pfl_updated_at': DateTime.now().toIso8601String(),
+          'pfl_avatar_url': avatarUrl })
+        .eq('pfl_id', id)
+        .eq('hld_id', '1');
 
       await fetchProfilesById( id );
 

@@ -45,11 +45,11 @@ class ProfileUpdatePasswordState extends State<ProfileUpdatePassword> {
     idController.text =
         bdProfileController
           .pessoaSelecionadaNotifier
-          .value?.id ?? "";
+          .value?.pfl_id ?? "";
     fullNameController.text =
         bdProfileController
           .pessoaSelecionadaNotifier
-          .value?.full_name ?? "";
+          .value?.pfl_full_name ?? "";
   }
 
   // ==========================================

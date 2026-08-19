@@ -1,11 +1,13 @@
 class FormaPagamentoModel {
-  String id;
-  String descricao;
+  String fpg_id;
+  String hld_id;
+  String fpg_descricao;
  
   // ==========================================
   FormaPagamentoModel ( {
-    required this.id,
-    required this.descricao,
+    required this.fpg_id,
+    required this.hld_id,
+    required this.fpg_descricao,
   } );
 
   // ==========================================
@@ -14,8 +16,9 @@ class FormaPagamentoModel {
       Map<String,dynamic> json
   ) {
       return FormaPagamentoModel(
-        id: json['id']?.toString() ?? "",
-        descricao: json['descricao']?.toString() ?? "",
+        fpg_id: json['fpg_id']?.toString() ?? "",
+        hld_id: json['hld_id']?.toString() ?? "",
+        fpg_descricao: json['fpg_descricao']?.toString() ?? "",
     );
   }
 }

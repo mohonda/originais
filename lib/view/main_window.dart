@@ -177,8 +177,8 @@ class _MainWindow extends State<MainWindow> {
                                         .pessoaSelecionadaNotifier,
                                     builder: (context, pessoa, child) {
                                       String name;
-                                      String fName = pessoa?.full_name ?? "NoNe";
-                                      String nName = pessoa?.full_name ?? "";
+                                      String fName = pessoa?.pfl_full_name ?? "NoNe";
+                                      String nName = pessoa?.pfl_full_name ?? "";
                                       if ( nName.isNotEmpty ){
                                         name = nName;
                                       } else {
@@ -189,7 +189,7 @@ class _MainWindow extends State<MainWindow> {
                                           : name;
                                       return Column(
                                         children: [
-                                          buildAvatar(pessoa?.avatar_url ?? ""),
+                                          buildAvatar(pessoa?.pfl_avatar_url ?? ""),
                                           const SizedBox(height: 12),
                                           if (_menuEstendido) ...[
                                             buildNameEmail(userName, userEmail),

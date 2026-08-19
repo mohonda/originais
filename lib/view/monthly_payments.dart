@@ -102,10 +102,10 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                               builder: (context, lista, child) {
                                 // Aplicação dos Filtros de Busca e Status
                                 final listaFiltrada = lista.where((m) {
-                                  final nomeMatch = m.fullname
+                                  final nomeMatch = m.pfl_full_name
                                       .toLowerCase()
                                       .contains(_searchQuery.toLowerCase());
-                                  final isPago = m.datapagamento.isNotEmpty;
+                                  final isPago = m.mes_data_pagamento.isNotEmpty;
 
                                   if (_filtroStatus == 'Pagas') {
                                     return nomeMatch && isPago;
@@ -158,9 +158,9 @@ class _MonthlyPayments extends State<MonthlyPayments> {
   ) async {
     try {
       await bdMonthlyPaymentsController.loadMonthlyPaymentsIndividual(
-        mensalidade.id,
-        mensalidade.mesreferencia,
-        mensalidade.anoreferencia,
+        mensalidade.mes_pfl_id,
+        mensalidade.mes_mes_referencia,
+        mensalidade.mes_ano_referencia,
       );
 
       // Abre a tela somente após carregar os dados com sucesso
@@ -185,9 +185,9 @@ class _MonthlyPayments extends State<MonthlyPayments> {
   ) async {
     try {
       await bdMonthlyPaymentsController.loadMonthlyPaymentsIndividual(
-        mensalidade.id,
-        mensalidade.mesreferencia,
-        mensalidade.anoreferencia,
+        mensalidade.mes_pfl_id,
+        mensalidade.mes_mes_referencia,
+        mensalidade.mes_ano_referencia,
       );
 
       // Abre a tela somente após carregar os dados com sucesso
@@ -207,8 +207,8 @@ class _MonthlyPayments extends State<MonthlyPayments> {
 
   // ==========================================
   Widget _buildMensalidadeCard(MensalidadesModel mensalidade) {
-    final bool isPago = mensalidade.datapagamento.isNotEmpty;
-    final bool isConfirmado = mensalidade.dataconfirmacao.isNotEmpty;
+    final bool isPago = mensalidade.mes_data_pagamento.isNotEmpty;
+    final bool isConfirmado = mensalidade.mes_data_confirmacao.isNotEmpty;
     late bool isCancelado = false;
     if( !isPago && isConfirmado ){
       isCancelado = true;
@@ -271,8 +271,8 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    mensalidade.fullname.isNotEmpty
-                        ? mensalidade.fullname
+                    mensalidade.pfl_full_name.isNotEmpty
+                        ? mensalidade.pfl_full_name
                         : 'Membro',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
@@ -283,14 +283,14 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Ref: ${mensalidade.mesreferencia.toString().padLeft(2, '0')}/${mensalidade.anoreferencia}',
+                    'Ref: ${mensalidade.mes_mes_referencia.toString().padLeft(2, '0')}/${mensalidade.mes_ano_referencia}',
                     style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Valor Ref: ${
                       generalService.currencyMoneyBr(
-                        mensalidade.valor_normal
+                        mensalidade.vpg_valor_normal
                       )
                     }',
                     style: TextStyle(
@@ -326,7 +326,7 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                     ),
                   ),
                   Text(
-                    generalService.currencyMoneyBr(mensalidade.valor),
+                    generalService.currencyMoneyBr(mensalidade.mes_valor),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -340,7 +340,7 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                     'Data: ${
                       generalService
                       .formatarDataBr(
-                        mensalidade.datapagamento
+                        mensalidade.mes_data_pagamento
                       )
                     }',
                     style: TextStyle(
@@ -351,7 +351,7 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                     ),
                   ),
                   Text(
-                    'Forma: ${mensalidade.descricao}',
+                    'Forma: ${mensalidade.fpg_descricao}',
                     style: TextStyle(
                       fontSize: 10,
                       color: isCancelado 
@@ -393,7 +393,7 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                     'Date: ${ 
                       isConfirmado || isCancelado
                       ? generalService.formatarDataBr(
-                          mensalidade.dataconfirmacao)
+                          mensalidade.mes_data_confirmacao)
                       : ""
                     }',
                     
@@ -405,7 +405,7 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                   Text(
                     'Cashier: ${
                       isConfirmado || isCancelado
-                      ? mensalidade.full_name_confirmacao
+                      ? mensalidade.mes_full_name_confirmacao
                       : ""
                     }',
                     style: TextStyle(

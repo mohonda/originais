@@ -40,13 +40,13 @@ class _ProfileState extends State<Profile> {
   // ==========================================
   void onFieldChanged() {
     if ((fullNameController.text ==
-            bdProfileController.pessoaSelecionadaNotifier.value?.full_name) &&
+            bdProfileController.pessoaSelecionadaNotifier.value?.pfl_full_name) &&
         (nickNameController.text ==
-            bdProfileController.pessoaSelecionadaNotifier.value?.nickname) &&
+            bdProfileController.pessoaSelecionadaNotifier.value?.pfl_nick_name) &&
         (urlController.text ==
-            bdProfileController.pessoaSelecionadaNotifier.value?.avatar_url) &&
+            bdProfileController.pessoaSelecionadaNotifier.value?.pfl_avatar_url) &&
         (bioController.text ==
-            bdProfileController.pessoaSelecionadaNotifier.value?.bio)) {
+            bdProfileController.pessoaSelecionadaNotifier.value?.pfl_bio)) {
       bdProfileController.changedNotifier(false);
     } else {
       bdProfileController.changedNotifier(true);
@@ -56,17 +56,17 @@ class _ProfileState extends State<Profile> {
   // ==========================================
   void initValues() {
     idController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.id ?? "";
+        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? "";
     fullNameController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.full_name ?? "";
+        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_full_name ?? "";
     nickNameController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.nickname ?? "";
+        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_nick_name ?? "";
     urlController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.avatar_url ?? "";
+        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_avatar_url ?? "";
     bioController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.bio ?? "";
+        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_bio ?? "";
     updatedAtController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.updated_at ?? "";
+        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_updated_at ?? "";
 
     bdProfileController.changedNotifier(false);
   }
