@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gorouter_exemplo/services/general_service.dart';
 import 'package:gorouter_exemplo/view/itens_form.dart';
 import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
@@ -14,6 +15,8 @@ class Associates extends StatefulWidget {
 class JourneyRidingState extends State<Associates> {
   final bdProfileController =
       getItBdProfileController<BdProfileController>();
+
+  final generalService = getItGeneralService<GeneralService>();
 
   // ==========================================
   @override
@@ -222,17 +225,17 @@ class JourneyRidingState extends State<Associates> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.timer_outlined,
+                        Icon(
+                          Icons.leaderboard_outlined,
                           size: 14,
-                          color:  Colors.grey,
+                          color: profile.as_id.toString() == '1' ? Colors.greenAccent :  Colors.red,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'Holding: ${profile.hld_name}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey,
+                            color: profile.as_id.toString() == '1' ? Colors.greenAccent :  Colors.red,
                           ),
                         ),
                       ],
@@ -242,17 +245,17 @@ class JourneyRidingState extends State<Associates> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.leaderboard_outlined,
+                        Icon(
+                          profile.as_id.toString() == '1' ? Icons.check_circle : Icons.error,
                           size: 14,
-                          color:  Colors.grey,
+                          color: profile.as_id.toString() == '1' ? Colors.greenAccent :  Colors.red,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'Status: ${ profile.as_desc }',
                           style: TextStyle(
                             fontSize: 13,
-                            color: profile.as_id.toString() == '1' ? Colors.grey :  Colors.red,
+                            color: profile.as_id.toString() == '1' ? Colors.greenAccent :  Colors.red,
                           ),
                         ),
                       ],
@@ -262,17 +265,17 @@ class JourneyRidingState extends State<Associates> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.leaderboard_outlined,
+                        Icon(
+                          Icons.calendar_month,
                           size: 14,
-                          color:  Colors.grey,
+                          color: profile.as_id.toString() == '1' ? Colors.greenAccent :  Colors.red,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Status: ${ profile.date_update_status }',
+                          'Updated: ${ generalService.formatarDataBr( profile.date_update_status) }',
                           style: TextStyle(
                             fontSize: 13,
-                            color: profile.as_id.toString() == '1' ? Colors.grey :  Colors.red,
+                            color: profile.as_id.toString() == '1' ? Colors.greenAccent :  Colors.red,
                           ),
                         ),
                       ],
@@ -300,10 +303,10 @@ class JourneyRidingState extends State<Associates> {
                       // );
                     },
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _confirmarExclusao(context, profile.pfl_id ),
-                  ),
+                  // IconButton(
+                  //   icon: const Icon(Icons.delete, color: Colors.red),
+                  //   onPressed: () => _confirmarExclusao(context, profile.pfl_id ),
+                  // ),
                 ],
               ),
             ),
