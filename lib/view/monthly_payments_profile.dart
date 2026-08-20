@@ -94,7 +94,7 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
 
     comprovantepag.text = payment?.mes_comprovante_pag.toString() ?? "";
 
-    formaPagamentoSelecionada = payment?.fpg_descricao.toString() ?? "";
+    formaPagamentoSelecionada = payment?.mes_fpg_id.toString() ?? "";
   }
 
   // ==========================================

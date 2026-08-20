@@ -347,7 +347,7 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                       fontSize: 11,
                       color: isCancelado 
                         ? Colors.redAccent 
-                        :Colors.grey[800]
+                        : Colors.grey[800]
                     ),
                   ),
                   Text(

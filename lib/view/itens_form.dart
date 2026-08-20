@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import '../controllers/bd_item_controller.dart';
-import '../models/item_model.dart';
+import '../controllers/bd_journeyriding_controller.dart';
+import '../models/Journeyriding_model.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
 
 class ItensForm extends StatefulWidget {
-  final BdItemController bdItemController;
-  final ItemModel? itemAtual;
+  final BdJourneyRidingController bdJourneyRidingController;
+  final JourneyRidingModel? itemAtual;
 
-  const ItensForm({super.key, required this.bdItemController, this.itemAtual});
+  const ItensForm({super.key, required this.bdJourneyRidingController, this.itemAtual});
 
   // ==========================================
   @override
@@ -24,7 +24,7 @@ class _FormViewState extends State<ItensForm> {
   void initState() {
     super.initState();
     if (widget.itemAtual != null) {
-      _textController.text = widget.itemAtual!.nome;
+      // _textController.text = widget.itemAtual!.nome;
     }
   }
 
@@ -49,14 +49,14 @@ class _FormViewState extends State<ItensForm> {
         );
 
         if (widget.itemAtual == null) {
-          await widget.bdItemController
-            .saveItem(_textController.text);
+          // await widget.bdJourneyRidingController
+            // .saveItem(_textController.text);
         } else {
-          await widget.bdItemController
-            .updateItem(
-              widget.itemAtual!.id,
-              _textController.text,
-            );
+          // await widget.bdJourneyRidingController
+          //   .updateItem(
+          //     widget.itemAtual!.id,
+          //     _textController.text,
+          //   );
         }
 
         if (mounted) Navigator.pop( context );

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:gorouter_exemplo/view/settings/router_app.dart';
-import 'package:gorouter_exemplo/controllers/bd_item_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_journeyriding_controller.dart';
 import 'package:gorouter_exemplo/view/dashboard_injector.dart';
 import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
 import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
@@ -55,7 +55,7 @@ void main() async {
 
 
   setupGetItMySupabaseClient();
-  setupGetItBdItemController();
+  setupGetItBdJourneyRidingController();
   setupGetItDashboardNotifier();
   setupGetItProfileBdItemController();
   setupGetItBdMonthlyPaymentsController();

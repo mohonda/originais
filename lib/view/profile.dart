@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
 import 'package:gorouter_exemplo/models/profile_model.dart';
+import 'package:gorouter_exemplo/models/vprofile_model.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
 import 'package:gorouter_exemplo/view/profile_update_password.dart';
 
@@ -113,7 +114,7 @@ class _ProfileState extends State<Profile> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomFloatingAppBar(title: 'Detalhes do ID'),
+      appBar: const CustomFloatingAppBar(title: 'Profile'),
       body: ValueListenableBuilder<bool>(
         valueListenable: bdProfileController.loadingNotifier,
         builder: (context, isLoading, child) {
@@ -133,7 +134,7 @@ class _ProfileState extends State<Profile> {
                 );
               }
 
-              return ValueListenableBuilder<ProfileModel?>(
+              return ValueListenableBuilder<VProfileModel?>(
                 valueListenable: bdProfileController.pessoaSelecionadaNotifier,
                 builder: (context, profile, child) {
                   if (profile == null) {

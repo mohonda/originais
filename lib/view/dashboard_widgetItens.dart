@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gorouter_exemplo/controllers/bd_item_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_journeyriding_controller.dart';
 
 class DashboardWidgetItens extends StatefulWidget {
   const DashboardWidgetItens({super.key});
@@ -15,7 +15,7 @@ class _DashboardWidgetItens extends State<DashboardWidgetItens> {
   // ==========================================
   @override
   Widget build(BuildContext context) {
-    final bdItemController = getItBdItemController<BdItemController>();
+    final bdItemController = getItBdJourneyRidingController<BdJourneyRidingController>();
 
     return Card(
       elevation: 2,
@@ -59,7 +59,7 @@ class _DashboardWidgetItens extends State<DashboardWidgetItens> {
                 }
 
                 return ValueListenableBuilder<List<dynamic>>(
-                  valueListenable: bdItemController.itensNotifier,
+                  valueListenable: bdItemController.bdJourneyRidingNotifier,
                   builder: (context, itens, child) {
                     return GestureDetector(
                       onTap: () {

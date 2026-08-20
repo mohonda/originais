@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:gorouter_exemplo/view/itens_form.dart';
-import 'package:gorouter_exemplo/controllers/bd_item_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_journeyriding_controller.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
 
-class Itens extends StatefulWidget {
-  const Itens({super.key});
+class JourneyRiding extends StatefulWidget {
+  const JourneyRiding({super.key});
 
   // ==========================================
   @override
-  State<Itens> createState() => _Itens();
+  State<JourneyRiding> createState() => JourneyRidingState();
 }
 
-class _Itens extends State<Itens> {
-  final bdItemController =
-    getItBdItemController<BdItemController>();
+class JourneyRidingState extends State<JourneyRiding> {
+  final bdJourneyRidingController =
+      getItBdJourneyRidingController<BdJourneyRidingController>();
 
   // ==========================================
   @override
@@ -22,10 +22,7 @@ class _Itens extends State<Itens> {
   }
 
   // ==========================================
-  Future<void> _confirmarExclusao(
-    BuildContext context,
-    String id
-  ) async {
+  Future<void> _confirmarExclusao(BuildContext context, String id) async {
     final bool? confirmar = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -39,9 +36,7 @@ class _Itens extends State<Itens> {
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text(
                 'Excluir',
                 style: TextStyle(color: Colors.white),
@@ -54,14 +49,14 @@ class _Itens extends State<Itens> {
 
     if (confirmar == true && context.mounted) {
       try {
-        await bdItemController.deleteItem( id );
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(
-            content: Text( 'Item excluído!' )
-          ));
-        }
+        // await bdJourneyRidingController.deleteItem( id );
+        // if (context.mounted) {
+        //   ScaffoldMessenger.of(
+        //     context,
+        //   ).showSnackBar(const SnackBar(
+        //     content: Text( 'Item excluído!' )
+        //   ));
+        // }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -79,14 +74,9 @@ class _Itens extends State<Itens> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomFloatingAppBar(
-        title: 'Lista de Itens'
-      ),
+      appBar: const CustomFloatingAppBar(title: 'Journey Riding'),
       body: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 8.0,
-          vertical: 16.0
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
         child: SizedBox.expand(
           child: Card(
             elevation: 4,
@@ -99,32 +89,31 @@ class _Itens extends State<Itens> {
                   padding: const EdgeInsets.all(24.0),
                   child: ListenableBuilder(
                     listenable: Listenable.merge([
-                      bdItemController.loadingNotifier,
-                      bdItemController.errorNotifier,
-                      bdItemController.itensNotifier,
+                      bdJourneyRidingController.loadingNotifier,
+                      bdJourneyRidingController.errorNotifier,
+                      bdJourneyRidingController.bdJourneyRidingNotifier,
                     ]),
                     builder: (context, _) {
                       final isLoading =
-                        bdItemController.loadingNotifier.value;
-                      
+                          bdJourneyRidingController.loadingNotifier.value;
+
                       final errorMessage =
-                        bdItemController.errorNotifier.value;
-                      
-                      final itens =
-                        bdItemController.itensNotifier.value;
+                          bdJourneyRidingController.errorNotifier.value;
+
+                      final itens = bdJourneyRidingController
+                          .bdJourneyRidingNotifier
+                          .value;
 
                       if (errorMessage != null && !isLoading) {
                         return _buildErrorState(errorMessage);
                       }
 
                       if (isLoading && itens.isEmpty) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       return RefreshIndicator(
-                        onRefresh: bdItemController.loadItems,
+                        onRefresh: bdJourneyRidingController.loadJourneyRiding,
                         color: Colors.green,
                         child: itens.isEmpty
                             ? _buildEmptyState()
@@ -144,11 +133,11 @@ class _Itens extends State<Itens> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                            ItensForm(
-                              bdItemController: bdItemController,
-                              itemAtual: null,
-                            ),
+                          builder: (context) => ItensForm(
+                            bdJourneyRidingController:
+                                bdJourneyRidingController,
+                            itemAtual: null,
+                          ),
                         ),
                       );
                     },
@@ -171,14 +160,12 @@ class _Itens extends State<Itens> {
         children: [
           Text(
             errorMessage,
-            style: const TextStyle(
-              color: Colors.red
-            ),
+            style: const TextStyle(color: Colors.red),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
-            onPressed: bdItemController.loadItems,
+            onPressed: bdJourneyRidingController.loadJourneyRiding,
             icon: const Icon(Icons.refresh),
             label: const Text('Tentar novamente'),
           ),
@@ -194,12 +181,8 @@ class _Itens extends State<Itens> {
         return SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: constraints.maxHeight
-            ),
-            child: const Center(
-              child: Text('Nenhum item cadastrado.')
-            ),
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: const Center(child: Text('Nenhum item cadastrado.')),
           ),
         );
       },
@@ -216,37 +199,79 @@ class _Itens extends State<Itens> {
         final item = itens[index];
         return Card(
           elevation: 2,
-          margin: const EdgeInsets.only(
-            bottom: 2.0,
-          ),
+          margin: const EdgeInsets.only(bottom: 2.0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.0),
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: 4.0
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 4.0),
             child: ListTile(
               title: Text(
-                item.nome,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500
+                item.jr_nome,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+              // 👇 Usando Wrap para exibir os dados lado a lado (em colunas)
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Wrap(
+                  spacing: 16.0, // Espaço horizontal entre as "colunas"
+                  runSpacing:
+                      4.0, // Espaço vertical caso falte espaço na tela e quebre a linha
+                  children: [
+                    // Coluna 1: Tempo Mínimo
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.timer_outlined,
+                          size: 14,
+                          color:  Colors.grey,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${item.jr_minimum_time_indays} dias',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Coluna 2: Nível
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.leaderboard_outlined,
+                          size: 14,
+                          color:  Colors.grey,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Nível ${item.jr_level}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(
-                      Icons.edit,
-                      color: Colors.orange
-                    ),
+                    icon: const Icon(Icons.edit, color: Colors.orange),
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => ItensForm(
-                            bdItemController: bdItemController,
+                            bdJourneyRidingController:
+                                bdJourneyRidingController,
                             itemAtual: item,
                           ),
                         ),
@@ -254,12 +279,8 @@ class _Itens extends State<Itens> {
                     },
                   ),
                   IconButton(
-                    icon: const Icon(
-                      Icons.delete,
-                      color: Colors.red
-                    ),
-                    onPressed: () =>
-                      _confirmarExclusao(context, item.id),
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _confirmarExclusao(context, item.id),
                   ),
                 ],
               ),
@@ -269,5 +290,4 @@ class _Itens extends State<Itens> {
       },
     );
   }
-
 }

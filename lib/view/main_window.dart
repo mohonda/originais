@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gorouter_exemplo/view/settings/router_settings.dart';
 import 'package:gorouter_exemplo/controllers/auth_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
-import 'package:gorouter_exemplo/controllers/bd_item_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_journeyriding_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
 import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
 import 'package:window_manager/window_manager.dart';
@@ -26,7 +26,7 @@ class _MainWindow extends State<MainWindow> {
       getItMySupabaseClient<MySupabaseClient>();
 
   final bdProfileController = getItBdProfileController<BdProfileController>();
-  final bdItemController = getItBdItemController<BdItemController>();
+  final bdJourneyRidingController = getItBdJourneyRidingController<BdJourneyRidingController>();
   final bdMonthlyPaymentsController =
       getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
 
@@ -42,7 +42,7 @@ class _MainWindow extends State<MainWindow> {
     bdProfileController.fetchProfilesById(userId);
 
     bdProfileController.loadProfiles();
-    bdItemController.loadItems();
+    bdJourneyRidingController.loadJourneyRiding();
 
     bdMonthlyPaymentsController.loadCurrentMonthlyPayment();
   }

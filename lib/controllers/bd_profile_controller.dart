@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:gorouter_exemplo/models/profile_model.dart';
+import 'package:gorouter_exemplo/models/vprofile_model.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
@@ -18,11 +19,11 @@ class BdProfileController extends ChangeNotifier {
   late SupabaseClient supabaseClient;
 
 
-  final ValueNotifier<List<ProfileModel>> profilesNotifier =
-      ValueNotifier<List<ProfileModel>>([]);
+  final ValueNotifier<List<VProfileModel>> profilesNotifier =
+      ValueNotifier<List<VProfileModel>>([]);
 
-  final ValueNotifier<ProfileModel?> pessoaSelecionadaNotifier =
-      ValueNotifier<ProfileModel?>(null);
+  final ValueNotifier<VProfileModel?> pessoaSelecionadaNotifier =
+      ValueNotifier<VProfileModel?>(null);
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
@@ -45,13 +46,14 @@ class BdProfileController extends ChangeNotifier {
       errorNotifier.value = null;
 
       final resposta = await supabaseClient
-        .from('profiles')
+        .from('vprofile')
         .select()
         .eq('hld_id', '1')
+        .order('as_id', ascending: true)
         .order('pfl_full_name', ascending: true);
 
       profilesNotifier.value = resposta.map((item) =>
-        ProfileModel.fromJson(item)).toList();
+        VProfileModel.fromJson(item)).toList();
     
     } catch ( e, stackTrace ) {
       profilesNotifier.value = [];
@@ -68,14 +70,14 @@ class BdProfileController extends ChangeNotifier {
       errorNotifier.value = null;
 
       final data = await supabaseClient
-        .from( 'profiles' )
+        .from( 'vprofile' )
         .select()
         .eq( 'pfl_id', id )
         .eq('hld_id', '1')
         .maybeSingle();
 
       if ( data != null ) {
-        pessoaSelecionadaNotifier.value = ProfileModel.fromJson(data);
+        pessoaSelecionadaNotifier.value = VProfileModel.fromJson(data);
       } else {
         pessoaSelecionadaNotifier.value = null;
         errorNotifier.value = 'BdProfileController::fetchProfilesById: Registro não encontrado.';
@@ -99,11 +101,11 @@ class BdProfileController extends ChangeNotifier {
         .from( 'profiles' )
         .select()
         .eq( 'pfl_id', id )
-        .eq('hld_id', '1')
+        .eq( 'hld_id', '1')
         .maybeSingle();
 
       if ( data != null ) {
-        pessoaSelecionadaNotifier.value = ProfileModel.fromJson( data );
+        pessoaSelecionadaNotifier.value = VProfileModel.fromJson( data );
       } else {
         final profileData = ProfileModel(
           pfl_id: id,

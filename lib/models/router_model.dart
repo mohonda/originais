@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gorouter_exemplo/view/dashboard.dart';
-// import 'package:gorouter_exemplo/view/itens.dart';
+import 'package:gorouter_exemplo/view/journey_riding.dart';
 import 'package:gorouter_exemplo/view/about.dart';
 import 'package:gorouter_exemplo/view/profile.dart';
 import 'package:gorouter_exemplo/view/monthly_payments.dart';
+import 'package:gorouter_exemplo/view/associates.dart';
 
 class RouterModel {
   final String label;
@@ -31,13 +32,20 @@ class RouterModel {
       path: '/dashboard',
       builder: (context, state) => const Dashboard(),
     ),
-    // RouterModel (
-    //   label: 'Itens',
-    //   icon: Icons.person_2_outlined,
-    //   selectedIcon: Icons.person_2,
-    //   path: '/itens',
-    //   builder: (context, state) => const Itens(),
-    // ),
+    RouterModel (
+      label: 'Journey Riding',
+      icon: Icons.person_2_outlined,
+      selectedIcon: Icons.person_2,
+      path: '/journalriding',
+      builder: (context, state) => const JourneyRiding(),
+    ),
+    RouterModel (
+      label: 'Associates',
+      icon: Icons.person_2_outlined,
+      selectedIcon: Icons.person_2,
+      path: '/associates',
+      builder: (context, state) => const Associates(),
+    ),
     RouterModel (
       label: 'Mensalidades',
       icon: Icons.person_2_outlined,
