@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:gorouter_exemplo/controllers/bd_journeyriding_controller.dart';
+import 'package:gorouter_exemplo/models/vprofile_model.dart';
 import 'package:gorouter_exemplo/services/general_service.dart';
-import 'package:gorouter_exemplo/view/itens_form.dart';
 import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
+import 'package:gorouter_exemplo/view/associates_details.dart';
 
 class Associates extends StatefulWidget {
   const Associates({super.key});
 
   // ==========================================
   @override
-  State<Associates> createState() => JourneyRidingState();
+  State<Associates> createState() => AssociatesState();
 }
 
-class JourneyRidingState extends State<Associates> {
+class AssociatesState extends State<Associates> {
   final bdProfileController =
       getItBdProfileController<BdProfileController>();
+  
+  final bdJourneyRidingController =
+      getItBdJourneyRidingController<BdJourneyRidingController>();
 
   final generalService = getItGeneralService<GeneralService>();
 
@@ -22,55 +27,6 @@ class JourneyRidingState extends State<Associates> {
   @override
   void initState() {
     super.initState();
-  }
-
-  // ==========================================
-  Future<void> _confirmarExclusao(BuildContext context, String id) async {
-    final bool? confirmar = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirmar Exclusão'),
-          content: const Text('Tem certeza que deseja apagar este item?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text(
-                'Excluir',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmar == true && context.mounted) {
-      try {
-        // await bdProfileController.deleteItem( id );
-        // if (context.mounted) {
-        //   ScaffoldMessenger.of(
-        //     context,
-        //   ).showSnackBar(const SnackBar(
-        //     content: Text( 'Item excluído!' )
-        //   ));
-        // }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erro ao excluir.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
   }
 
   // ==========================================
@@ -123,28 +79,6 @@ class JourneyRidingState extends State<Associates> {
                             : _buildListView(itens),
                       );
                     },
-                  ),
-                ),
-
-                Positioned(
-                  bottom: 16.0,
-                  right: 16.0,
-                  child: FloatingActionButton(
-                    heroTag: 'addItemCardFab',
-                    elevation: 2,
-                    onPressed: () {
-                      // Navigator.push(
-                      //   context
-                      //   // MaterialPageRoute(
-                      //   //   // builder: (context) => ItensForm(
-                      //   //   //   bdProfileController:
-                      //   //   //       bdProfileController,
-                      //   //   //   itemAtual: null,
-                      //   //   ),
-                      //   // ),
-                      // );
-                    },
-                    child: const Icon(Icons.add),
                   ),
                 ),
               ],
@@ -228,14 +162,18 @@ class JourneyRidingState extends State<Associates> {
                         Icon(
                           Icons.leaderboard_outlined,
                           size: 14,
-                          color: profile.as_id.toString() == '1' ? Colors.greenAccent :  Colors.red,
+                          color: profile.as_id.toString() == '1' 
+                            ? Colors.greenAccent 
+                            : Colors.red,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'Holding: ${profile.hld_name}',
                           style: TextStyle(
                             fontSize: 13,
-                            color: profile.as_id.toString() == '1' ? Colors.greenAccent :  Colors.red,
+                            color: profile.as_id.toString() == '1' 
+                              ? Colors.greenAccent 
+                              : Colors.red,
                           ),
                         ),
                       ],
@@ -246,16 +184,22 @@ class JourneyRidingState extends State<Associates> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          profile.as_id.toString() == '1' ? Icons.check_circle : Icons.error,
+                          profile.as_id.toString() == '1' 
+                            ? Icons.check_circle 
+                            : Icons.error,
                           size: 14,
-                          color: profile.as_id.toString() == '1' ? Colors.greenAccent :  Colors.red,
+                          color: profile.as_id.toString() == '1' 
+                            ? Colors.greenAccent 
+                            : Colors.red,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'Status: ${ profile.as_desc }',
                           style: TextStyle(
                             fontSize: 13,
-                            color: profile.as_id.toString() == '1' ? Colors.greenAccent :  Colors.red,
+                            color: profile.as_id.toString() == '1' 
+                              ? Colors.greenAccent 
+                              : Colors.red,
                           ),
                         ),
                       ],
@@ -268,14 +212,18 @@ class JourneyRidingState extends State<Associates> {
                         Icon(
                           Icons.calendar_month,
                           size: 14,
-                          color: profile.as_id.toString() == '1' ? Colors.greenAccent :  Colors.red,
+                          color: profile.as_id.toString() == '1'
+                            ? Colors.greenAccent
+                            : Colors.red,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Updated: ${ generalService.formatarDataBr( profile.date_update_status) }',
+                          'Journey Riding: ${ profile.jr_nome }',
                           style: TextStyle(
                             fontSize: 13,
-                            color: profile.as_id.toString() == '1' ? Colors.greenAccent :  Colors.red,
+                            color: profile.as_id.toString() == '1'
+                              ? Colors.greenAccent 
+                              : Colors.red,
                           ),
                         ),
                       ],
@@ -291,22 +239,23 @@ class JourneyRidingState extends State<Associates> {
                   IconButton(
                     icon: const Icon(Icons.edit, color: Colors.orange),
                     onPressed: () {
-                      // Navigator.push(
-                      //   context
-                      //   // MaterialPageRoute(
-                      //   //   // builder: (context) => ItensForm(
-                      //   //   //   bdProfileController:
-                      //   //   //       bdProfileController,
-                      //   //   //   itemAtual: item,
-                      //   //   // ),
-                      //   // ),
-                      // );
-                    },
+                      _associatesDetails( profile, context );
+                    }
+                    // onPressed: () {
+                    //   Navigator.push(
+                    //     context,
+                    //     MaterialPageRoute(
+                          
+                    //       // builder: (context) => AssociatesDetails(),
+                    //       builder: (context) => _associatesDetails( profile, context )
+                    //       // builder: (context) => ItensForm(
+                    //       //   bdProfileController:
+                    //       //       bdProfileController,
+                    //       //   itemAtual: item,
+                    //       ),
+                    //     );
+                    // },
                   ),
-                  // IconButton(
-                  //   icon: const Icon(Icons.delete, color: Colors.red),
-                  //   onPressed: () => _confirmarExclusao(context, profile.pfl_id ),
-                  // ),
                 ],
               ),
             ),
@@ -315,4 +264,32 @@ class JourneyRidingState extends State<Associates> {
       },
     );
   }
+
+  // ==========================================
+  Future<void> _associatesDetails(
+    VProfileModel vProfileModel,
+    BuildContext context,
+  ) async {
+    try {
+      // tmp = AssociatesDetails(itemAtual: vProfileModel )
+      await bdJourneyRidingController.loadJourneyRidingDetais(
+        vProfileModel.pfl_id, 
+        vProfileModel.hld_id
+      );
+
+      // Abre a tela somente após carregar os dados com sucesso
+      if (context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+              AssociatesDetails( itemAtual: vProfileModel ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('monthlyPaymentsIndividual error: $e');
+    }
+  }
+
 }

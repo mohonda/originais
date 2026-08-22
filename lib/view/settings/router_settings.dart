@@ -74,7 +74,8 @@ class RouterSettings {
           (item) => NavigationDestination(
             icon: Icon(item.icon),
             selectedIcon: Icon(item.selectedIcon),
-            label: item.label,
+            label: '',
+            // label: item.label,
           ),
         )
         .toList();

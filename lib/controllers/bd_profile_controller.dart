@@ -98,7 +98,7 @@ class BdProfileController extends ChangeNotifier {
       errorNotifier.value = null;
 
       final data = await supabaseClient
-        .from( 'profiles' )
+        .from( 'vprofile' )
         .select()
         .eq( 'pfl_id', id )
         .eq( 'hld_id', '1')

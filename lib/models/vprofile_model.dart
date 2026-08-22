@@ -14,7 +14,11 @@ class VProfileModel {
   String ismonthlypayment;
     
   String monthly_percent;
-  String date_update_status;
+  String data_status;
+
+  String jr_level;
+  String jr_nome;
+  String data_promocao;
 
   // ==========================================
   VProfileModel ( {
@@ -33,7 +37,11 @@ class VProfileModel {
     required this.ismonthlypayment,
     
     required this.monthly_percent,
-    required this.date_update_status
+    required this.data_status,
+
+    required this.jr_level,
+    required this.jr_nome,
+    required this.data_promocao
   } );
 
   // ==========================================
@@ -56,8 +64,11 @@ class VProfileModel {
       ismonthlypayment: json['ismonthlypayment']?.toString() ?? '',
 
       monthly_percent: json['monthly_percent']?.toString() ?? '',
-      date_update_status: json['date_update_status'] as String? ?? '',
+      data_status: json['data_status'] as String? ?? '',
 
+      jr_level: json['jr_level']?.toString() ?? '',
+      jr_nome: json['jr_nome']?.toString() ?? '',
+      data_promocao: json['data_promocao']?.toString() ?? '',
     );
   }
 
@@ -80,7 +91,11 @@ class VProfileModel {
       'ismonthlypayment': ismonthlypayment,
 
       'monthly_percent': monthly_percent,
-      'date_update_status': date_update_status,
+      'date_update_status': data_status,
+
+      'jr_level': jr_level,
+      'jr_nome': jr_nome,
+      'data_promocao': data_promocao,
     };
   }
 

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import '../models/Journeyriding_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
+import 'package:gorouter_exemplo/models/vprofile_journeyriding_mode.dart';
+import 'package:gorouter_exemplo/models/journeyriding_model.dart';
 
 final getItBdJourneyRidingController = GetIt.instance;
 
@@ -18,6 +19,10 @@ class BdJourneyRidingController extends ChangeNotifier {
 
   final ValueNotifier<List<JourneyRidingModel>> bdJourneyRidingNotifier =
     ValueNotifier<List<JourneyRidingModel>>([]);
+
+  
+  final ValueNotifier<List<VprofileJourneyridingMode>> vProfileJourneyridingDetaisNotifier =
+    ValueNotifier<List<VprofileJourneyridingMode>>([]);
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
@@ -42,6 +47,31 @@ class BdJourneyRidingController extends ChangeNotifier {
       
     } catch (e, stackTrace) {
       bdJourneyRidingNotifier.value = [];
+      errorNotifier.value = ("BdItemController::loadItems: $e \n$stackTrace");
+    } finally {
+      loadingNotifier.value = false;
+    }
+  }
+
+    Future<void> loadJourneyRidingDetais( String id, String hld ) async {
+      
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      final resposta = await supabaseClient
+        .from('vprofile_journeyriding')
+        .select()
+        .eq('pfl_id', id)
+        .eq('hld_id', hld)
+        .order( 'pfl_full_name',ascending: true) 
+        .order( 'uj_promotion_date', ascending: true );
+      
+        vProfileJourneyridingDetaisNotifier.value = resposta.map( ( item ) =>
+          VprofileJourneyridingMode.fromJson( item ) ).toList();
+      
+    } catch (e, stackTrace) {
+      vProfileJourneyridingDetaisNotifier.value = [];
       errorNotifier.value = ("BdItemController::loadItems: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;

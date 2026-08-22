@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controllers/bd_journeyriding_controller.dart';
-import '../models/Journeyriding_model.dart';
+import '../models/journeyriding_model.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
 
