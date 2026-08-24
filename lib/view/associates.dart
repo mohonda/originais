@@ -7,6 +7,7 @@ import 'package:gorouter_exemplo/services/general_service.dart';
 import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
 import 'package:gorouter_exemplo/view/associates_details.dart';
+import 'package:gorouter_exemplo/controllers/bd_vexecutive_committee_termofoffice_members_controller.dart';
 
 
 class Associates extends StatefulWidget {
@@ -29,6 +30,9 @@ class AssociatesState extends State<Associates> {
 
   final bdVProfilesSanctionsController =
     getItBdVProfilesSanctionsController<BdVProfilesSanctionsController>();
+
+  final bdVExecutiveCommitteeTermOfOfficeMembersController =
+    getItBdVExecutiveCommitteeTermOfOfficeMembersController<BdVExecutiveCommitteeTermOfOfficeMembersController>();
 
   final generalService = getItGeneralService<GeneralService>();
 
@@ -293,6 +297,11 @@ class AssociatesState extends State<Associates> {
       );
 
       await bdVProfilesSanctionsController.loadProfileSanctionsStatus(
+        vProfileModel.pfl_id, 
+        vProfileModel.hld_id
+      );
+
+      await bdVExecutiveCommitteeTermOfOfficeMembersController.loadExecutiveCommitteeTermOfOfficeMembers(
         vProfileModel.pfl_id, 
         vProfileModel.hld_id
       );

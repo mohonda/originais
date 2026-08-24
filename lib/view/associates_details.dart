@@ -9,6 +9,8 @@ import 'package:gorouter_exemplo/controllers/bd_vprofile_associatestatus_control
 import 'package:gorouter_exemplo/controllers/bd_vprofiles_sanctions_controller.dart';
 import 'package:gorouter_exemplo/models/vprofile_associatestatus_model.dart';
 import 'package:gorouter_exemplo/models/vprofiles_sanctions_model.dart';
+import 'package:gorouter_exemplo/models/vexecutive_committee_termofoffice_members_model.dart';
+import 'package:gorouter_exemplo/controllers/bd_vexecutive_committee_termofoffice_members_controller.dart';
 
 
 class AssociatesDetails extends StatefulWidget {
@@ -30,6 +32,9 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
 
   final bdVProfilesSanctionsController =
     getItBdVProfilesSanctionsController<BdVProfilesSanctionsController>();
+  
+  final bdVExecutiveCommitteeTermOfOfficeMembersController =
+    getItBdVExecutiveCommitteeTermOfOfficeMembersController<BdVExecutiveCommitteeTermOfOfficeMembersController>();
 
   final generalService = getItGeneralService<GeneralService>();
 
@@ -135,7 +140,7 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                           const SizedBox(height: distance),
                           sanctionTable(),
                           const SizedBox(height: distance),
-                          executiveCommiteeTable(),
+                          executiveCommitteeTable(),
                         ],
                       ),
                     ),
@@ -429,6 +434,7 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
 
   // ==========================================
   Widget sanctionTable() {
+    Color sanColor;
   return InputDecorator(
     decoration: const InputDecoration(
       labelText: 'Sanctions',
@@ -482,6 +488,16 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                         final String dateEnd = generalService.formatarDataBr(
                           item.psan_date_end.toString(),
                         );
+                        switch (item.psan_san_id) {
+                          case '1':
+                            sanColor = Colors.orange;
+                          case '2':
+                            sanColor = Colors.purpleAccent;
+                          case '3':
+                            sanColor = Colors.red;
+                          default:
+                            sanColor = Colors.white70;
+                        }
 
                         return Card(
                           elevation: 2,
@@ -500,17 +516,17 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                                     children: [
                                       Text(
                                         san_name,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                          color: sanColor,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         'Início: $dateStart - Final: $dateEnd - Valor: $psan_value \nDescrição: $psan_desc',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.white70,
+                                          color: sanColor,
                                         ),
                                       ),
                                     ],
@@ -566,17 +582,18 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
 }
 
   // ==========================================
-  Widget executiveCommiteeTable() {
+  Widget executiveCommitteeTable() {
   return InputDecorator(
     decoration: const InputDecoration(
-      labelText: 'Executive Commitee',
+      labelText: 'Executive Committee',
       // prefixIcon: Icon(Icons.stars),
       border: OutlineInputBorder(),
       contentPadding: EdgeInsets.all(12),
     ),
-    child: ValueListenableBuilder<List<JourneyRidingModel>?>(
+    child: ValueListenableBuilder<List<VExecutiveCommitteeTermOfOfficeMembersModel>?>(
       valueListenable:
-          bdJourneyRidingController.vProfileJourneyridingDetaisNotifier,
+          bdVExecutiveCommitteeTermOfOfficeMembersController
+            .vExecutiveCommitteeTermOfOfficeMembersNotifier,
       builder: (context, historyList, child) {
         final bool temItens = historyList != null && historyList.isNotEmpty;
 
@@ -606,10 +623,14 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: historyList.map((item) {
-                        final String nome = item.jr_nome?.toString() ?? '-';
-                        final String nivel = item.jr_level?.toString() ?? '-';
-                        final String data = generalService.formatarDataBr(
-                          item.uj_promotion_date.toString(),
+                        final String diretoria = item.ect_name?.toString() ?? '-';
+                        final String cargo = item.ecm_name?.toString() ?? '-';
+                        final String? motivo = item.ectm_motivo_saida.toString();
+                        final String dataStart = generalService.formatarDataBr(
+                          item.ectm_date_start.toString(),
+                        );
+                        final String dataEnd = generalService.formatarDataBr(
+                          item.ectm_date_end.toString(),
                         );
 
                         return Card(
@@ -628,20 +649,25 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        nome,
+                                        cargo,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                          color: Colors.deepOrangeAccent,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Nível: $nivel - Data: $data',
-                                        style: const TextStyle(
+                                        motivo.toString().isNotEmpty
+                                        ? 'Diretoria: $diretoria - Data: $dataStart até $dataEnd \nDescrição: $motivo'
+                                        : 'Diretoria: $diretoria - Data: $dataStart até $dataEnd',
+                                        style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.white70,
+                                          color: dataEnd.isEmpty
+                                           ? Colors.tealAccent
+                                           : Colors.white70
                                         ),
                                       ),
+                                      
                                     ],
                                   ),
                                 ),
