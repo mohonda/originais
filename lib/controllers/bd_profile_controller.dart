@@ -45,12 +45,15 @@ class BdProfileController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await supabaseClient
+      // final resposta = await supabaseClient
+      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+        supabaseClient
         .from('vprofile')
         .select()
         .eq('hld_id', '1')
         .order('as_id', ascending: true)
-        .order('pfl_full_name', ascending: true);
+        .order('pfl_full_name', ascending: true)
+      );
 
       profilesNotifier.value = resposta.map((item) =>
         VProfileModel.fromJson(item)).toList();
@@ -69,15 +72,17 @@ class BdProfileController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final data = await supabaseClient
+      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+        supabaseClient
         .from( 'vprofile' )
         .select()
         .eq( 'pfl_id', id )
         .eq('hld_id', '1')
-        .maybeSingle();
+        .maybeSingle()
+      );
 
-      if ( data != null ) {
-        pessoaSelecionadaNotifier.value = VProfileModel.fromJson(data);
+      if ( resposta != null ) {
+        pessoaSelecionadaNotifier.value = VProfileModel.fromJson(resposta);
       } else {
         pessoaSelecionadaNotifier.value = null;
         errorNotifier.value = 'BdProfileController::fetchProfilesById: Registro não encontrado.';
@@ -97,15 +102,17 @@ class BdProfileController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final data = await supabaseClient
+      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+        supabaseClient
         .from( 'vprofile' )
         .select()
         .eq( 'pfl_id', id )
         .eq( 'hld_id', '1')
-        .maybeSingle();
+        .maybeSingle()
+      );
 
-      if ( data != null ) {
-        pessoaSelecionadaNotifier.value = VProfileModel.fromJson( data );
+      if ( resposta != null ) {
+        pessoaSelecionadaNotifier.value = VProfileModel.fromJson( resposta );
       } else {
         final profileData = ProfileModel(
           pfl_id: id,

@@ -45,7 +45,6 @@ class _AboutState extends State<About> with SingleTickerProviderStateMixin {
   // ==========================================
   @override
   void initState() {
-    super.initState();
 
     // Configuração do controlador da animação
     _controller = AnimationController(
@@ -64,6 +63,8 @@ class _AboutState extends State<About> with SingleTickerProviderStateMixin {
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _startLoopAnimation();
+    
+    super.initState();
   }
 
   // ==========================================

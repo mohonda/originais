@@ -35,8 +35,9 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
   // ==========================================
   @override
   void initState() {
-    super.initState();
     initValues();
+    
+    super.initState();
   }
 
   // ==========================================

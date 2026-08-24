@@ -20,7 +20,6 @@ class LoginState extends State with SingleTickerProviderStateMixin {
   // ==========================================
   @override
   void initState() {
-    super.initState();
     loginController.carregarPreferencias();
 
     // Define a duração total da animação para 1.5 segundos
@@ -44,6 +43,7 @@ class LoginState extends State with SingleTickerProviderStateMixin {
     // Inicia a animação assim que a tela abre
         _startLoopAnimation();
 
+    super.initState();
   }
 
   // ==========================================

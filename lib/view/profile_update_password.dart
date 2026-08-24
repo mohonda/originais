@@ -29,9 +29,9 @@ class ProfileUpdatePasswordState extends State<ProfileUpdatePassword> {
   // ==========================================
   @override
   void initState() {
-    super.initState();
-
     initValues();
+
+    super.initState();
   }
 
   // ==========================================

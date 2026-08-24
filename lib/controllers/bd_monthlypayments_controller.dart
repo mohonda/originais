@@ -8,9 +8,7 @@ import 'package:printing/printing.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gorouter_exemplo/models/mensalidades_model.dart';
-import 'dart:typed_data';
 import 'package:gorouter_exemplo/services/general_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
 
 final getItbdMonthlyPaymentsController = GetIt.instance;
@@ -59,12 +57,15 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       final String month = DateTime.now().month.toString().padLeft(2, '0');
       final String year = DateTime.now().year.toString();
 
-      final resposta = await supabaseClient
+
+      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+        supabaseClient
         .from('vmensalidades')
         .select()
         .eq('mes_mes_referencia', month)
         .eq('mes_ano_referencia', year)
-        .eq('mes_hld_id', '1');
+        .eq('mes_hld_id', '1')
+      );
 
       monthlyPaymentsNotifier.value = 
           resposta.map((item) =>
@@ -87,15 +88,17 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
-      
-      final resposta = await supabaseClient
+    
+      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+        supabaseClient
           .from('vmensalidades')
           .select()
           .eq('mes_pfl_id', id)
           .eq('mes_hld_id', '1')
           .eq('mes_mes_referencia', month)
           .eq('mes_ano_referencia', year)
-          .single();
+          .single()
+        );
 
       monthlyPaymentsIndividual.value =
         MensalidadesModel.fromJson(resposta);
@@ -286,15 +289,17 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final data = await supabaseClient
+      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+        supabaseClient
         .from( 'profiles' )
         .select('pfl_full_name')
         .eq( 'pfl_id', id )
         .eq( 'hld_id', '1' )
-        .maybeSingle();
+        .maybeSingle()
+      );
 
-      if ( data != null ) {
-        nameConfirmacao = data['pfl_full_name'] as String? ?? '';
+      if ( resposta != null ) {
+        nameConfirmacao = resposta['pfl_full_name'] as String? ?? '';
       }
 
     } catch ( e, stackTrace ) {

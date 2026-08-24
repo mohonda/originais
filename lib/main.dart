@@ -10,6 +10,8 @@ import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
 import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
 import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_formapagamento_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_vprofile_associatestatus_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_vprofiles_sanctions_controller.dart';
 import 'package:gorouter_exemplo/services/general_service.dart';
 
 void main() async {
@@ -60,7 +62,10 @@ void main() async {
   setupGetItProfileBdItemController();
   setupGetItBdMonthlyPaymentsController();
   setupGetItBdFormaPagamentoController();
-  setupGetItGeneralService();
+  setupGetItBdVProfileAssociateStatusController();
+  setupGetItBdVProfilesSanctionsController();
 
+  setupGetItGeneralService();
+  
   runApp(const RouterApp());
 }

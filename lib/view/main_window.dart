@@ -5,6 +5,8 @@ import 'package:gorouter_exemplo/controllers/auth_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_journeyriding_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_vprofile_associatestatus_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_vprofiles_sanctions_controller.dart';
 import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
 import 'package:window_manager/window_manager.dart';
 import 'dart:io';
@@ -30,13 +32,16 @@ class _MainWindow extends State<MainWindow> {
   final bdMonthlyPaymentsController =
       getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
 
+  final bdProfileAssociateStatusController =
+    getItBdVProfileAssociateStatusController<BdVProfileAssociateStatusController>();
+  
+
+
   int win = 0;
 
   // ==========================================
   @override
   void initState() {
-    super.initState();
-
     final userId = mySupabaseClient.getUserId();
     bdProfileController.checkUserProfileExist(userId);
     bdProfileController.fetchProfilesById(userId);
@@ -45,6 +50,8 @@ class _MainWindow extends State<MainWindow> {
     bdJourneyRidingController.loadJourneyRiding();
 
     bdMonthlyPaymentsController.loadCurrentMonthlyPayment();
+    
+    super.initState();
   }
 
   // ==========================================

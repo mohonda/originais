@@ -24,10 +24,10 @@ class _MonthlyPayments extends State<MonthlyPayments> {
   // ==========================================
   @override
   void initState() {
-    super.initState();
-
     bdMonthlyPaymentsController =
         getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
+
+    super.initState();
   }
 
   // ==========================================

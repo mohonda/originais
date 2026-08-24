@@ -38,8 +38,9 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
   // ==========================================
   @override
   void initState() {
-    super.initState();
     initValues();
+    
+    super.initState();
   }
 
   // ==========================================

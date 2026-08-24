@@ -47,4 +47,18 @@ class MySupabaseClient {
 
     return userEmail ?? 'No e-mail!!!';
   }
+
+  // ==========================================
+  Future<T> safePostgrestCall<T>(Future<T> Function() call) async {
+    try {
+      return await call();
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST303' || e.message.contains('future')) {
+        await Future.delayed(const Duration(seconds: 1));
+        return await call();
+      }
+      rethrow;
+    }
+  }
+
 }

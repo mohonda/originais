@@ -22,10 +22,11 @@ class _FormViewState extends State<ItensForm> {
   // ==========================================
   @override
   void initState() {
-    super.initState();
     if (widget.itemAtual != null) {
       // _textController.text = widget.itemAtual!.nome;
     }
+    
+    super.initState();
   }
 
   // ==========================================

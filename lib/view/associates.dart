@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:gorouter_exemplo/controllers/bd_journeyriding_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_vprofile_associatestatus_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_vprofiles_sanctions_controller.dart';
 import 'package:gorouter_exemplo/models/vprofile_model.dart';
 import 'package:gorouter_exemplo/services/general_service.dart';
 import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
 import 'package:gorouter_exemplo/view/associates_details.dart';
+
 
 class Associates extends StatefulWidget {
   const Associates({super.key});
@@ -21,7 +24,14 @@ class AssociatesState extends State<Associates> {
   final bdJourneyRidingController =
       getItBdJourneyRidingController<BdJourneyRidingController>();
 
+  final bdVProfileAssociateStatusController =
+      getItBdVProfileAssociateStatusController<BdVProfileAssociateStatusController>();
+
+  final bdVProfilesSanctionsController =
+    getItBdVProfilesSanctionsController<BdVProfilesSanctionsController>();
+
   final generalService = getItGeneralService<GeneralService>();
+
 
   // ==========================================
   @override
@@ -273,6 +283,16 @@ class AssociatesState extends State<Associates> {
     try {
       // tmp = AssociatesDetails(itemAtual: vProfileModel )
       await bdJourneyRidingController.loadJourneyRidingDetais(
+        vProfileModel.pfl_id, 
+        vProfileModel.hld_id
+      );
+
+      await bdVProfileAssociateStatusController.loadProfileAssociateStatus(
+        vProfileModel.pfl_id, 
+        vProfileModel.hld_id
+      );
+
+      await bdVProfilesSanctionsController.loadProfileSanctionsStatus(
         vProfileModel.pfl_id, 
         vProfileModel.hld_id
       );

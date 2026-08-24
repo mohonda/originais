@@ -32,9 +32,11 @@ class BdFormaPagamentoController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await supabaseClient
+      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+        supabaseClient
         .from('forma_pagamento')
-        .select();
+        .select()
+      );
 
     formaPagamentoNotifier.value = resposta.map((item) =>
       FormaPagamentoModel.fromJson(item)).toList();
