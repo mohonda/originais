@@ -47,7 +47,7 @@ class AssociatesState extends State<Associates> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomFloatingAppBar(title: 'Associates'),
+      appBar: CustomFloatingAppBar(title: 'Associates'),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
         child: SizedBox.expand(

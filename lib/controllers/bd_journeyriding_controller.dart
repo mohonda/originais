@@ -82,6 +82,91 @@ class BdJourneyRidingController extends ChangeNotifier {
     }
   }
 
+   // ==========================================
+  Future<void> insertProfileJourneyRiding(
+    String uj_pfl_id,
+    String uj_hld_id,
+    String uj_jr_id,
+    String uj_promotion_date,
+    ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      await supabaseClient
+          .from('user_journey')  
+          .insert({
+            'uj_pfl_id': uj_pfl_id,
+            'uj_hld_id': uj_hld_id,
+            'uj_jr_id': uj_jr_id,
+            'uj_promotion_date': uj_promotion_date
+          }); 
+
+    } catch (e, stackTrace) {
+      errorNotifier.value = ("BdItemController::updateItem: $e \n$stackTrace");
+      debugPrint(errorNotifier.value.toString());
+    } finally {
+      loadingNotifier.value = false;
+      loadJourneyRidingDetais(uj_pfl_id, uj_hld_id);
+    }
+  }
+
+  // ==========================================
+  Future<void> updateProfileJourneyRiding(
+    String uj_id,
+    String uj_pfl_id,
+    String uj_hld_id,
+    String uj_jr_id,
+    String uj_promotion_date,
+    ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      await supabaseClient
+          .from('user_journey')  
+          .update({
+            // 'uj_id': uj_id,
+            // 'uj_pfl_id': uj_pfl_id,
+            // 'uj_hld_id': uj_hld_id,
+            'uj_jr_id': uj_jr_id,
+            'uj_promotion_date': uj_promotion_date
+          })
+          .eq( 'uj_id', uj_id);
+
+    } catch (e, stackTrace) {
+      errorNotifier.value = ("BdItemController::updateItem: $e \n$stackTrace");
+      debugPrint(errorNotifier.value.toString());
+    } finally {
+      loadingNotifier.value = false;
+      loadJourneyRidingDetais(uj_pfl_id, uj_hld_id);
+    }
+  }
+
+   // ==========================================
+  Future<void> deleteProfileJourneyRiding(
+    String uj_id,
+    String uj_pfl_id,
+    String uj_hld_id
+    ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      await supabaseClient
+          .from('user_journey')  
+          .delete()
+          .eq('uj_id', uj_id);
+
+    } catch (e, stackTrace) {
+      errorNotifier.value = ("BdItemController::updateItem: $e \n$stackTrace");
+      debugPrint(errorNotifier.value.toString());
+    } finally {
+      loadingNotifier.value = false;
+      loadJourneyRidingDetais(uj_pfl_id, uj_hld_id);
+    }
+  }
+
   // ==========================================
   // Future<void> saveItem(String name) async {
   //   try {

@@ -39,7 +39,7 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
   @override
   void initState() {
     initValues();
-    
+
     super.initState();
   }
 
@@ -110,7 +110,7 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
         DateTime.now().toString(),
       );
     } else {
-      dataconfirmacao.text = generalService.formatarDataBr( tdata );
+      dataconfirmacao.text = generalService.formatarDataBr(tdata);
     }
 
     idconfirmacao.text = bdMonthlyPaymentsController.idConfirmacao;
@@ -136,509 +136,545 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
     }
 
     return Scaffold(
-      appBar: const CustomFloatingAppBar(
-        title: 'Cashier'
+      appBar: CustomFloatingAppBar(
+        title: 'Cashier - ${fullNameController.text}'
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // --- LINHA 1: ID e Referência ---
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: TextFormField(
-                          controller: idController,
-                          enabled: false,
-                          textAlign: TextAlign.end,
-                          decoration: const InputDecoration(
-                            labelText: 'ID:',
-                            prefixIcon: Icon(Icons.key),
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: distance),
-                      Expanded(
-                        flex: 1,
-                        child: TextFormField(
-                          controller: myreferencia,
-                          enabled: false,
-                          textAlign: TextAlign.end,
-                          style: const TextStyle(
-                            color: Colors.deepOrange,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          decoration: InputDecoration(
-                            labelText: 'Ref.: Mês/Ano',
-                            floatingLabelStyle: const TextStyle(
-                              color: Colors.blue,
-                            ),
-                            labelStyle: const TextStyle(
-                              color: Colors.blue
-                            ),
-                            prefixIcon: const Icon(
-                              Icons.calendar_today,
-                              color: Colors.blue,
-                            ),
-                            disabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.blue.shade200,
-                                width: 2,
-                              ),
-                            ),
-                            border: const OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                    ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                // Desconta o padding externo de 16 (topo 16 + base 16 = 32)
+                minHeight: constraints.maxHeight - 32.0,
+              ),
+              child: IntrinsicHeight(
+                child: Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-
-                  const SizedBox(height: distance),
-
-                  // --- BLOCO PRINCIPAL: 4 Campos à Esquerda, Imagem à Direita ---
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // COLUNA DA ESQUERDA
-                        Expanded(
-                          flex: 2,
-                          child: Column(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // --- LINHA 1: ID e Referência ---
+                          Row(
                             children: [
-                              // --- LINHA 2: Nome Completo ---
-                              TextFormField(
-                                controller: fullNameController,
-                                enabled: false,
-                                textAlign: TextAlign.start,
-                                decoration: const InputDecoration(
-                                  labelText: 'Nome:',
-                                  prefixIcon: Icon(Icons.verified_user),
-                                  border: OutlineInputBorder(),
+                              Expanded(
+                                flex: 2,
+                                child: TextFormField(
+                                  controller: idController,
+                                  enabled: false,
+                                  textAlign: TextAlign.end,
+                                  decoration: const InputDecoration(
+                                    labelText: 'ID:',
+                                    prefixIcon: Icon(Icons.key),
+                                    border: OutlineInputBorder(),
+                                  ),
                                 ),
                               ),
-
-                              const SizedBox(height: distance),
-
-                              // 1. VALOR
-                              TextFormField(
-                                controller: valor,
-                                keyboardType: TextInputType.number,
-                                textAlign: TextAlign.end,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                                decoration: const InputDecoration(
-                                  labelText: 'Valor (R\$):',
-                                  prefixIcon: Icon(Icons.attach_money),
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: (value) =>
-                                    value == null || value.trim().isEmpty
-                                    ? 'Informe o valor'
-                                    : null,
-                              ),
-                              const SizedBox(height: distance),
-
-                              // 2. FORMA DE PAGAMENTO
-                              ListenableBuilder(
-                                listenable: bdFormaPagamentoController
-                                    .formaPagamentoNotifier,
-                                builder: (context, child) {
-                                  final listaFormas = bdFormaPagamentoController
-                                      .formaPagamentoNotifier
-                                      .value;
-
-                                  if (listaFormas.isEmpty) {
-                                    return const Center(
-                                      child: CircularProgressIndicator(),
-                                    );
-                                  }
-                                  bool valorExisteNaLista = listaFormas.any(
-                                    (forma) =>
-                                        forma.fpg_id.toString() ==
-                                        formaPagamentoSelecionada,
-                                  );
-                                  if (!valorExisteNaLista) {
-                                    formaPagamentoSelecionada = null;
-                                  }
-
-                                  return DropdownButtonFormField<String>(
-                                    initialValue: formaPagamentoSelecionada,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Forma de Pagamento:',
-                                      prefixIcon: Icon(Icons.payment),
-                                      border: OutlineInputBorder(),
+                              const SizedBox(width: distance),
+                              Expanded(
+                                flex: 1,
+                                child: TextFormField(
+                                  controller: myreferencia,
+                                  enabled: false,
+                                  textAlign: TextAlign.end,
+                                  style: const TextStyle(
+                                    color: Colors.deepOrange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: 'Ref.: Mês/Ano',
+                                    floatingLabelStyle: const TextStyle(
+                                      color: Colors.blue,
                                     ),
-                                    hint: const Text('Selecione...'),
-                                    items: listaFormas.map((forma) {
-                                      return DropdownMenuItem<String>(
-                                        value: forma.fpg_id.toString(),
-                                        child: Text(forma.fpg_descricao.toString()),
-                                      );
-                                    }).toList(),
-                                    onChanged: (String? newValue) {
-                                      setState(() {
-                                        formaPagamentoSelecionada = newValue;
-                                      });
-                                    },
-                                    validator: (value) =>
-                                        value == null || value.isEmpty
-                                        ? 'Selecione'
-                                        : null,
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: distance),
-
-                              // 3. DATA DO PAGAMENTO
-                              TextFormField(
-                                controller: datapagamento,
-                                textAlign: TextAlign.end,
-                                decoration: const InputDecoration(
-                                  labelText: 'Data Pagtº:',
-                                  prefixIcon: Icon(Icons.calendar_month),
-                                  border: OutlineInputBorder(),
+                                    labelStyle: const TextStyle(
+                                      color: Colors.blue,
+                                    ),
+                                    prefixIcon: const Icon(
+                                      Icons.calendar_today,
+                                      color: Colors.blue,
+                                    ),
+                                    disabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.blue.shade200,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    border: const OutlineInputBorder(),
+                                  ),
                                 ),
-                                validator: (datapagamento) =>
-                                    datapagamento == null ||
-                                        datapagamento.trim().isEmpty
-                                    ? 'Informe a data'
-                                    : null,
                               ),
-                              const SizedBox(height: distance),
-
                             ],
                           ),
-                        ),
-                        const SizedBox(width: distance),
 
-                        // COLUNA DA DIREITA (Miniatura Gigante)
-                        // DIREITA: Mesma proporção (flex: 1) do Mês/Ano lá em cima
-                        Expanded(
-                          flex: 1,
-                          child: SizedBox(
-                            height:
-                                0, // A MÁGICA ESTÁ AQUI: Impede a imagem de ditar a altura da linha
-                            child: ValueListenableBuilder<bool>(
-                              valueListenable:
-                                  bdMonthlyPaymentsController.loadingNotifier,
-                              builder: (context, isLoading, child) {
-                                // 1. Exibe o indicador de carregamento durante o upload
-                                if (isLoading) {
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: Colors.grey.shade400,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: const Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          CircularProgressIndicator(),
-                                          SizedBox(height: 12),
-                                          Text(
-                                            'Enviando...',
-                                            style: TextStyle(
-                                              color: Colors.black54,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }
+                          const SizedBox(height: distance),
 
-                                // 2. Exibe a imagem ou o botão de adicionar
-                                return ValueListenableBuilder(
-                                  valueListenable: bdMonthlyPaymentsController
-                                      .monthlyPaymentsIndividual,
-                                  builder: (context, value, child) {
-                                    final url = value?.mes_comprovante_pag ?? "";
-
-                                    return GestureDetector(
-                                      // onTap: selecionarEEnviarFoto,
-                                      child: Container(
-                                        clipBehavior: Clip.antiAlias,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[200],
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.grey.shade400,
-                                            width: 1,
-                                          ),
+                          // --- BLOCO PRINCIPAL: 4 Campos à Esquerda, Imagem à Direita ---
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // COLUNA DA ESQUERDA
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    children: [
+                                      // --- LINHA 2: Nome Completo ---
+                                      TextFormField(
+                                        controller: fullNameController,
+                                        enabled: false,
+                                        textAlign: TextAlign.start,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Nome:',
+                                          prefixIcon: Icon(Icons.verified_user),
+                                          border: OutlineInputBorder(),
                                         ),
-                                        child: url.isNotEmpty
-                                            ? SingleChildScrollView(
-                                                physics:
-                                                    const BouncingScrollPhysics(),
-                                                child: Image.network(
-                                                  url,
-                                                  fit: BoxFit.fitWidth,
-                                                  // Indicador enquanto baixa a imagem da web
-                                                  loadingBuilder:
-                                                      (
-                                                        context,
-                                                        child,
-                                                        loadingProgress,
-                                                      ) {
-                                                        if (loadingProgress ==
-                                                            null)
-                                                          return child;
-                                                        return const Center(
-                                                          child: Padding(
-                                                            padding:
-                                                                EdgeInsets.all(
-                                                                  24.0,
+                                      ),
+
+                                      const SizedBox(height: distance),
+
+                                      // 1. VALOR
+                                      TextFormField(
+                                        controller: valor,
+                                        keyboardType: TextInputType.number,
+                                        textAlign: TextAlign.end,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                        decoration: const InputDecoration(
+                                          labelText: 'Valor (R\$):',
+                                          prefixIcon: Icon(Icons.attach_money),
+                                          border: OutlineInputBorder(),
+                                        ),
+                                        validator: (value) =>
+                                            value == null ||
+                                                value.trim().isEmpty
+                                            ? 'Informe o valor'
+                                            : null,
+                                      ),
+                                      const SizedBox(height: distance),
+
+                                      // 2. FORMA DE PAGAMENTO
+                                      ListenableBuilder(
+                                        listenable: bdFormaPagamentoController
+                                            .formaPagamentoNotifier,
+                                        builder: (context, child) {
+                                          final listaFormas =
+                                              bdFormaPagamentoController
+                                                  .formaPagamentoNotifier
+                                                  .value;
+
+                                          if (listaFormas.isEmpty) {
+                                            return const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            );
+                                          }
+                                          bool valorExisteNaLista = listaFormas
+                                              .any(
+                                                (forma) =>
+                                                    forma.fpg_id.toString() ==
+                                                    formaPagamentoSelecionada,
+                                              );
+                                          if (!valorExisteNaLista) {
+                                            formaPagamentoSelecionada = null;
+                                          }
+
+                                          return DropdownButtonFormField<
+                                            String
+                                          >(
+                                            initialValue:
+                                                formaPagamentoSelecionada,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Forma de Pagamento:',
+                                              prefixIcon: Icon(Icons.payment),
+                                              border: OutlineInputBorder(),
+                                            ),
+                                            hint: const Text('Selecione...'),
+                                            items: listaFormas.map((forma) {
+                                              return DropdownMenuItem<String>(
+                                                value: forma.fpg_id.toString(),
+                                                child: Text(
+                                                  forma.fpg_descricao
+                                                      .toString(),
+                                                ),
+                                              );
+                                            }).toList(),
+                                            onChanged: (String? newValue) {
+                                              setState(() {
+                                                formaPagamentoSelecionada =
+                                                    newValue;
+                                              });
+                                            },
+                                            validator: (value) =>
+                                                value == null || value.isEmpty
+                                                ? 'Selecione'
+                                                : null,
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: distance),
+
+                                      // 3. DATA DO PAGAMENTO
+                                      TextFormField(
+                                        controller: datapagamento,
+                                        textAlign: TextAlign.end,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Data Pagtº:',
+                                          prefixIcon: Icon(
+                                            Icons.calendar_month,
+                                          ),
+                                          border: OutlineInputBorder(),
+                                        ),
+                                        validator: (datapagamento) =>
+                                            datapagamento == null ||
+                                                datapagamento.trim().isEmpty
+                                            ? 'Informe a data'
+                                            : null,
+                                      ),
+                                      const SizedBox(height: distance),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: distance),
+
+                                // COLUNA DA DIREITA (Miniatura Gigante)
+                                Expanded(
+                                  flex: 1,
+                                  child: SizedBox(
+                                    height: 0,
+                                    child: ValueListenableBuilder<bool>(
+                                      valueListenable:
+                                          bdMonthlyPaymentsController
+                                              .loadingNotifier,
+                                      builder: (context, isLoading, child) {
+                                        if (isLoading) {
+                                          return Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[200],
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: Colors.grey.shade400,
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: const Center(
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  CircularProgressIndicator(),
+                                                  SizedBox(height: 12),
+                                                  Text(
+                                                    'Enviando...',
+                                                    style: TextStyle(
+                                                      color: Colors.black54,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }
+
+                                        return ValueListenableBuilder(
+                                          valueListenable:
+                                              bdMonthlyPaymentsController
+                                                  .monthlyPaymentsIndividual,
+                                          builder: (context, value, child) {
+                                            final url =
+                                                value?.mes_comprovante_pag ??
+                                                "";
+
+                                            return GestureDetector(
+                                              child: Container(
+                                                clipBehavior: Clip.antiAlias,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey[200],
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                    color: Colors.grey.shade400,
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                child: url.isNotEmpty
+                                                    ? SingleChildScrollView(
+                                                        physics:
+                                                            const BouncingScrollPhysics(),
+                                                        child: Image.network(
+                                                          url,
+                                                          fit: BoxFit.fitWidth,
+                                                          loadingBuilder:
+                                                              (
+                                                                context,
+                                                                child,
+                                                                loadingProgress,
+                                                              ) {
+                                                                if (loadingProgress ==
+                                                                    null) {
+                                                                  return child;
+                                                                }
+                                                                return const Center(
+                                                                  child: Padding(
+                                                                    padding:
+                                                                        EdgeInsets.all(
+                                                                          24.0,
+                                                                        ),
+                                                                    child:
+                                                                        CircularProgressIndicator(),
+                                                                  ),
+                                                                );
+                                                              },
+                                                          errorBuilder:
+                                                              (
+                                                                context,
+                                                                error,
+                                                                stackTrace,
+                                                              ) => const Center(
+                                                                child: Padding(
+                                                                  padding:
+                                                                      EdgeInsets.all(
+                                                                        20.0,
+                                                                      ),
+                                                                  child: Icon(
+                                                                    Icons
+                                                                        .broken_image,
+                                                                    size: 48,
+                                                                    color: Colors
+                                                                        .redAccent,
+                                                                  ),
                                                                 ),
-                                                            child:
-                                                                CircularProgressIndicator(),
-                                                          ),
-                                                        );
-                                                      },
-                                                  errorBuilder:
-                                                      (
-                                                        context,
-                                                        error,
-                                                        stackTrace,
-                                                      ) => const Center(
-                                                        child: Padding(
-                                                          padding:
-                                                              EdgeInsets.all(
-                                                                20.0,
                                                               ),
-                                                          child: Icon(
-                                                            Icons.broken_image,
-                                                            size: 48,
-                                                            color: Colors
-                                                                .redAccent,
-                                                          ),
+                                                        ),
+                                                      )
+                                                    : const Center(
+                                                        child: Column(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            Icon(
+                                                              Icons.add_a_photo,
+                                                              size: 48,
+                                                              color: Colors
+                                                                  .black45,
+                                                            ),
+                                                            SizedBox(height: 8),
+                                                            Text(
+                                                              'Toque para\nadicionar',
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                    .black45,
+                                                                fontSize: 12,
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
                                                       ),
-                                                ),
-                                              )
-                                            : const Center(
-                                                child: Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.add_a_photo,
-                                                      size: 48,
-                                                      color: Colors.black45,
-                                                    ),
-                                                    SizedBox(height: 8),
-                                                    Text(
-                                                      'Toque para\nadicionar',
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      style: TextStyle(
-                                                        color: Colors.black45,
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
                                               ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
+
+                          const SizedBox(height: distance),
+                          const Divider(),
+                          const SizedBox(height: distance),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 1,
+                                child: TextFormField(
+                                  controller: idconfirmacao,
+                                  enabled: false,
+                                  textAlign: TextAlign.end,
+                                  style: const TextStyle(
+                                    color: Colors.deepOrange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: 'Cashier ID:',
+                                    labelStyle: const TextStyle(
+                                      color: Colors.blue,
+                                    ),
+                                    prefixIcon: const Icon(
+                                      Icons.attach_money_sharp,
+                                      color: Colors.blue,
+                                    ),
+                                    disabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.blue.shade200,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: distance),
+                              Expanded(
+                                flex: 1,
+                                child: TextFormField(
+                                  controller: nameConfirmacao,
+                                  enabled: false,
+                                  textAlign: TextAlign.end,
+                                  style: const TextStyle(
+                                    color: Colors.deepOrange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: 'Cashier Name:',
+                                    labelStyle: const TextStyle(
+                                      color: Colors.blue,
+                                    ),
+                                    prefixIcon: const Icon(
+                                      Icons.attach_money_sharp,
+                                      color: Colors.blue,
+                                    ),
+                                    disabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.blue.shade200,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: distance),
+                              Expanded(
+                                flex: 1,
+                                child: TextFormField(
+                                  controller: dataconfirmacao,
+                                  textAlign: TextAlign.end,
+                                  style: const TextStyle(
+                                    color: Colors.deepOrange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: 'Cashier Date:',
+                                    floatingLabelStyle: const TextStyle(
+                                      color: Colors.blue,
+                                    ),
+                                    labelStyle: const TextStyle(
+                                      color: Colors.blue,
+                                    ),
+                                    prefixIcon: const Icon(
+                                      Icons.calendar_month,
+                                      color: Colors.blue,
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.blue.shade200,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.blue.shade200,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  validator: (dataconfirmacao) =>
+                                      dataconfirmacao == null ||
+                                          dataconfirmacao.trim().isEmpty
+                                      ? 'Informe a data'
+                                      : null,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          // ---------------------------------------------------
+                          // EMPURRA OS BOTÕES PARA O FINAL DA TELA
+                          // ---------------------------------------------------
+                          const Spacer(),
+                          const SizedBox(height: distance),
+
+                          // --- BOTÕES DE AÇÃO ---
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => context.pop(),
+                                  icon: const Icon(Icons.arrow_back),
+                                  label: const Text('Cancelar'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.indigo,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: distance),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    if (_formKey.currentState!.validate()) {
+                                      cancelPaymentsCashier(context);
+                                    }
+                                  },
+                                  icon: const Icon(Icons.save),
+                                  label: const Text('Cashier Cancel'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.deepOrange,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: distance),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    if (_formKey.currentState!.validate()) {
+                                      updatePaymentsCashier();
+                                    }
+                                  },
+                                  icon: const Icon(Icons.save),
+                                  label: const Text('Cashier Confirm'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.indigo,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-
-                  const SizedBox(height: distance),
-                  const Divider(),
-                  const SizedBox(height: distance),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 1,
-                        child: TextFormField(
-                          controller: idconfirmacao,
-                          enabled: false,
-                          textAlign: TextAlign.end,
-                          style: const TextStyle(
-                            color: Colors.deepOrange,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          decoration: InputDecoration(
-                            labelText: 'Cashier ID:',
-                            labelStyle: TextStyle(
-                              color: Colors.blue
-                            ),
-                            prefixIcon: Icon(
-                              Icons.attach_money_sharp,
-                              color: Colors.blue,
-                            ),
-                            disabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.blue.shade200,
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: distance),
-                                      Expanded(
-                        flex: 1,
-                        child: TextFormField(
-                          controller: nameConfirmacao,
-                          enabled: false,
-                          textAlign: TextAlign.end,
-                          style: const TextStyle(
-                            color: Colors.deepOrange,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          decoration: InputDecoration(
-                            labelText: 'Cashier Name:',
-                            labelStyle: TextStyle(
-                              color: Colors.blue
-                            ),
-                            prefixIcon: Icon(
-                              Icons.attach_money_sharp,
-                              color: Colors.blue,
-                            ),
-                            disabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.blue.shade200,
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: distance),
-                      Expanded(
-                        flex: 1,
-                        child: TextFormField(
-                          controller: dataconfirmacao,
-                          textAlign: TextAlign.end,
-                          style: const TextStyle(
-                            color: Colors.deepOrange,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          decoration: InputDecoration(
-                            labelText: 'Cashier Date:',
-                            floatingLabelStyle: TextStyle(
-                              color: Colors.blue,
-                            ),
-                            labelStyle: TextStyle(
-                              color: Colors.blue
-                            ),
-                            prefixIcon: Icon(
-                              Icons.calendar_month,
-                              color: Colors.blue,
-                              ),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.blue.shade200,
-                                width: 2,
-                              ),
-                            ),
-                            border: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.blue.shade200,
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                          validator: (dataconfirmacao) =>
-                              dataconfirmacao == null ||
-                                  dataconfirmacao.trim().isEmpty
-                              ? 'Informe a data'
-                              : null,
-                        ),
-                      ),
-                    ],
-                  ),
-
-
-                  const SizedBox(height: distance * 2),
-
-                  // --- BOTÕES DE AÇÃO ---
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => context.pop(),
-                          icon: const Icon(Icons.arrow_back),
-                          label: const Text('Cancelar'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.indigo,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: distance),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            if (_formKey.currentState!.validate()) {
-                              cancelPaymentsCashier( context );
-                            }
-                          },
-                          icon: const Icon(Icons.save),
-                          label: const Text('Cashier Cancel'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.deepOrange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: distance),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            if (_formKey.currentState!.validate()) {
-                              updatePaymentsCashier();
-                            }
-                          },
-                          icon: const Icon(Icons.save),
-                          label: const Text('Cashier Confirm'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -676,7 +712,7 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
       }
     }
   }
-  
+
   // ==========================================
   void updatePaymentsCashier() async {
     try {
@@ -688,7 +724,7 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
         datapagamento.text,
         formaPagamentoSelecionada ?? "",
         idconfirmacao.text,
-        dataconfirmacao.text
+        dataconfirmacao.text,
       );
     } catch (e) {
       if (mounted) {
@@ -714,9 +750,9 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
   }
 
   // ==========================================
-  void cancelPaymentsCashier( BuildContext context ) async {
-  showDialog(
-    context: context,
+  void cancelPaymentsCashier(BuildContext context) async {
+    showDialog(
+      context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel Profile Payment?'),
         content: const Text('Data Profile Payment will be lost!'),
@@ -728,7 +764,6 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
           ElevatedButton(
             child: const Text('Confirmar'),
             onPressed: () {
-
               Navigator.pop(context);
               try {
                 bdMonthlyPaymentsController.cancelPaymentsCashier(
@@ -736,7 +771,7 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
                   myreferencia.text.split('/')[0],
                   myreferencia.text.split('/')[1],
                   idconfirmacao.text,
-                  dataconfirmacao.text
+                  dataconfirmacao.text,
                 );
               } catch (e) {
                 if (mounted) {
@@ -758,7 +793,7 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
                     ),
                   );
                 }
-              }           
+              }
             },
           ),
         ],

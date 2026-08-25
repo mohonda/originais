@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
-import 'package:gorouter_exemplo/models/profile_model.dart';
 import 'package:gorouter_exemplo/models/vprofile_model.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
 import 'package:gorouter_exemplo/view/profile_update_password.dart';
@@ -41,11 +40,20 @@ class _ProfileState extends State<Profile> {
   // ==========================================
   void onFieldChanged() {
     if ((fullNameController.text ==
-            bdProfileController.pessoaSelecionadaNotifier.value?.pfl_full_name) &&
+            bdProfileController
+                .pessoaSelecionadaNotifier
+                .value
+                ?.pfl_full_name) &&
         (nickNameController.text ==
-            bdProfileController.pessoaSelecionadaNotifier.value?.pfl_nick_name) &&
+            bdProfileController
+                .pessoaSelecionadaNotifier
+                .value
+                ?.pfl_nick_name) &&
         (urlController.text ==
-            bdProfileController.pessoaSelecionadaNotifier.value?.pfl_avatar_url) &&
+            bdProfileController
+                .pessoaSelecionadaNotifier
+                .value
+                ?.pfl_avatar_url) &&
         (bioController.text ==
             bdProfileController.pessoaSelecionadaNotifier.value?.pfl_bio)) {
       bdProfileController.changedNotifier(false);
@@ -59,15 +67,19 @@ class _ProfileState extends State<Profile> {
     idController.text =
         bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? "";
     fullNameController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_full_name ?? "";
+        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_full_name ??
+        "";
     nickNameController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_nick_name ?? "";
+        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_nick_name ??
+        "";
     urlController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_avatar_url ?? "";
+        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_avatar_url ??
+        "";
     bioController.text =
         bdProfileController.pessoaSelecionadaNotifier.value?.pfl_bio ?? "";
     updatedAtController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_updated_at ?? "";
+        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_updated_at ??
+        "";
 
     bdProfileController.changedNotifier(false);
   }
@@ -111,10 +123,13 @@ class _ProfileState extends State<Profile> {
     }
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomFloatingAppBar(title: 'Profile'),
+      appBar: CustomFloatingAppBar(
+        title: 'Profile - ${fullNameController.text}',
+      ),
       body: ValueListenableBuilder<bool>(
         valueListenable: bdProfileController.loadingNotifier,
         builder: (context, isLoading, child) {
@@ -144,244 +159,300 @@ class _ProfileState extends State<Profile> {
 
                   const double distance = 12.0;
 
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // ---------------------------------------------------
-                            // LINHA 1: ID e Updated At lado a lado
-                            // ---------------------------------------------------
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: idController,
-                                    enabled: false,
-                                    decoration: const InputDecoration(
-                                      labelText: 'ID:',
-                                      prefixIcon: Icon(Icons.key),
-                                      border: OutlineInputBorder(),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: distance),
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: updatedAtController,
-                                    enabled: false,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Updated at:',
-                                      prefixIcon: Icon(Icons.punch_clock),
-                                      border: OutlineInputBorder(),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: distance),
-
-                            // ---------------------------------------------------
-                            // LINHA 2: Nome ocupando toda a largura
-                            // ---------------------------------------------------
-                            TextFormField(
-                              controller: fullNameController,
-                              onChanged: (_) => onFieldChanged(),
-                              decoration: const InputDecoration(
-                                labelText: 'Name:',
-                                prefixIcon: Icon(Icons.verified_user),
-                                border: OutlineInputBorder(),
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.all(16.0),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            // Desconta o padding externo de 16 (topo + base = 32)
+                            minHeight: constraints.maxHeight - 32.0,
+                          ),
+                          child: IntrinsicHeight(
+                            child: Card(
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Por favor, informe o nome.';
-                                }
-                                return null;
-                              },
-                            ),
-
-                            const SizedBox(height: distance),
-
-                            // ---------------------------------------------------
-                            // LINHA 3: Coluna Esquerda (Form) + Coluna Direita (Imagem/Avatar)
-                            // ---------------------------------------------------
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Coluna da Esquerda (Demais Campos)
-                                Expanded(
-                                  flex: 3,
-                                  child: Column(
-                                    children: [
-                                      TextFormField(
-                                        controller: nickNameController,
-                                        onChanged: (_) => onFieldChanged(),
-                                        decoration: const InputDecoration(
-                                          labelText: 'Nick name:',
-                                          prefixIcon: Icon(Icons.verified_user),
-                                          border: OutlineInputBorder(),
-                                        ),
-                                      ),
-                                      const SizedBox(height: distance),
-                                      TextFormField(
-                                        controller: bioController,
-                                        onChanged: (_) => onFieldChanged(),
-                                        maxLines: 3,
-                                        decoration: const InputDecoration(
-                                          labelText: 'BIO:',
-                                          prefixIcon: Icon(Icons.biotech),
-                                          border: OutlineInputBorder(),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                const SizedBox(width: distance),
-
-                                // Coluna da Direita (Avatar / Upload de Imagem)
-                                Expanded(
-                                  flex: 2,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      bdProfileController.selecionarEEnviarFoto();
-                                    },
-                                    child: Container(
-                                      height: 155,
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        // color: Colors.grey[200],
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: Colors.grey.shade400,
-                                        ),
-                                      ),
-                                      child: urlController.text.isNotEmpty
-                                          ? ClipRRect(
-                                              borderRadius: BorderRadius.circular(8),
-                                              child: Image.network(
-                                                urlController.text,
-                                                fit: BoxFit.contain,
-                                                errorBuilder: (context, error, stackTrace) =>
-                                                    const Icon(Icons.broken_image, size: 48),
-                                              ),
-                                            )
-                                          : const Column(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Icon(
-                                                  Icons.add_a_photo,
-                                                  size: 40,
-                                                  color: Colors.black54,
-                                                ),
-                                                SizedBox(height: 8),
-                                                Text(
-                                                  'Toque para\nalterar foto',
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.black54,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: distance),
-
-                            // ---------------------------------------------------
-                            // Botão Update Password
-                            // ---------------------------------------------------
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => ProfileUpdatePassword(),
-                                        ),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.lock_reset),
-                                    label: const Text('Update Password'),
-                                    style: OutlinedButton.styleFrom(
-                                      backgroundColor: Colors.indigo,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: distance),
-
-                            // ---------------------------------------------------
-                            // Botões Cancelar e Salvar
-                            // ---------------------------------------------------
-                            ValueListenableBuilder<bool>(
-                              valueListenable: bdProfileController.isChangedNotifier,
-                              builder: (context, isChanged, child) {
-                                final canSubmit = isChanged && !isLoading;
-
-                                return Row(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: canSubmit ? initValues : null,
-                                        icon: const Icon(Icons.refresh),
-                                        label: const Text('Cancelar'),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: Colors.indigo,
-                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                    // LINHA 1: ID e Updated At
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextFormField(
+                                            controller: idController,
+                                            enabled: false,
+                                            decoration: const InputDecoration(
+                                              labelText: 'ID:',
+                                              prefixIcon: Icon(Icons.key),
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                        const SizedBox(width: distance),
+                                        Expanded(
+                                          child: TextFormField(
+                                            controller: updatedAtController,
+                                            enabled: false,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Updated at:',
+                                              prefixIcon: Icon(
+                                                Icons.punch_clock,
+                                              ),
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: distance),
-                                    Expanded(
-                                      child: ElevatedButton.icon(
-                                        onPressed: canSubmit ? updateProfile : null,
-                                        icon: isLoading
-                                            ? const SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  color: Colors.white,
-                                                ),
-                                              )
-                                            : const Icon(Icons.save),
-                                        label: Text(isLoading ? 'Salvando...' : 'Salvar'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.indigo,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(vertical: 16),
-                                        ),
+
+                                    const SizedBox(height: distance),
+
+                                    // LINHA 2: Nome
+                                    TextFormField(
+                                      controller: fullNameController,
+                                      onChanged: (_) => onFieldChanged(),
+                                      decoration: const InputDecoration(
+                                        labelText: 'Name:',
+                                        prefixIcon: Icon(Icons.verified_user),
+                                        border: OutlineInputBorder(),
                                       ),
+                                      validator: (value) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
+                                          return 'Por favor, informe o nome.';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+
+                                    const SizedBox(height: distance),
+
+                                    // LINHA 3: Form Esquerda + Avatar Direita
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          flex: 3,
+                                          child: Column(
+                                            children: [
+                                              TextFormField(
+                                                controller: nickNameController,
+                                                onChanged: (_) =>
+                                                    onFieldChanged(),
+                                                decoration:
+                                                    const InputDecoration(
+                                                      labelText: 'Nick name:',
+                                                      prefixIcon: Icon(
+                                                        Icons.verified_user,
+                                                      ),
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                    ),
+                                              ),
+                                              const SizedBox(height: distance),
+                                              TextFormField(
+                                                controller: bioController,
+                                                onChanged: (_) =>
+                                                    onFieldChanged(),
+                                                maxLines: 3,
+                                                decoration:
+                                                    const InputDecoration(
+                                                      labelText: 'BIO:',
+                                                      prefixIcon: Icon(
+                                                        Icons.biotech,
+                                                      ),
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: distance),
+                                        Expanded(
+                                          flex: 2,
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              bdProfileController
+                                                  .selecionarEEnviarFoto();
+                                            },
+                                            child: Container(
+                                              height: 155,
+                                              width: double.infinity,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: Colors.grey.shade400,
+                                                ),
+                                              ),
+                                              child:
+                                                  urlController.text.isNotEmpty
+                                                  ? ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                      child: Image.network(
+                                                        urlController.text,
+                                                        fit: BoxFit.contain,
+                                                        errorBuilder:
+                                                            (
+                                                              context,
+                                                              error,
+                                                              stackTrace,
+                                                            ) => const Icon(
+                                                              Icons
+                                                                  .broken_image,
+                                                              size: 48,
+                                                            ),
+                                                      ),
+                                                    )
+                                                  : const Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Icon(
+                                                          Icons.add_a_photo,
+                                                          size: 40,
+                                                          color: Colors.black54,
+                                                        ),
+                                                        SizedBox(height: 8),
+                                                        Text(
+                                                          'Toque para\nalterar foto',
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            color:
+                                                                Colors.black54,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    // ---------------------------------------------------
+                                    // EMPURRA OS ELEMENTOS ABAIXO PARA O FINAL DA TELA
+                                    // ---------------------------------------------------
+                                    const Spacer(),
+                                    const SizedBox(height: distance),
+
+                                    // Botões Cancelar e Salvar
+                                    ValueListenableBuilder<bool>(
+                                      valueListenable:
+                                          bdProfileController.isChangedNotifier,
+                                      builder: (context, isChanged, child) {
+                                        final canSubmit =
+                                            isChanged && !isLoading;
+
+                                        return Row(
+                                          children: [
+                                            Expanded(
+                                              child: OutlinedButton.icon(
+                                                onPressed: canSubmit
+                                                    ? initValues
+                                                    : null,
+                                                icon: const Icon(
+                                                  Icons.arrow_back,
+                                                ),
+                                                label: const Text('Cancelar'),
+                                                style: OutlinedButton.styleFrom(
+                                                  foregroundColor:
+                                                      Colors.indigo,
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 16,
+                                                      ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: distance),
+                                            Expanded(
+                                              child: OutlinedButton.icon(
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          ProfileUpdatePassword(),
+                                                    ),
+                                                  );
+                                                },
+                                                icon: const Icon(
+                                                  Icons.lock_reset,
+                                                ),
+                                                label: const Text(
+                                                  'Update Password',
+                                                ),
+                                                style: OutlinedButton.styleFrom(
+                                                  backgroundColor:
+                                                      Colors.redAccent,
+                                                  foregroundColor: Colors.white,
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 16,
+                                                      ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: distance),
+                                            Expanded(
+                                              child: ElevatedButton.icon(
+                                                onPressed: canSubmit
+                                                    ? updateProfile
+                                                    : null,
+                                                icon: isLoading
+                                                    ? const SizedBox(
+                                                        width: 20,
+                                                        height: 20,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                      )
+                                                    : const Icon(Icons.save),
+                                                label: Text(
+                                                  isLoading
+                                                      ? 'Salvando...'
+                                                      : 'Salvar',
+                                                ),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      Colors.indigo,
+                                                  foregroundColor: Colors.white,
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 16,
+                                                      ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     ),
                                   ],
-                                );
-                              },
+                                ),
+                              ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   );
                 },
               );
