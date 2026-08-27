@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gorouter_exemplo/models/mensalidades_model.dart';
 import 'package:gorouter_exemplo/services/general_service.dart';
 import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
+import 'package:gorouter_exemplo/models/vprofile_model.dart';
 
 final getItbdMonthlyPaymentsController = GetIt.instance;
 
@@ -307,6 +308,27 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       errorNotifier.value = "BdMonthlyPaymentsController::loadCashierName: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
+    }
+  }
+
+// ==========================================
+  Future<void> insertMonthlyGeneration(
+    List<Map<String, dynamic>> filteredList
+  ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      await supabaseClient
+      .from('mensalidades')
+      .insert(filteredList);
+
+    } catch (e, stackTrace) {
+      monthlyPaymentsIndividual.value = null;
+      errorNotifier.value = 'BdMonthlyPaymentsController::loadMonthlyPaymentsIndividual:  $e\n$stackTrace';
+    } finally {
+      loadingNotifier.value = false;
+      loadCurrentMonthlyPayment();
     }
   }
 

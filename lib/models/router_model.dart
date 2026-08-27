@@ -6,6 +6,7 @@ import 'package:gorouter_exemplo/view/about.dart';
 import 'package:gorouter_exemplo/view/profile.dart';
 import 'package:gorouter_exemplo/view/monthly_payments.dart';
 import 'package:gorouter_exemplo/view/associates.dart';
+import 'package:gorouter_exemplo/view/monthly_generation.dart';
 
 class RouterModel {
   final String label;
@@ -59,6 +60,13 @@ class RouterModel {
       selectedIcon: Icons.info,
       path: '/profile_screen',
       builder: (context, state) => const Profile(),
+    ),
+    RouterModel (
+      label: 'Monthly',
+      icon: Icons.info_outline,
+      selectedIcon: Icons.info,
+      path: '/monthlygeneration',
+      builder: (context, state) => const MonthlyGeneration(),
     ),
     RouterModel (
       label: 'About',

@@ -28,6 +28,8 @@ class MensalidadesModel {
   String mes_hld_id_confirmacao;
   String mes_full_name_confirmacao;
 
+  String mes_monthly_percent;
+
   // ==========================================
   MensalidadesModel ( {
     required this.mes_mes_referencia,
@@ -55,7 +57,9 @@ class MensalidadesModel {
 
     required this.mes_pfl_id_confirmacao,
     required this.mes_hld_id_confirmacao,
-    required this.mes_full_name_confirmacao
+    required this.mes_full_name_confirmacao,
+    
+    required this.mes_monthly_percent
   } );
 
    // ==========================================
@@ -93,6 +97,8 @@ class MensalidadesModel {
         mes_pfl_id_confirmacao: json['mes_pfl_id_confirmacao']?.toString() ?? "",
         mes_hld_id_confirmacao: json['mes_hld_id_confirmacao']?.toString() ?? "",
         mes_full_name_confirmacao: json['mes_full_name_confirmacao']?.toString() ?? "",
+
+        mes_monthly_percent: json['mes_monthly_percent']?.toString() ?? "",
     );
   }
 

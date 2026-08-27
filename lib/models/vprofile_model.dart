@@ -11,14 +11,14 @@ class VProfileModel {
 
   String as_id;
   String as_desc;
-  String ismonthlypayment;
+  String as_ismonthlypayment;
     
-  String monthly_percent;
-  String data_status;
+  String pas_monthly_percent;
+  String pas_date;
 
   String jr_level;
   String jr_nome;
-  String data_promocao;
+  String uj_promotion_date;
 
   // ==========================================
   VProfileModel ( {
@@ -34,14 +34,14 @@ class VProfileModel {
 
     required this.as_id,
     required this.as_desc,
-    required this.ismonthlypayment,
+    required this.as_ismonthlypayment,
     
-    required this.monthly_percent,
-    required this.data_status,
+    required this.pas_monthly_percent,
+    required this.pas_date,
 
     required this.jr_level,
     required this.jr_nome,
-    required this.data_promocao
+    required this.uj_promotion_date
   } );
 
   // ==========================================
@@ -60,15 +60,15 @@ class VProfileModel {
       pfl_updated_at: json['pfl_updated_at'] as String? ?? '',
 
       as_id: json['as_id']?.toString() ?? '',
-      as_desc: json['as_desc'] as String? ?? '',
-      ismonthlypayment: json['ismonthlypayment']?.toString() ?? '',
+      as_desc: json['as_desc']?.toString() ?? '',
+      as_ismonthlypayment: json['as_ismonthlypayment']?.toString() ?? '',
 
-      monthly_percent: json['monthly_percent']?.toString() ?? '',
-      data_status: json['data_status'] as String? ?? '',
+      pas_monthly_percent: json['pas_monthly_percent']?.toString() ?? '',
+      pas_date: json['pas_date']?.toString() ?? '',
 
       jr_level: json['jr_level']?.toString() ?? '',
       jr_nome: json['jr_nome']?.toString() ?? '',
-      data_promocao: json['data_promocao']?.toString() ?? '',
+      uj_promotion_date: json['uj_promotion_date']?.toString() ?? '',
     );
   }
 
@@ -88,14 +88,14 @@ class VProfileModel {
 
       'as_id': as_id,
       'as_desc': as_desc,
-      'ismonthlypayment': ismonthlypayment,
+      'as_ismonthlypayment': as_ismonthlypayment,
 
-      'monthly_percent': monthly_percent,
-      'date_update_status': data_status,
+      'pas_monthly_percent': pas_monthly_percent,
+      'pas_date': pas_date,
 
       'jr_level': jr_level,
       'jr_nome': jr_nome,
-      'data_promocao': data_promocao,
+      'data_promocao': uj_promotion_date,
     };
   }
 

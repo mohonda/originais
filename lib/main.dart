@@ -13,6 +13,8 @@ import 'package:gorouter_exemplo/controllers/bd_formapagamento_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_vprofile_associatestatus_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_vprofiles_sanctions_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_vexecutive_committee_termofoffice_members_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_vmensalidades_distinct_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_payment_value_controller.dart';
 import 'package:gorouter_exemplo/services/general_service.dart';
 
 void main() async {
@@ -66,6 +68,8 @@ void main() async {
   setupGetItBdVProfileAssociateStatusController();
   setupGetItBdVProfilesSanctionsController();
   setupGetItBdVExecutiveCommitteeTermOfOfficeMembersController();
+  setupGetItBdVMensalidadesDistinctController();
+  setupGetItBdPaymentValueController();
 
   setupGetItGeneralService();
   
