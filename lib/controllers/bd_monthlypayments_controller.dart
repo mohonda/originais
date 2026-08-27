@@ -63,8 +63,8 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
         supabaseClient
         .from('vmensalidades')
         .select()
-        .eq('mes_mes_referencia', month)
-        .eq('mes_ano_referencia', year)
+        // .eq('mes_mes_referencia', month)
+        // .eq('mes_ano_referencia', year)
         .eq('mes_hld_id', '1')
       );
 

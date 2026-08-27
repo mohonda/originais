@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_formapagamento_controller.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
@@ -30,12 +31,16 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
   final valor = TextEditingController();
   final datapagamento = TextEditingController();
   final comprovantepag = TextEditingController();
-  String? formaPagamentoSelecionada = "";
+  
+  // String? formaPagamentoSelecionada = "";
+  final formaPagamentoSelecionada = ValueNotifier<String?>(null);
 
   // ==========================================
   @override
   void initState() {
     initValues();
+    
+    // formaPagamentoSelecionada.value = '';
 
     super.initState();
   }
@@ -44,6 +49,8 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
   @override
   void dispose() {
     // 1. Liberação de memória para evitar Memory Leaks
+    formaPagamentoSelecionada.dispose();
+
     idController.dispose();
     fullNameController.dispose();
     myreferencia.dispose();
@@ -95,7 +102,7 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
 
     comprovantepag.text = payment?.mes_comprovante_pag.toString() ?? "";
 
-    formaPagamentoSelecionada = payment?.mes_fpg_id.toString() ?? "";
+    formaPagamentoSelecionada.value = payment?.mes_fpg_id.toString() ?? "";
   }
 
   // ==========================================
@@ -261,25 +268,39 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
                                               .any(
                                                 (forma) =>
                                                     forma.fpg_id.toString() ==
-                                                    formaPagamentoSelecionada,
+                                                    formaPagamentoSelecionada.value,
                                               );
                                           if (!valorExisteNaLista) {
-                                            formaPagamentoSelecionada = null;
+                                            formaPagamentoSelecionada.value = null;
                                           }
 
-                                          return DropdownButtonFormField<
-                                            String
-                                          >(
-                                            initialValue:
-                                                formaPagamentoSelecionada,
-                                            decoration: const InputDecoration(
-                                              labelText: 'Forma de Pagamento:',
+                                          // return DropdownButtonFormField<String>(
+                                          //   initialValue:
+                                          //       formaPagamentoSelecionada,
+                                          //   decoration: const InputDecoration(
+                                          //     labelText: 'Forma de Pagamento:',
+                                          //     prefixIcon: Icon(Icons.payment),
+                                          //     border: OutlineInputBorder(),
+                                          //   ),
+                                          return DropdownButtonFormField2<String>(
+                                            // value: formaPagamentoSelecionada,
+                                            valueListenable: formaPagamentoSelecionada,
+
+                                            isExpanded: true,
+                                            // initialValue: formaPagamentoSelecionada,
+                                            decoration: InputDecoration(
                                               prefixIcon: Icon(Icons.payment),
+                                              labelText: 'Forma de Pagamento:',
+                                              contentPadding: const EdgeInsets.symmetric(
+                                                vertical: 16,
+                                                horizontal: 16,
+                                              ),
                                               border: OutlineInputBorder(),
+                                              // Add more decoration..
                                             ),
                                             hint: const Text('Selecione...'),
                                             items: listaFormas.map((forma) {
-                                              return DropdownMenuItem<String>(
+                                              return DropdownItem<String>(
                                                 value: forma.fpg_id.toString(),
                                                 child: Text(
                                                   forma.fpg_descricao
@@ -287,11 +308,14 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
                                                 ),
                                               );
                                             }).toList(),
-                                            onChanged: (String? newValue) {
-                                              setState(() {
-                                                formaPagamentoSelecionada =
-                                                    newValue;
-                                              });
+                                            // onChanged: (String? newValue) {
+                                            //   setState(() {
+                                            //     formaPagamentoSelecionada =
+                                            //         newValue;
+                                            //   });
+                                            // },
+                                             onChanged: (value) {
+                                              formaPagamentoSelecionada.value = value;
                                             },
                                             validator: (value) =>
                                                 value == null || value.isEmpty
@@ -542,7 +566,7 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
         myreferencia.text.split('/')[1],
         valor.text,
         datapagamento.text,
-        formaPagamentoSelecionada ?? "",
+        formaPagamentoSelecionada.value ?? "",
       );
     } catch (e) {
       if (mounted) {

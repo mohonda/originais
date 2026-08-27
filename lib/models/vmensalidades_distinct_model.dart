@@ -10,6 +10,7 @@ class VMensalidadeDistinctModel {
   String vpg_dia_valor_normal;
   String vpg_valor_desconto;
   String vpg_dia_valor_desconto;
+  String vpg_desc;
 
   // ==========================================
   VMensalidadeDistinctModel ( {
@@ -23,7 +24,8 @@ class VMensalidadeDistinctModel {
     required this.vpg_valor_normal,
     required this.vpg_dia_valor_normal,
     required this.vpg_valor_desconto,
-    required this.vpg_dia_valor_desconto
+    required this.vpg_dia_valor_desconto,
+    required this.vpg_desc
   } );
 
   // ==========================================
@@ -42,6 +44,7 @@ class VMensalidadeDistinctModel {
       vpg_dia_valor_normal: json['vpg_dia_valor_normal']?.toString() ?? '',
       vpg_valor_desconto: json['vpg_valor_desconto']?.toString() ?? '',
       vpg_dia_valor_desconto: json['vpg_dia_valor_desconto']?.toString() ?? '',
+      vpg_desc: json['vpg_desc']?.toString() ?? '',
     );
   }
 
@@ -59,6 +62,7 @@ class VMensalidadeDistinctModel {
       'vpg_dia_valor_normal': vpg_dia_valor_normal,
       'vpg_valor_desconto': vpg_valor_desconto,
       'vpg_dia_valor_desconto': vpg_dia_valor_desconto,
+      'vpg_desc': vpg_desc,
     };
   }
 

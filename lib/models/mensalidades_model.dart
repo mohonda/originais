@@ -13,6 +13,7 @@ class MensalidadesModel {
   String vpg_dia_valor_normal;
   String vpg_valor_desconto;
   String vpg_dia_valor_desconto;
+  String vpg_desc;
 
   String mes_valor;
   String mes_data_pagamento;
@@ -44,6 +45,7 @@ class MensalidadesModel {
     required this.vpg_dia_valor_normal,
     required this.vpg_valor_desconto,
     required this.vpg_dia_valor_desconto,
+    required this.vpg_desc,
 
     required this.mes_valor,
     required this.mes_data_pagamento,
@@ -82,7 +84,7 @@ class MensalidadesModel {
         vpg_dia_valor_normal: json['vpg_dia_valor_normal']?.toString() ?? "",
         vpg_valor_desconto: json['vpg_valor_desconto']?.toString() ?? "",
         vpg_dia_valor_desconto: json['vpg_dia_valor_desconto']?.toString() ?? "",
-
+        vpg_desc: json['vpg_desc']?.toString() ?? "",
 
         mes_valor: json['mes_valor']?.toString() ?? "",
         mes_data_pagamento: json['mes_data_pagamento']?.toString() ?? "",

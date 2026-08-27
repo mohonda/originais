@@ -173,6 +173,7 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
             border: OutlineInputBorder(),
             // Add more decoration..
           ),
+          
           hint: const Text(
             'Select the Payment Value',
             style: TextStyle(fontSize: 14),

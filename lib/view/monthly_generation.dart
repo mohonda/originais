@@ -158,7 +158,7 @@ class MonthlyGenerationState extends State<MonthlyGeneration> {
             padding: const EdgeInsets.symmetric(vertical: 4.0),
             child: ListTile(
               title: Text(
-                'Ref: ${item.mes_mes_referencia.toString().padLeft(2, '0')}/${item.mes_ano_referencia}',
+                'Ref: ${item.mes_mes_referencia.toString().padLeft(2, '0')}/${item.mes_ano_referencia} - ${item.vpg_desc}',
                 style: const TextStyle(fontWeight: FontWeight.w500),
               ),
               // 👇 Usando Wrap para exibir os dados lado a lado (em colunas)
