@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_formapagamento_controller.dart';
 import 'package:gorouter_exemplo/models/custom_app_bar.dart';
@@ -30,10 +31,13 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
   final valor = TextEditingController();
   final datapagamento = TextEditingController();
   final comprovantepag = TextEditingController();
-  String? formaPagamentoSelecionada = "";
   final dataconfirmacao = TextEditingController();
   final idconfirmacao = TextEditingController();
   final nameConfirmacao = TextEditingController();
+  
+  final formaPagamentoSelecionada = ValueNotifier<String?>(null);
+
+  DateTime? _selectedDate;
 
   // ==========================================
   @override
@@ -56,6 +60,8 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
     dataconfirmacao.dispose();
     idconfirmacao.dispose();
     nameConfirmacao.dispose();
+
+    formaPagamentoSelecionada.dispose();
 
     super.dispose();
   }
@@ -102,7 +108,7 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
 
     comprovantepag.text = payment?.mes_comprovante_pag.toString() ?? "";
 
-    formaPagamentoSelecionada = payment?.mes_fpg_id.toString() ?? "";
+    formaPagamentoSelecionada.value = payment?.mes_fpg_id.toString() ?? "";
 
     tdata = payment?.mes_data_confirmacao.toString() ?? "";
     if (tdata.length < 2) {
@@ -284,22 +290,28 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
                                                     formaPagamentoSelecionada,
                                               );
                                           if (!valorExisteNaLista) {
-                                            formaPagamentoSelecionada = null;
+                                            formaPagamentoSelecionada.value = null;
                                           }
 
-                                          return DropdownButtonFormField<
-                                            String
-                                          >(
-                                            initialValue:
-                                                formaPagamentoSelecionada,
-                                            decoration: const InputDecoration(
-                                              labelText: 'Forma de Pagamento:',
+                                          return DropdownButtonFormField2<String>(
+                                            // value: formaPagamentoSelecionada,
+                                            valueListenable: formaPagamentoSelecionada,
+
+                                            isExpanded: true,
+                                            // initialValue: formaPagamentoSelecionada,
+                                            decoration: InputDecoration(
                                               prefixIcon: Icon(Icons.payment),
+                                              labelText: 'Forma de Pagamento:',
+                                              contentPadding: const EdgeInsets.symmetric(
+                                                vertical: 16,
+                                                horizontal: 16,
+                                              ),
                                               border: OutlineInputBorder(),
+                                              // Add more decoration..
                                             ),
                                             hint: const Text('Selecione...'),
                                             items: listaFormas.map((forma) {
-                                              return DropdownMenuItem<String>(
+                                              return DropdownItem<String>(
                                                 value: forma.fpg_id.toString(),
                                                 child: Text(
                                                   forma.fpg_descricao
@@ -307,11 +319,8 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
                                                 ),
                                               );
                                             }).toList(),
-                                            onChanged: (String? newValue) {
-                                              setState(() {
-                                                formaPagamentoSelecionada =
-                                                    newValue;
-                                              });
+                                         onChanged: (value) {
+                                              formaPagamentoSelecionada.value = value;
                                             },
                                             validator: (value) =>
                                                 value == null || value.isEmpty
@@ -326,6 +335,7 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
                                       TextFormField(
                                         controller: datapagamento,
                                         textAlign: TextAlign.end,
+                                        onTap: () => _selectDate(context),
                                         decoration: const InputDecoration(
                                           labelText: 'Data Pagtº:',
                                           prefixIcon: Icon(
@@ -679,6 +689,23 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
     );
   }
 
+    // ==========================================
+  Future _selectDate(BuildContext context) async => showDatePicker(
+    context: context,
+    initialDate: DateTime.now(),
+    firstDate: DateTime(2026-08-01),
+    lastDate: DateTime(2028),
+    // locale: const Locale('pt', 'BR'),
+  ).then((DateTime? selected) {
+    if (selected != null && selected != _selectedDate) {
+      setState(() {
+         _selectedDate = selected;
+         
+         datapagamento.text ="${selected.day.toString().padLeft(2, '0')}/${selected.month.toString().padLeft(2, '0')}/${selected.year}";
+         });
+    }
+  });
+
   // ==========================================
   void updatePaymentsProfile() async {
     try {
@@ -688,7 +715,7 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
         myreferencia.text.split('/')[1],
         valor.text,
         datapagamento.text,
-        formaPagamentoSelecionada ?? "",
+        formaPagamentoSelecionada.value ?? "",
       );
     } catch (e) {
       if (mounted) {
@@ -722,7 +749,7 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
         myreferencia.text.split('/')[1],
         valor.text,
         datapagamento.text,
-        formaPagamentoSelecionada ?? "",
+        formaPagamentoSelecionada.value ?? "",
         idconfirmacao.text,
         dataconfirmacao.text,
       );

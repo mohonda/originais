@@ -9,6 +9,7 @@ import 'package:gorouter_exemplo/view/associates.dart';
 import 'package:gorouter_exemplo/view/monthly_generation.dart';
 
 class RouterModel {
+  final String name;
   final String label;
   final IconData icon;
   final IconData selectedIcon;
@@ -17,6 +18,7 @@ class RouterModel {
 
   // ==========================================
   const RouterModel ( {
+    required this.name,
     required this.label,
     required this.icon,
     required this.selectedIcon,
@@ -27,6 +29,7 @@ class RouterModel {
   // ==========================================
   static List<RouterModel> get routerModelList => [
     RouterModel(
+      name: 'dashboard',
       label: 'Dashboard',
       icon: Icons.home_outlined,
       selectedIcon: Icons.home,
@@ -34,6 +37,7 @@ class RouterModel {
       builder: (context, state) => const Dashboard(),
     ),
     RouterModel (
+      name: 'journalriding',
       label: 'Journey Riding',
       icon: Icons.person_2_outlined,
       selectedIcon: Icons.person_2,
@@ -41,6 +45,7 @@ class RouterModel {
       builder: (context, state) => const JourneyRiding(),
     ),
     RouterModel (
+      name: 'associates',
       label: 'Associates',
       icon: Icons.person_2_outlined,
       selectedIcon: Icons.person_2,
@@ -48,6 +53,7 @@ class RouterModel {
       builder: (context, state) => const Associates(),
     ),
     RouterModel (
+      name: 'mensalidades',
       label: 'Mensalidades',
       icon: Icons.person_2_outlined,
       selectedIcon: Icons.person_2,
@@ -55,6 +61,7 @@ class RouterModel {
       builder: (context, state) => const MonthlyPayments(),
     ),
     RouterModel (
+      name: 'profile_screen',
       label: 'Profile',
       icon: Icons.info_outline,
       selectedIcon: Icons.info,
@@ -62,6 +69,7 @@ class RouterModel {
       builder: (context, state) => const Profile(),
     ),
     RouterModel (
+      name: 'monthlygeneration',
       label: 'Monthly',
       icon: Icons.info_outline,
       selectedIcon: Icons.info,
@@ -69,6 +77,7 @@ class RouterModel {
       builder: (context, state) => const MonthlyGeneration(),
     ),
     RouterModel (
+      name: 'about',
       label: 'About',
       icon: Icons.info_outline,
       selectedIcon: Icons.info,

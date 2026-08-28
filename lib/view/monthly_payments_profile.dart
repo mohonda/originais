@@ -34,6 +34,8 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
   
   // String? formaPagamentoSelecionada = "";
   final formaPagamentoSelecionada = ValueNotifier<String?>(null);
+  
+  DateTime? _selectedDate;
 
   // ==========================================
   @override
@@ -330,12 +332,14 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
                                       TextFormField(
                                         controller: datapagamento,
                                         textAlign: TextAlign.end,
+                                        readOnly: true,
+                                        onTap: () => _selectDate(context),
                                         decoration: const InputDecoration(
                                           labelText: 'Data Pagtº:',
                                           prefixIcon: Icon(
                                             Icons.calendar_month,
                                           ),
-                                          border: OutlineInputBorder(),
+                                          border: OutlineInputBorder(),                                          
                                         ),
                                         validator: (datapagamento) =>
                                             datapagamento == null ||
@@ -556,6 +560,24 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
       ),
     );
   }
+  
+  
+  // ==========================================
+  Future _selectDate(BuildContext context) async => showDatePicker(
+    context: context,
+    initialDate: DateTime.now(),
+    firstDate: DateTime(2026-08-01),
+    lastDate: DateTime(2028),
+    // locale: const Locale('pt', 'BR'),
+  ).then((DateTime? selected) {
+    if (selected != null && selected != _selectedDate) {
+      setState(() {
+         _selectedDate = selected;
+         
+         datapagamento.text ="${selected.day.toString().padLeft(2, '0')}/${selected.month.toString().padLeft(2, '0')}/${selected.year}";
+         });
+    }
+  });
 
   // ==========================================
   void updatePaymentsProfile() async {

@@ -336,7 +336,7 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                     );
                   },
                   icon: const Icon(Icons.add_circle_outline, size: 20),
-                  label: const Text('Adicionar Nível'),
+                  label: const Text('Add Journey...'),
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.indigo,
                     padding: const EdgeInsets.symmetric(
@@ -790,16 +790,16 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                                   ),
 
                                   // 2. BOTÃO DE EDITAR NO LADO DIREITO
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.edit,
-                                      color: Colors.orange,
-                                    ),
-                                    tooltip: 'Editar',
-                                    onPressed: () {
-                                      // Adicione a ação de editar este 'item'
-                                    },
-                                  ),
+                                  // IconButton(
+                                  //   icon: const Icon(
+                                  //     Icons.edit,
+                                  //     color: Colors.orange,
+                                  //   ),
+                                  //   tooltip: 'Editar',
+                                  //   onPressed: () {
+                                  //     // Adicione a ação de editar este 'item'
+                                  //   },
+                                  // ),
                                 ],
                               ),
                             ),
@@ -810,26 +810,26 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                   ),
                 ),
 
-              const SizedBox(height: 4),
+              // const SizedBox(height: 4),
 
-              // 3. BOTÃO DE ADICIONAR NO CANTO INFERIOR DIREITO
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () {
-                    // Adicione a ação de criar um novo nível
-                  },
-                  icon: const Icon(Icons.add_circle_outline, size: 20),
-                  label: const Text('Adicionar Nível'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.indigo,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                ),
-              ),
+              // // 3. BOTÃO DE ADICIONAR NO CANTO INFERIOR DIREITO
+              // Align(
+              //   alignment: Alignment.centerRight,
+              //   child: TextButton.icon(
+              //     onPressed: () {
+              //       // Adicione a ação de criar um novo nível
+              //     },
+              //     icon: const Icon(Icons.add_circle_outline, size: 20),
+              //     label: const Text('Adicionar Nível'),
+              //     style: TextButton.styleFrom(
+              //       foregroundColor: Colors.indigo,
+              //       padding: const EdgeInsets.symmetric(
+              //         horizontal: 12,
+              //         vertical: 8,
+              //       ),
+              //     ),
+              //   ),
+              // ),
             ],
           );
         },

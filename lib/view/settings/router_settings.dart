@@ -27,6 +27,7 @@ class RouterSettings {
           return StatefulShellBranch(
             routes: <RouteBase>[
               GoRoute(
+                name: item.name,
                 path: item.path,
                 builder: item.builder
               ),

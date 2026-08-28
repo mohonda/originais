@@ -128,7 +128,7 @@ class _ProfileState extends State<Profile> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomFloatingAppBar(
-        title: 'Profile - ${fullNameController.text}',
+        title: 'Profile - ${fullNameController.text.toString()}',
       ),
       body: ValueListenableBuilder<bool>(
         valueListenable: bdProfileController.loadingNotifier,

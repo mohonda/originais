@@ -58,6 +58,7 @@ dependencies:
   month_picker: ^0.0.4
   month_picker_dialog: ^6.7.2
   dropdown_button2: ^3.1.0
+  sidebarx: ^0.17.2
 
 dev_dependencies:
   flutter_test:
