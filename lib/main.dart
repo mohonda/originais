@@ -15,6 +15,9 @@ import 'package:gorouter_exemplo/controllers/bd_vprofiles_sanctions_controller.d
 import 'package:gorouter_exemplo/controllers/bd_vexecutive_committee_termofoffice_members_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_vmensalidades_distinct_controller.dart';
 import 'package:gorouter_exemplo/controllers/bd_payment_value_controller.dart';
+import 'package:gorouter_exemplo/controllers/bd_headquartersbar_controller.dart';
+import 'package:gorouter_exemplo/controllers/products_controller.dart';
+import 'package:gorouter_exemplo/controllers/ticketController.dart';
 import 'package:gorouter_exemplo/services/general_service.dart';
 
 void main() async {
@@ -58,7 +61,6 @@ void main() async {
     return;
   }
 
-
   setupGetItMySupabaseClient();
   setupGetItBdJourneyRidingController();
   setupGetItDashboardNotifier();
@@ -70,6 +72,9 @@ void main() async {
   setupGetItBdVExecutiveCommitteeTermOfOfficeMembersController();
   setupGetItBdVMensalidadesDistinctController();
   setupGetItBdPaymentValueController();
+  setupGetItBdHeadquartersBarController();
+  setupGetItProductsController();
+  setupGetItTicketController();
 
   setupGetItGeneralService();
   

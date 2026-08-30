@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gorouter_exemplo/view/dashboard.dart';
+import 'package:gorouter_exemplo/view/headquartersbar.dart';
+import 'package:gorouter_exemplo/view/headquartersbar_opened.dart';
 import 'package:gorouter_exemplo/view/journey_riding.dart';
 import 'package:gorouter_exemplo/view/about.dart';
 import 'package:gorouter_exemplo/view/profile.dart';
 import 'package:gorouter_exemplo/view/monthly_payments.dart';
 import 'package:gorouter_exemplo/view/associates.dart';
 import 'package:gorouter_exemplo/view/monthly_generation.dart';
+import 'package:gorouter_exemplo/view/headquartersbar.dart';
 
 class RouterModel {
   final String name;
@@ -75,6 +78,22 @@ class RouterModel {
       selectedIcon: Icons.info,
       path: '/monthlygeneration',
       builder: (context, state) => const MonthlyGeneration(),
+    ),
+    RouterModel (
+      name: 'headquartersbar',
+      label: 'HeadquartersBar',
+      icon: Icons.info_outline,
+      selectedIcon: Icons.info,
+      path: '/headquartersbar',
+      builder: (context, state) => const HeadquartersBar(),
+    ),
+    RouterModel (
+      name: 'headquartersbar_opended',
+      label: 'HeadquartersBarOpended',
+      icon: Icons.info_outline,
+      selectedIcon: Icons.info,
+      path: '/headquartersbar_opened',
+      builder: (context, state) => const HeadquartersBarOpened(),
     ),
     RouterModel (
       name: 'about',

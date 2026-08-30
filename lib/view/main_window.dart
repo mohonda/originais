@@ -225,7 +225,7 @@ class _MainWindow extends State<MainWindow> {
           SidebarXItem(
             icon: Icons.subdirectory_arrow_right_rounded,
             label: '   Headquarters Bar',
-            onTap: () => _onItemTapped('mensalidades', isMobile: isMobile),
+            onTap: () => _onItemTapped('headquartersbar', isMobile: isMobile),
           ),
           SidebarXItem(
             icon: Icons.subdirectory_arrow_right_rounded,
