@@ -1,5 +1,5 @@
 class HeadquartersBarModel {
-  String bar_id;
+  // String bar_id;
   String bar_hld_id;
   String bar_open_date;
 
@@ -14,7 +14,7 @@ class HeadquartersBarModel {
  
   // ==========================================
   HeadquartersBarModel ( {
-    required this.bar_id,
+    // required this.bar_id,
     required this.bar_hld_id,
     required this.bar_open_date,
 
@@ -32,7 +32,7 @@ class HeadquartersBarModel {
   factory HeadquartersBarModel
     .fromJson(Map<String,dynamic> json) {
       return HeadquartersBarModel(
-        bar_id: json['bar_id']?.toString() ?? '',
+        // bar_id: json['bar_id']?.toString() ?? '',
         bar_hld_id: json['bar_hld_id']?.toString() ?? '',
         bar_open_date: json['bar_open_date']?.toString() ?? '',
 

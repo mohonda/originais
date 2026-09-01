@@ -87,14 +87,14 @@ class RouterModel {
       path: '/headquartersbar',
       builder: (context, state) => const HeadquartersBar(),
     ),
-    RouterModel (
-      name: 'headquartersbar_opended',
-      label: 'HeadquartersBarOpended',
-      icon: Icons.info_outline,
-      selectedIcon: Icons.info,
-      path: '/headquartersbar_opened',
-      builder: (context, state) => const HeadquartersBarOpened(),
-    ),
+    // RouterModel (
+    //   name: 'headquartersbar_opended',
+    //   label: 'HeadquartersBarOpended',
+    //   icon: Icons.info_outline,
+    //   selectedIcon: Icons.info,
+    //   path: '/headquartersbar_opened',
+    //   builder: (context, state) => HeadquartersBarOpened( openDate: , hld_id: ),
+    // ),
     RouterModel (
       name: 'about',
       label: 'About',

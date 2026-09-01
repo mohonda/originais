@@ -46,6 +46,8 @@ class HeadquartersBarState extends State<HeadquartersBar> {
   void initState() {
     super.initState();
     initValues();
+    
+    _carregarDiasAbertos();
   }
 
   @override
@@ -56,7 +58,7 @@ class HeadquartersBarState extends State<HeadquartersBar> {
   }
 
   void initValues() {
-    bdHeadquartersBarController.loadHeadquartersBar('1', '1');
+    // bdHeadquartersBarController.loadHeadquartersBar('1', '1');
 
     initializeDateFormatting('pt_BR', null).then((_) {
       if (mounted) {
@@ -67,18 +69,49 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     });
   }
 
+ Future<void> _carregarDiasAbertos() async {
+    try {
+      String hld_id = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '1';
+      
+      // 1. Busque os registros no banco (ajuste conforme seu controller)
+      // Aqui estou assumindo que loadHeadquartersBar retorna a lista ou atualiza um Notifier
+      await bdHeadquartersBarController.loadHeadquartersBar(hld_id);
+      final barrasAbertas = bdHeadquartersBarController.headquartersBarNotifier.value;
+          debugPrint(barrasAbertas.length.toString());
+      
+      /* 
+       * 2. Transforme a lista do banco em uma Lista de DateTime
+       * Substitua 'barrasAbertas' pela sua lista real e 'bar_date' pela propriedade da sua data.
+       */
+      List<DateTime> datas = barrasAbertas.map((bar) {
+         // Se a data vier como String (ex: '2023-10-25'), faça o parse:
+         return DateTime.parse( bar.bar_open_date.toString() ); 
+        // return bar.bar_open_date;
+      }).toList();
+
+      // 3. Atualize a tela com os dias encontrados
+      if (mounted) {
+        setState(() {
+          _openDays = datas;
+        });
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar dias abertos: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const double distance = 16.0;
 
-    // if (!_isLocaleInitialized) {
-    //   return const Scaffold(
-    //     appBar: CustomFloatingAppBar(title: 'Headquarters Bar'),
-    //     body: Center(
-    //       child: CircularProgressIndicator(),
-    //     ),
-    //   );
-    // }
+    if (!_isLocaleInitialized) {
+      return const Scaffold(
+        appBar: CustomFloatingAppBar(title: 'Headquarters Bar'),
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: const CustomFloatingAppBar(title: 'Headquarters Bar'),
@@ -162,31 +195,34 @@ class HeadquartersBarState extends State<HeadquartersBar> {
   }
 
   void openHeadquartersBar() async {
-    String? hld_id = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
+    String pfl_id = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
+    String hld_id = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
+    String openDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-    bdHeadquartersBarController.loadingNotifier.value;
+    bool isJaAberto = _openDays.any((d) => 
+          d.year == _selectedDate.year &&
+          d.month == _selectedDate.month &&
+          d.day == _selectedDate.day);
 
+    if ( !isJaAberto ) {
+      await bdHeadquartersBarController.openHeadquartersBar(
+        pfl_id,
+        hld_id,
+        openDate,
+        bar_desc.text,
+      );
+    }
     await productsController.loadProdutos(hld_id);
-
-    await bdProfileController.loadProfiles();
-
     await ticketController.loadTicketStatus(hld_id);
+    await ticketController.loadTickets(openDate, hld_id);
 
-    await ticketController.loadTicketsItems(hld_id);
-
-    await ticketController.loadTickets(hld_id);
-
-    bdHeadquartersBarController.openHeadquartersBar(
-      bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '',
-      hld_id,
-      DateFormat('yyyy-MM-dd').format(_selectedDate),
-      bar_desc.text,
-    );
     if (context.mounted) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const HeadquartersBarOpened()
+          builder: (context) => HeadquartersBarOpened(
+            openDate: openDate,
+            hld_id: hld_id )
         ),
       );
     }

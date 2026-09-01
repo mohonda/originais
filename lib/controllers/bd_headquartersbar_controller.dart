@@ -17,7 +17,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
   late SupabaseClient supabaseClient;
  
-  final ValueNotifier<List<HeadquartersBarModel>> HeadquartersBarNotifier =
+  final ValueNotifier<List<HeadquartersBarModel>> headquartersBarNotifier =
     ValueNotifier<List<HeadquartersBarModel>>([]);
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
@@ -29,7 +29,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadHeadquartersBar( String id, String hld_id ) async {
+  Future<void> loadHeadquartersBar( String hld_id ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -40,12 +40,13 @@ class BdHeadquartersBarController extends ChangeNotifier {
         .select()
         .eq('bar_hld_id', hld_id)
       );
+      debugPrint(resposta.length.toString());
     
-      HeadquartersBarNotifier.value = resposta.map(
+      headquartersBarNotifier.value = resposta.map(
         ( item ) => HeadquartersBarModel.fromJson( item )).toList();
       
     } catch (e, stackTrace) {
-      HeadquartersBarNotifier.value = [];
+      headquartersBarNotifier.value = [];
       errorNotifier.value = ("BdHeadquartersBarController::loadHeadquartersBar: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
@@ -74,7 +75,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
       );
      
     } catch (e, stackTrace) {
-      HeadquartersBarNotifier.value = [];
+      headquartersBarNotifier.value = [];
       errorNotifier.value = ("BdHeadquartersBarController::openHeadquartersBar: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;

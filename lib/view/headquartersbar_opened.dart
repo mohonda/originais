@@ -16,57 +16,15 @@ import 'package:gorouter_exemplo/models/ticketModel.dart';
 
 import 'package:gorouter_exemplo/services/general_service.dart';
 
-// 🟢 ENUM DE STATUS DA MESA
-enum StatusMesa { aberta, fechadaComPagamento, fechadaSemPagamento }
-
-// 🟢 MODELO DE ITEM CONSUMIDO DA MESA
-class ItemPedidoModel {
-  final String nome;
-  int quantidade;
-  final double precoUnitario;
-
-  ItemPedidoModel({
-    required this.nome,
-    required this.quantidade,
-    required this.precoUnitario,
-  });
-
-  double get total => quantidade * precoUnitario;
-}
-
-// 🟢 MODELO DA MESA COM STATUS E COMPROVANTE
-class MesaModel {
-  final int id;
-  final String numero;
-  final String nomeCliente;
-  final String? clienteId;
-  final bool temDesconto;
-  final List<ItemPedidoModel> pedidos;
-  final String tempoDecorrido;
-  final int quantidadePessoas;
-  // StatusMesa status;
-  String ticketStatus;
-  String? comprovantePath; // 🟢 Guarda o caminho da imagem/comprovante
-
-  MesaModel({
-    required this.id,
-    required this.numero,
-    required this.nomeCliente,
-    this.clienteId,
-    this.temDesconto = false,
-    List<ItemPedidoModel>? pedidos,
-    this.tempoDecorrido = '',
-    this.quantidadePessoas = 0,
-    // this.status = StatusMesa.aberta,
-    this.ticketStatus = '1',
-    this.comprovantePath,
-  }) : pedidos = pedidos ?? [];
-
-  double get totalConsumo => pedidos.fold(0.0, (sum, item) => sum + item.total);
-}
-
 class HeadquartersBarOpened extends StatefulWidget {
-  const HeadquartersBarOpened({super.key});
+  String openDate;
+  String hld_id;
+
+  HeadquartersBarOpened({
+    super.key,
+    required this.openDate,
+    required this.hld_id,
+  });
 
   @override
   State<HeadquartersBarOpened> createState() => HeadquartersBarOpenedState();
@@ -74,7 +32,7 @@ class HeadquartersBarOpened extends StatefulWidget {
 
 class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
   final _formKey = GlobalKey<FormState>();
-  // final List<MesaModel> _mesas = [];
+
   List<TicketsModel> _mesas = [];
 
   final ImagePicker _picker = ImagePicker();
@@ -93,14 +51,10 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
   late List<TicketsItemsModel> ticketItemsList = [];
 
   late List<TicketsModel> ticketList = [];
-  
 
   // 🟢 ORDENAÇÃO: ABERTAS EM PRIMEIRA, DEPOIS FECHADAS COM PAGAMENTO E SEM PAGAMENTO
-  // List<MesaModel> get _mesasOrdenadas {
   List<TicketsModel> get _mesasOrdenadas {
-    // final list = List<MesaModel>.from(_mesas);
     final list = List<TicketsModel>.from(_mesas);
-    // list.sort((a, b) => a.status.index.compareTo(b.status.index));
     list.sort((a, b) => a.tkt_tst_id.compareTo(b.tkt_tst_id));
     return list;
   }
@@ -116,7 +70,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
   double get _totalVendasAvulsos => _mesas
       .where((m) => !m.tkt_has_discount)
       .fold(0.0, (sum, m) => sum + m.totalConsumo);
-  
+
   // ==========================================
   @override
   void initState() {
@@ -126,39 +80,34 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
 
     final tmpProfiles = bdProfileController.profilesNotifier.value;
     _clientesCadastrados = tmpProfiles
-                .where((c) => c.as_ismonthlypayment == 'true' )
-                .toList();
-    
+        .where((c) => c.as_ismonthlypayment == 'true')
+        .toList();
+
     ticketStatusList = ticketController.ticketStatusNotifier.value;
 
     ticketItemsList = ticketController.ticketItemsNotifier.value;
 
     ticketList = ticketController.ticketNotifier.value;
 
-    debugPrint(ticketList.length.toString());
-    
-    debugPrint(ticketList.first.ticketsItems.length.toString());
-
     _carregarMesas();
   }
-  
+
   // ==========================================
   Future<void> _carregarMesas() async {
+    await ticketController.loadTickets(widget.openDate, widget.hld_id);
+    ticketList = ticketController.ticketNotifier.value;
 
-      await ticketController.loadTickets( '1' );
-      ticketList = ticketController.ticketNotifier.value;
-
-      setState(() {
-        _mesas = ticketList;
-      });
+    setState(() {
+      _mesas = ticketList;
+    });
   }
 
   // ==========================================
-  String id_ticketStatusList( String name ){
+  String id_ticketStatusList(String name) {
     final tmp = ticketStatusList
-      .where((c) => c.tst_name == name )
-      .firstOrNull
-      ?.tst_id;
+        .where((c) => c.tst_name == name)
+        .firstOrNull
+        ?.tst_id;
     return tmp.toString();
   }
 
@@ -204,7 +153,9 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
             onPressed: () {
               setState(() {
                 // mesa.status = StatusMesa.fechadaSemPagamento;
-                mesa.tkt_tst_id = id_ticketStatusList('Ticket closed without payment');
+                mesa.tkt_tst_id = id_ticketStatusList(
+                  'Ticket closed without payment',
+                );
               });
 
               Navigator.pop(dialogContext);
@@ -293,7 +244,9 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   onPressed: () {
                     setState(() {
                       // mesa.status = StatusMesa.fechadaComPagamento;
-                      mesa.tkt_tst_id = id_ticketStatusList('Ticket closed (Paid)');
+                      mesa.tkt_tst_id = id_ticketStatusList(
+                        'Ticket closed (Paid)',
+                      );
                     });
                     Navigator.pop(dialogContext);
                   },
@@ -351,8 +304,9 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
       context: context,
       builder: (BuildContext dialogContext) {
         // final isAberta = mesa.status == StatusMesa.aberta;
-        final isAberta = mesa.tkt_tst_id == id_ticketStatusList('Ticket opened');
-        
+        final isAberta =
+            mesa.tkt_tst_id == id_ticketStatusList('Ticket opened');
+
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -431,10 +385,14 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
             if (isAberta) ...[
               OutlinedButton(
                 onPressed: () {
+                  final tkt_tst_id = id_ticketStatusList(
+                      'Ticket closed without payment',
+                    );
+                  ticketController.closeTicketsWithoutPayment( mesa.tkt_id.toString(), tkt_tst_id);
                   Navigator.pop(dialogContext);
                   setState(() {
                     // mesa.status = StatusMesa.fechadaSemPagamento;
-                    mesa.tkt_tst_id = id_ticketStatusList('Ticket closed without payment');
+                    mesa.tkt_tst_id = tkt_tst_id;
                   });
                 },
                 style: OutlinedButton.styleFrom(foregroundColor: Colors.orange),
@@ -453,31 +411,33 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   child: const Text('Fechar c/ Pagamento'),
                 ),
               ],
-            ] else ...[
-              OutlinedButton(
-                onPressed: () {
-                  setState(() {
-                    // mesa.status = StatusMesa.aberta;
-                    mesa.tkt_tst_id = id_ticketStatusList('Ticket opened');
-                  });
-                  Navigator.pop(dialogContext);
-                },
-                child: const Text('Reabrir Mesa'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    // _mesas.removeWhere((m) => m.id == mesa.id);
-                    _mesas.removeWhere((m) => m.tkt_id == mesa.tkt_id);
-                  });
-                  Navigator.pop(dialogContext);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
+            ] else if (mesa.tkt_tst_id == id_ticketStatusList('Ticket closed without payment')) ...[
+                OutlinedButton(
+                  onPressed: () {
+                    final tkt_tst_id = id_ticketStatusList('Ticket opened');
+                    ticketController.closeTicketsWithoutPayment( mesa.tkt_id.toString(), tkt_tst_id);
+                    setState(() {
+                      // mesa.status = StatusMesa.aberta;
+                      mesa.tkt_tst_id = tkt_tst_id;
+                    });
+                    Navigator.pop(dialogContext);
+                  },
+                  child: const Text('Reabrir Mesa'),
                 ),
-                child: const Text('Excluir Definitivo'),
-              ),
+              // ElevatedButton(
+              //   onPressed: () {
+              //     setState(() {
+              //       // _mesas.removeWhere((m) => m.id == mesa.id);
+              //       _mesas.removeWhere((m) => m.tkt_id == mesa.tkt_id);
+              //     });
+              //     Navigator.pop(dialogContext);
+              //   },
+              //   style: ElevatedButton.styleFrom(
+              //     backgroundColor: Colors.red,
+              //     foregroundColor: Colors.white,
+              //   ),
+              //   child: const Text('Excluir Definitivo'),
+              // ),
             ],
           ],
         );
@@ -519,8 +479,8 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                 produtoSelecionado = produtosFiltrados.first;
               }
               precoCalculado = mesa.tkt_has_discount
-                ? double.parse(produtoSelecionado!.pdt_value_member)
-                : double.parse(produtoSelecionado!.pdt_value_visitant);
+                  ? double.parse(produtoSelecionado!.pdt_value_member)
+                  : double.parse(produtoSelecionado!.pdt_value_visitant);
             } else {
               produtoSelecionado = null;
             }
@@ -605,8 +565,8 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                             value: prod,
                             child: Text(
                               mesa.tkt_has_discount
-                              ? '${prod.pdt_name} (${generalService.currencyMoneyBr(prod.pdt_value_member)})'
-                              : '${prod.pdt_name} (${generalService.currencyMoneyBr(prod.pdt_value_visitant)})',
+                                  ? '${prod.pdt_name} (${generalService.currencyMoneyBr(prod.pdt_value_member)})'
+                                  : '${prod.pdt_name} (${generalService.currencyMoneyBr(prod.pdt_value_visitant)})',
                               overflow: TextOverflow.ellipsis,
                             ),
                           );
@@ -684,34 +644,40 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                 ),
                 ElevatedButton.icon(
                   onPressed: produtoSelecionado == null
-                    ? null
-                    : () {
-                      if (produtoSelecionado != null) {
-                          setState(() {
-                            final indexExistente = mesa.ticketsItems.indexWhere(
-                              (p) => p.pdt_name == produtoSelecionado!.pdt_name,
-                            );
+                      ? null
+                      : () {
+                          if (produtoSelecionado != null) {
+                            setState(() {
+                              final indexExistente = mesa.ticketsItems
+                                  .indexWhere(
+                                    (p) =>
+                                        p.pdt_name ==
+                                        produtoSelecionado!.pdt_name,
+                                  );
 
-                            if (indexExistente >= 0) {
-                              mesa.ticketsItems[indexExistente].tit_quantities += quantidade;
-                            } else {
-                              mesa.ticketsItems.add(
-                                TicketsItemsModel(
-                                  tit_hld_id: '1',
-                                  tit_tkt_id: mesa.tkt_id.toString(),
-                                  tit_pdt_id: produtoSelecionado!.pdt_id,
-                                  pdt_name: produtoSelecionado!.pdt_name,
-                                  tit_quantities: quantidade,
-                                  tit_unit_value: precoCalculado,
-                                  tit_value: quantidade * precoCalculado,
-                                ),
-                              );
-                            }
-                          });
-                          Navigator.pop(dialogContext);
-                          _mostrarResumoMesa(mesa);
-                        }
-                      },
+                              if (indexExistente >= 0) {
+                                mesa
+                                        .ticketsItems[indexExistente]
+                                        .tit_quantities +=
+                                    quantidade;
+                              } else {
+                                mesa.ticketsItems.add(
+                                  TicketsItemsModel(
+                                    tit_hld_id: widget.hld_id,
+                                    tit_tkt_id: mesa.tkt_id.toString(),
+                                    tit_pdt_id: produtoSelecionado!.pdt_id,
+                                    pdt_name: produtoSelecionado!.pdt_name,
+                                    tit_quantities: quantidade,
+                                    tit_unit_value: precoCalculado,
+                                    tit_value: quantidade * precoCalculado,
+                                  ),
+                                );
+                              }
+                            });
+                            Navigator.pop(dialogContext);
+                            _mostrarResumoMesa(mesa);
+                          }
+                        },
                   // onPressed: () {
                   //   if (produtoSelecionado != null) {
                   //     setState(() {
@@ -759,10 +725,13 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            final bool isFechadaPaga = mesa.tkt_tst_id == id_ticketStatusList('Ticket closed (Paid)');
-                // mesa.status == StatusMesa.fechadaComPagamento;
-            final bool isFechadaSemPag = mesa.tkt_tst_id == id_ticketStatusList('Ticket closed without payment');
-                // mesa.status == StatusMesa.fechadaSemPagamento;
+            final bool isFechadaPaga =
+                mesa.tkt_tst_id == id_ticketStatusList('Ticket closed (Paid)');
+            // mesa.status == StatusMesa.fechadaComPagamento;
+            final bool isFechadaSemPag =
+                mesa.tkt_tst_id ==
+                id_ticketStatusList('Ticket closed without payment');
+            // mesa.status == StatusMesa.fechadaSemPagamento;
             final bool isFechada = isFechadaPaga || isFechadaSemPag;
             final bool temConsumo = mesa.totalConsumo > 0.01;
 
@@ -970,6 +939,9 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                             setState(() {
                                               if (item.tit_quantities > 1) {
                                                 item.tit_quantities--;
+                                                item.tit_value =
+                                                    item.tit_quantities *
+                                                    item.tit_unit_value;
                                               } else {
                                                 mesa.ticketsItems.removeAt(idx);
                                               }
@@ -997,17 +969,20 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                             color: Colors.greenAccent,
                                             size: 20,
                                           ),
-                                          tooltip: 'Aumentar',
+                                          tooltip: 'Aumentar.....',
                                           onPressed: () {
                                             setState(() {
                                               item.tit_quantities++;
+                                              item.tit_value =
+                                                  item.tit_quantities *
+                                                  item.tit_unit_value;
                                             });
                                             setDialogState(() {});
                                           },
                                         ),
                                       ] else ...[
                                         Text(
-                                          '${item.tit_quantities}x',
+                                          '${item.tit_quantities}',
                                           style: const TextStyle(
                                             fontSize: 13,
                                             color: Colors.white54,
@@ -1088,12 +1063,14 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                       foregroundColor: Colors.white,
                     ),
                   )
-                else
+                else if (mesa.tkt_tst_id == id_ticketStatusList('Ticket closed without payment')) ...[
                   ElevatedButton.icon(
                     onPressed: () {
+                      final tkt_tst_id = id_ticketStatusList('Ticket opened');
+                      ticketController.closeTicketsWithoutPayment( mesa.tkt_id.toString(), tkt_tst_id);
                       setState(() {
                         // mesa.status = StatusMesa.aberta;
-                        mesa.tkt_tst_id = id_ticketStatusList('Ticket opened');
+                        mesa.tkt_tst_id = tkt_tst_id;
                       });
                       Navigator.pop(dialogContext);
                     },
@@ -1104,6 +1081,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                       foregroundColor: Colors.white,
                     ),
                   ),
+                ],
               ],
             );
           },
@@ -1121,9 +1099,8 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
     // VProfileModel? clienteSelecionado;
     final clienteSelecionado = ValueNotifier<VProfileModel?>(null);
 
-    final proximoNumero = _mesas.length + 1;
-    final numeroMesaFormatado =
-        '${proximoNumero.toString().padLeft(2, '0')}';
+    // final proximoNumero = _mesas.length + 1;
+    // final numeroMesaFormatado = '${proximoNumero.toString().padLeft(2, '0')}';
 
     return showDialog<void>(
       context: context,
@@ -1134,7 +1111,9 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
             final idsClientesComMesaAberta = _mesas
                 .where(
                   // (m) => m.status == StatusMesa.aberta && m.clienteId != null,
-                  (m) => m.tkt_tst_id == id_ticketStatusList('Ticket opened') && m.tkt_pfl_id != null,
+                  (m) =>
+                      m.tkt_tst_id == id_ticketStatusList('Ticket opened') &&
+                      m.tkt_pfl_id != null,
                 )
                 .map((m) => m.tkt_pfl_id!)
                 .toSet();
@@ -1151,7 +1130,8 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                 children: [
                   const Icon(Icons.table_restaurant, color: Colors.indigo),
                   const SizedBox(width: 8),
-                  Text('Abrir $numeroMesaFormatado'),
+                  // Text('Abrir $numeroMesaFormatado'),
+                  Text('Open Ticket'),
                 ],
               ),
               content: SingleChildScrollView(
@@ -1289,38 +1269,47 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   onPressed:
                       (isClienteCadastrado && clientesDisponIVEIS.isEmpty)
                       ? null
-                      : () {
+                      : () async {
                           if (dialogFormKey.currentState!.validate()) {
                             final String nomeFinal = isClienteCadastrado
                                 ? clienteSelecionado.value?.pfl_full_name ?? ''
-                                : nomeClienteController.text.trim();
+                                : nomeClienteController.text.toString();
 
                             final String? idClienteFinal = isClienteCadastrado
-                                ? clienteSelecionado.value?.pfl_id ?? ''
+                                ? clienteSelecionado.value?.pfl_id
                                 : null;
 
-                            setState(() {
-                              _mesas.add(
-                                // MesaModel(
-                                //   id: DateTime.now().millisecondsSinceEpoch,
-                                //   numero: numeroMesaFormatado,
-                                //   nomeCliente: nomeFinal,
-                                //   clienteId: idClienteFinal,
-                                //   temDesconto: isClienteCadastrado,
-                                // ),
-                                TicketsModel(
-                                  // id: DateTime.now().millisecondsSinceEpoch,
-                                  tkt_hld_id: '1',
-                                  tkt_bar_id: '86',
-                                  tkt_table_number: numeroMesaFormatado,
-                                  tkt_client_name: nomeFinal,
-                                  tkt_pfl_id: idClienteFinal.toString(),
-                                  tkt_has_discount: isClienteCadastrado,
-                                  tkt_tst_id: '1',
-                                ),
-                              );
-                            });
-                            Navigator.pop(dialogContext);
+                            debugPrint('Aqui...${idClienteFinal.toString()}');
+
+                            final tickets = TicketsModel(
+                              tkt_hld_id: widget.hld_id,
+                              tkt_bar_open_date: widget.openDate,
+                              tkt_table_number: '',
+                              tkt_client_name: nomeFinal,
+                              tkt_pfl_id: idClienteFinal,
+                              tkt_has_discount: isClienteCadastrado,
+                              tkt_tst_id: id_ticketStatusList('Ticket opened'),
+                            );
+
+                            // 🟢 1. O await fica FORA do setState (o código aguarda a resposta do banco aqui)
+                            final ticketFromController = await ticketController
+                                .openTicketsFunction(tickets);
+
+                            debugPrint(
+                              'ticketFromController: ${ticketFromController.toString()}',
+                            );
+
+                            // 🟢 2. Atualiza o estado da tela apenas se o retorno for válido
+                            if (ticketFromController != null) {
+                              setState(() {
+                                _mesas.add(ticketFromController);
+                              });
+                            }
+
+                            // 🟢 3. Fecha o dialog apenas após a conclusão da gravação
+                            if (context.mounted) {
+                              Navigator.pop(dialogContext);
+                            }
                           }
                         },
                   icon: const Icon(Icons.check),
@@ -1512,12 +1501,20 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                 itemCount: mesasOrdenadas.length,
                                 itemBuilder: (context, index) {
                                   final mesa = mesasOrdenadas[index];
-                                  final bool isFechadaPaga = mesa.tkt_tst_id == id_ticketStatusList('Ticket closed (Paid)');
-                                      // mesa.status ==
-                                      // StatusMesa.fechadaComPagamento;
-                                  final bool isFechadaSemPag = mesa.tkt_tst_id == id_ticketStatusList('Ticket closed without payment');
-                                      // mesa.status ==
-                                      // StatusMesa.fechadaSemPagamento;
+                                  final bool isFechadaPaga =
+                                      mesa.tkt_tst_id ==
+                                      id_ticketStatusList(
+                                        'Ticket closed (Paid)',
+                                      );
+                                  // mesa.status ==
+                                  // StatusMesa.fechadaComPagamento;
+                                  final bool isFechadaSemPag =
+                                      mesa.tkt_tst_id ==
+                                      id_ticketStatusList(
+                                        'Ticket closed without payment',
+                                      );
+                                  // mesa.status ==
+                                  // StatusMesa.fechadaSemPagamento;
                                   final bool isFechada =
                                       isFechadaPaga || isFechadaSemPag;
 
@@ -1626,7 +1623,19 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                                 const SizedBox(width: 4),
                                                 Expanded(
                                                   child: Text(
-                                                    mesa.tkt_client_name.toString(),
+                                                    (mesa
+                                                                .tkt_client_name!
+                                                                .isNotEmpty &&
+                                                            mesa.tkt_client_name !=
+                                                                'null')
+                                                        ? mesa.tkt_client_name
+                                                              .toString()
+                                                        : mesa.pfl_full_name
+                                                              .toString(),
+                                                    // mesa.tkt_client_name.toString(),
+                                                    // mesa.tkt_pfl_id.toString().length > 1
+                                                    // ? mesa.pfl_full_name.toString()
+                                                    // : mesa.tkt_client_name.toString(),
                                                     maxLines: 1,
                                                     overflow:
                                                         TextOverflow.ellipsis,
@@ -1819,4 +1828,5 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
       ),
     );
   }
+
 }
