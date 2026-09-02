@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
-import 'package:gorouter_exemplo/models/ticketModel.dart';
+import 'package:originais/services/my_supabase_client_service.dart';
+import 'package:originais/models/ticketModel.dart';
 
 final getItTicketController = GetIt.instance;
 
@@ -34,7 +34,7 @@ class TicketController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadTicketStatus(String hld_id) async {
+  Future<void> loadTicketStatus(String hldId) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -43,7 +43,7 @@ class TicketController extends ChangeNotifier {
         () => supabaseClient
             .from('ticket_status')
             .select()
-            .eq('tst_hld_id', hld_id),
+            .eq('tst_hld_id', hldId),
       );
 
       ticketStatusNotifier.value = resposta
@@ -59,7 +59,7 @@ class TicketController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadTicketsItems(String hld_id) async {
+  Future<void> loadTicketsItems(String hldId) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -68,7 +68,7 @@ class TicketController extends ChangeNotifier {
         () => supabaseClient
             .from('vtickets_items')
             .select()
-            .eq('tit_hld_id', hld_id),
+            .eq('tit_hld_id', hldId),
       );
 
       ticketItemsNotifier.value = resposta
@@ -84,7 +84,7 @@ class TicketController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadTickets(String openDate, String hld_id) async {
+  Future<void> loadTickets(String openDate, String hldId) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -94,7 +94,7 @@ class TicketController extends ChangeNotifier {
             .from('vtickets')
             .select('''*, vtickets_items(*)''')
             .eq('tkt_bar_open_date', openDate)
-            .eq('tkt_hld_id', hld_id),
+            .eq('tkt_hld_id', hldId),
       );
 
       ticketNotifier.value = resposta
@@ -157,14 +157,14 @@ class TicketController extends ChangeNotifier {
       ticketNotifier.value = [];
       errorNotifier.value =
           ("TicketController::loadProdutos: $e \n$stackTrace");
-      debugPrint("TicketController::loadProdutos: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
     }
+    return null;
   }
 
   // ==========================================
-  Future<void> closeTicketsWithoutPayment( String tkt_id, String tkt_tst_id ) async {
+  Future<void> closeTicketsWithoutPayment( String tktId, String tktTstId ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -172,18 +172,91 @@ class TicketController extends ChangeNotifier {
       await mySupabaseClient.safePostgrestCall(
         () => supabaseClient
           .from('tickets')
-          .update({'tkt_tst_id': tkt_tst_id})
-          .eq('tkt_id', tkt_id)          
+          .update({'tkt_tst_id': tktTstId})
+          .eq('tkt_id', tktId)          
       );
 
     } catch (e, stackTrace) {
       ticketNotifier.value = [];
       errorNotifier.value =
           ("TicketController::loadProdutos: $e \n$stackTrace");
-      debugPrint("TicketController::loadProdutos: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
     }
+  }
+
+  // ==========================================
+  Future<TicketsItemsModel?> insertTicketsItems(TicketsItemsModel ticketsItems) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      // debugPring()
+
+      final List<dynamic> resposta = await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from( 'tickets_items' )
+          .insert( ticketsItems.toJson() )
+          .select()
+      );
+
+      final tmp = TicketsItemsModel.fromJson(resposta.single);
+      return tmp;
+    } catch (e, stackTrace) {
+      ticketNotifier.value = [];
+      errorNotifier.value =
+          ("TicketController::insertTicketsItems: $e \n$stackTrace");
+    } finally {
+      loadingNotifier.value = false;
+    }
+    return null;
+  }
+
+    Future<void> updateTicketsItems(String tit_id, int tit_quantities) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from( 'tickets_items' )
+          .update({'tit_quantities': tit_quantities })
+          .eq( 'tit_id', tit_id )
+      );
+
+    } catch (e, stackTrace) {
+      ticketNotifier.value = [];
+      errorNotifier.value =
+          ("TicketController::insertTicketsItems: $e \n$stackTrace");
+    } finally {
+      loadingNotifier.value = false;
+    }
+    return;
+  }
+
+  Future<void> deleteTicketsItems( String tit_id ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      // debugPring()
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from( 'tickets_items' )
+          .delete()
+          .eq( 'tit_id', tit_id )
+      );
+
+    } catch (e, stackTrace) {
+      ticketNotifier.value = [];
+      errorNotifier.value =
+          ("TicketController::insertTicketsItems: $e \n$stackTrace");
+    } finally {
+      loadingNotifier.value = false;
+    }
+    return null;
   }
 
 }

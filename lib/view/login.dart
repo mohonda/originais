@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gorouter_exemplo/controllers/login_controller.dart';
+import 'package:originais/controllers/login_controller.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});

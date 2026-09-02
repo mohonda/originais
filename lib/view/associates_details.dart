@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gorouter_exemplo/models/vprofile_model.dart';
-import 'package:gorouter_exemplo/models/journeyriding_model.dart';
-import 'package:gorouter_exemplo/services/general_service.dart';
-import 'package:gorouter_exemplo/controllers/bd_journeyriding_controller.dart';
-import 'package:gorouter_exemplo/models/custom_app_bar.dart';
-import 'package:gorouter_exemplo/controllers/bd_vprofile_associatestatus_controller.dart';
-import 'package:gorouter_exemplo/controllers/bd_vprofiles_sanctions_controller.dart';
-import 'package:gorouter_exemplo/models/vprofile_associatestatus_model.dart';
-import 'package:gorouter_exemplo/models/vprofiles_sanctions_model.dart';
-import 'package:gorouter_exemplo/models/vexecutive_committee_termofoffice_members_model.dart';
-import 'package:gorouter_exemplo/controllers/bd_vexecutive_committee_termofoffice_members_controller.dart';
-import 'package:gorouter_exemplo/view/associates_profile_journeyriding.dart';
+import 'package:originais/models/vprofile_model.dart';
+import 'package:originais/models/journeyriding_model.dart';
+import 'package:originais/services/general_service.dart';
+import 'package:originais/controllers/bd_journeyriding_controller.dart';
+import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/controllers/bd_vprofile_associatestatus_controller.dart';
+import 'package:originais/controllers/bd_vprofiles_sanctions_controller.dart';
+import 'package:originais/models/vprofile_associatestatus_model.dart';
+import 'package:originais/models/vprofiles_sanctions_model.dart';
+import 'package:originais/models/vexecutive_committee_termofoffice_members_model.dart';
+import 'package:originais/controllers/bd_vexecutive_committee_termofoffice_members_controller.dart';
+import 'package:originais/view/associates_profile_journeyriding.dart';
 
 class AssociatesDetails extends StatefulWidget {
   final VProfileModel itemAtual;
@@ -219,8 +219,8 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: historyList.map((item) {
-                          final String nome = item.jr_nome?.toString() ?? '-';
-                          final String nivel = item.jr_level?.toString() ?? '-';
+                          final String nome = item.jr_nome.toString() ?? '-';
+                          final String nivel = item.jr_level.toString() ?? '-';
                           final String data = generalService.formatarDataBr(
                             item.uj_promotion_date.toString(),
                           );
@@ -289,7 +289,7 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                                       // 2. Verifica se está vazia: se sim, usa '0'; se não, pega o jr_level do último item
                                       final String level = listDetails.isEmpty
                                           ? '0'
-                                          : (listDetails.last.jr_level?.toString() ?? '0');
+                                          : (listDetails.last.jr_level.toString() ?? '0');
 
                                       // 3. Executa a função passando o nível calculado
                                       _associatesProfileJourneyRiding(
@@ -325,7 +325,7 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                     // 2. Verifica se está vazia: se sim, usa '0'; se não, pega o jr_level do último item
                     final String level = listDetails.isEmpty
                         ? '0'
-                        : (listDetails.last.jr_level?.toString() ?? '0');
+                        : (listDetails.last.jr_level.toString() ?? '0');
 
                     // 3. Executa a função passando o nível calculado
                     _associatesProfileJourneyRiding(
@@ -449,9 +449,9 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: historyList.map((item) {
-                          final String status = item.as_desc?.toString() ?? '-';
+                          final String status = item.as_desc.toString() ?? '-';
                           final String percent =
-                              item.pas_monthly_percent?.toString() ?? '-';
+                              item.pas_monthly_percent.toString() ?? '-';
                           final String data = generalService.formatarDataBr(
                             item.pas_date.toString(),
                           );
@@ -588,12 +588,12 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: historyList.map((item) {
-                          final String san_name =
-                              item.san_name?.toString() ?? '-';
-                          final String psan_desc =
+                          final String sanName =
+                              item.san_name.toString() ?? '-';
+                          final String psanDesc =
                               item.psan_desc.toString() ?? '-';
 
-                          final String psan_value = generalService
+                          final String psanValue = generalService
                               .currencyMoneyBr(item.psan_valor);
 
                           final String dateStart = generalService
@@ -630,7 +630,7 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          san_name,
+                                          sanName,
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             color: sanColor,
@@ -638,7 +638,7 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          'Início: $dateStart - Final: $dateEnd - Valor: $psan_value \nDescrição: $psan_desc',
+                                          'Início: $dateStart - Final: $dateEnd - Valor: $psanValue \nDescrição: $psanDesc',
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: sanColor,
@@ -740,9 +740,9 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: historyList.map((item) {
                           final String diretoria =
-                              item.ect_name?.toString() ?? '-';
-                          final String cargo = item.ecm_name?.toString() ?? '-';
-                          final String? motivo = item.ectm_motivo_saida
+                              item.ect_name.toString() ?? '-';
+                          final String cargo = item.ecm_name.toString() ?? '-';
+                          final String motivo = item.ectm_motivo_saida
                               .toString();
                           final String dataStart = generalService
                               .formatarDataBr(item.ectm_date_start.toString());

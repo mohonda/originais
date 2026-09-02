@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
-import 'package:gorouter_exemplo/models/vprofile_associatestatus_model.dart';
+import 'package:originais/services/my_supabase_client_service.dart';
+import 'package:originais/models/vprofile_associatestatus_model.dart';
 
 final getItBdVProfileAssociateStatusController = GetIt.instance;
 

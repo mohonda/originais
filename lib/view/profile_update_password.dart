@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
-import 'package:gorouter_exemplo/models/custom_app_bar.dart';
-import 'package:gorouter_exemplo/controllers/auth_controller.dart';
+import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/controllers/auth_controller.dart';
 
 class ProfileUpdatePassword extends StatefulWidget {
   const ProfileUpdatePassword({super.key});

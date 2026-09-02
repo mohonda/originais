@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
-import 'package:gorouter_exemplo/models/products_model.dart';
+import 'package:originais/services/my_supabase_client_service.dart';
+import 'package:originais/models/products_model.dart';
 
 final getItProductsController = GetIt.instance;
 
@@ -29,7 +29,7 @@ class ProductsController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadProdutos( String hld_id ) async {
+  Future<void> loadProdutos( String hldId ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -38,7 +38,7 @@ class ProductsController extends ChangeNotifier {
         supabaseClient
         .from('vprodutos')
         .select()
-        .eq('pdt_hld_id', hld_id)
+        .eq('pdt_hld_id', hldId)
       );
     
       productsNotifier.value = resposta.map(

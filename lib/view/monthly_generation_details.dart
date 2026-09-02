@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gorouter_exemplo/models/profile_model.dart';
+import 'package:originais/models/profile_model.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
-import 'package:gorouter_exemplo/models/custom_app_bar.dart';
-import 'package:gorouter_exemplo/services/general_service.dart';
-import 'package:gorouter_exemplo/controllers/bd_payment_value_controller.dart';
-import 'package:gorouter_exemplo/models/payment_value.dart';
-import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
-import 'package:gorouter_exemplo/models/vprofile_model.dart';
-import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
-import 'package:gorouter_exemplo/controllers/bd_vmensalidades_distinct_controller.dart';
+import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/services/general_service.dart';
+import 'package:originais/controllers/bd_payment_value_controller.dart';
+import 'package:originais/models/payment_value.dart';
+import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/models/vprofile_model.dart';
+import 'package:originais/controllers/bd_monthlypayments_controller.dart';
+import 'package:originais/controllers/bd_vmensalidades_distinct_controller.dart';
 
 class MonthlyGenerationDetails extends StatefulWidget {
   const MonthlyGenerationDetails({super.key});
@@ -53,7 +53,7 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
   List<VProfileModel> filteredList = [];
 
   // ==========================================
-  MonthlyGenerationDetailsState() {}
+  MonthlyGenerationDetailsState();
 
   // ==========================================
   @override

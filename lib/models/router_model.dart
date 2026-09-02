@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gorouter_exemplo/view/dashboard.dart';
-import 'package:gorouter_exemplo/view/headquartersbar.dart';
-import 'package:gorouter_exemplo/view/headquartersbar_opened.dart';
-import 'package:gorouter_exemplo/view/journey_riding.dart';
-import 'package:gorouter_exemplo/view/about.dart';
-import 'package:gorouter_exemplo/view/profile.dart';
-import 'package:gorouter_exemplo/view/monthly_payments.dart';
-import 'package:gorouter_exemplo/view/associates.dart';
-import 'package:gorouter_exemplo/view/monthly_generation.dart';
-import 'package:gorouter_exemplo/view/headquartersbar.dart';
+import 'package:originais/view/dashboard.dart';
+import 'package:originais/view/headquartersbar.dart';
+import 'package:originais/view/journey_riding.dart';
+import 'package:originais/view/about.dart';
+import 'package:originais/view/profile.dart';
+import 'package:originais/view/monthly_payments.dart';
+import 'package:originais/view/associates.dart';
+import 'package:originais/view/monthly_generation.dart';
 
 class RouterModel {
   final String name;

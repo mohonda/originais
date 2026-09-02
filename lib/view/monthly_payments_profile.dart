@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
-import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
-import 'package:gorouter_exemplo/controllers/bd_formapagamento_controller.dart';
-import 'package:gorouter_exemplo/models/custom_app_bar.dart';
-import 'package:gorouter_exemplo/services/general_service.dart';
+import 'package:originais/controllers/bd_monthlypayments_controller.dart';
+import 'package:originais/controllers/bd_formapagamento_controller.dart';
+import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/services/general_service.dart';
 
 class MonthlyPaymentsProfile extends StatefulWidget {
   const MonthlyPaymentsProfile({super.key});

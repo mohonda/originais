@@ -1,4 +1,4 @@
-package com.example.gorouter_exemplo
+package com.example.originais
 
 import io.flutter.embedding.android.FlutterActivity
 

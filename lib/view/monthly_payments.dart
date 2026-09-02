@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:gorouter_exemplo/services/general_service.dart';
-import 'package:gorouter_exemplo/models/custom_app_bar.dart';
-import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
-import 'package:gorouter_exemplo/models/mensalidades_model.dart';
-import 'package:gorouter_exemplo/view/monthly_payments_profile.dart';
-import 'package:gorouter_exemplo/view/monthly_payments_cashier.dart';
+import 'package:originais/services/general_service.dart';
+import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/controllers/bd_monthlypayments_controller.dart';
+import 'package:originais/models/mensalidades_model.dart';
+import 'package:originais/view/monthly_payments_profile.dart';
+import 'package:originais/view/monthly_payments_cashier.dart';
 
 class MonthlyPayments extends StatefulWidget {
   const MonthlyPayments({super.key});
@@ -18,7 +18,7 @@ class _MonthlyPayments extends State<MonthlyPayments> {
   final GeneralService generalService = GeneralService();
   late final BdMonthlyPaymentsController bdMonthlyPaymentsController;
 
-  String _searchQuery = '';
+  final String _searchQuery = '';
   String _filtroStatus = 'Todos';
 
   // ==========================================
@@ -148,10 +148,12 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                                 .contains(_searchQuery.toLowerCase());
                             final isPago = m.mes_data_pagamento.isNotEmpty;
 
-                            if (_filtroStatus == 'Pagas')
+                            if (_filtroStatus == 'Pagas') {
                               return nomeMatch && isPago;
-                            if (_filtroStatus == 'Pendentes')
+                            }
+                            if (_filtroStatus == 'Pendentes') {
                               return nomeMatch && !isPago;
+                            }
                             return nomeMatch;
                           }).toList();
 

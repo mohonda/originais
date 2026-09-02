@@ -36,7 +36,7 @@ class TicketsItemsModel {
 
   int tit_quantities;
   double tit_unit_value;
-  double tit_value;
+  double? tit_value;
 
   TicketsItemsModel({
     this.tit_id,
@@ -47,7 +47,7 @@ class TicketsItemsModel {
     this.pdt_name,
     required this.tit_quantities,
     required this.tit_unit_value,
-    required this.tit_value,
+    this.tit_value,
   });
 
   factory TicketsItemsModel.fromJson(Map<String, dynamic> json) {
@@ -74,7 +74,6 @@ class TicketsItemsModel {
       'tit_pdt_id': tit_pdt_id,
       'tit_quantities': tit_quantities,
       'tit_unit_value': tit_unit_value,
-      'tit_value': tit_value,
     };
   }
 }
@@ -118,7 +117,7 @@ class TicketsModel {
   }) : ticketsItems = ticketsItems ?? [];
 
   double get totalConsumo =>
-      ticketsItems.fold(0.0, (sum, item) => sum + item.tit_value );
+      ticketsItems.fold(0.0, (sum, item) => sum + item.tit_value! );
 
   factory TicketsModel.fromJson(Map<String, dynamic> json) {
     // 🟢 Fallback duplo para a chave de relacionamento de itens

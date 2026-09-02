@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gorouter_exemplo/view/settings/router_settings.dart';
+import 'package:originais/view/settings/router_settings.dart';
 
 class RouterApp extends StatelessWidget {
   const RouterApp({super.key});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:gorouter_exemplo/controllers/auth_controller.dart';
-import 'package:gorouter_exemplo/view/settings/router_settings.dart';
+import 'package:originais/controllers/auth_controller.dart';
+import 'package:originais/view/settings/router_settings.dart';
 
 class LoginController {
   final ValueNotifier<bool> rememberNotifier = ValueNotifier<bool>(false);

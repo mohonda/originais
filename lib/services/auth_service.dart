@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
+import 'package:originais/services/my_supabase_client_service.dart';
 
 class AuthService{
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();

@@ -1,16 +1,16 @@
-import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
-import 'package:file_picker/file_picker.dart';
 import 'package:printing/printing.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:gorouter_exemplo/models/mensalidades_model.dart';
-import 'package:gorouter_exemplo/services/general_service.dart';
-import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
-import 'package:gorouter_exemplo/models/vprofile_model.dart';
+import 'package:originais/models/mensalidades_model.dart';
+import 'package:originais/services/general_service.dart';
+import 'package:originais/services/my_supabase_client_service.dart';
+import 'package:originais/models/vprofile_model.dart';
+import 'dart:io';
 
 final getItbdMonthlyPaymentsController = GetIt.instance;
 
@@ -341,24 +341,24 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       final isLinux = !kIsWeb && Platform.isLinux;
       final isWebOrLinux = kIsWeb || isLinux;
       
-      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+      List<PlatformFile> result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['png', 'jpg', 'jpeg', 'tiff', 'pdf'],
         allowMultiple: false,
         withData: true, // Check data null do Android/iOS/Desktop
       );
 
-      if (result == null || result.files.isEmpty) return;
+      if ( result == null || result.isEmpty ) return;
 
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final PlatformFile file = result.files.single;
+      final PlatformFile file = result.first;
       final String ext = file.extension?.toLowerCase() ?? '';
-      final Uint8List? rawBytes = file.bytes;
+      final Uint8List rawBytes = await file.readAsBytes();
       Uint8List? compressedBytes;
 
-      if (rawBytes == null) {
+      if ( rawBytes.isEmpty ) {
         debugPrint('Erro: Os bytes do arquivo não puderam ser carregados.');
         return;
       }

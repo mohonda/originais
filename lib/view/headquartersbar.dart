@@ -1,18 +1,18 @@
-import 'package:gorouter_exemplo/models/ticketModel.dart';
+import 'package:originais/models/ticketModel.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
-import 'package:gorouter_exemplo/controllers/bd_headquartersbar_controller.dart';
-import 'package:gorouter_exemplo/services/general_service.dart';
-import 'package:gorouter_exemplo/models/custom_app_bar.dart';
-import 'package:gorouter_exemplo/view/custom_month_calendar.dart';
-import 'package:gorouter_exemplo/view/headquartersbar_opened.dart';
+import 'package:originais/controllers/bd_headquartersbar_controller.dart';
+import 'package:originais/services/general_service.dart';
+import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/custom_month_calendar.dart';
+import 'package:originais/view/headquartersbar_opened.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
-import 'package:gorouter_exemplo/controllers/products_controller.dart';
-import 'package:gorouter_exemplo/controllers/ticketController.dart';
-import 'package:gorouter_exemplo/models/ticketModel.dart';
+import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/controllers/products_controller.dart';
+import 'package:originais/controllers/ticketController.dart';
+import 'package:originais/models/ticketModel.dart';
 
 class HeadquartersBar extends StatefulWidget {
   const HeadquartersBar({super.key});
@@ -71,11 +71,11 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
  Future<void> _carregarDiasAbertos() async {
     try {
-      String hld_id = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '1';
+      String hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '1';
       
       // 1. Busque os registros no banco (ajuste conforme seu controller)
       // Aqui estou assumindo que loadHeadquartersBar retorna a lista ou atualiza um Notifier
-      await bdHeadquartersBarController.loadHeadquartersBar(hld_id);
+      await bdHeadquartersBarController.loadHeadquartersBar(hldId);
       final barrasAbertas = bdHeadquartersBarController.headquartersBarNotifier.value;
           debugPrint(barrasAbertas.length.toString());
       
@@ -195,8 +195,8 @@ class HeadquartersBarState extends State<HeadquartersBar> {
   }
 
   void openHeadquartersBar() async {
-    String pfl_id = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
-    String hld_id = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
+    String pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
+    String hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
     String openDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
     bool isJaAberto = _openDays.any((d) => 
@@ -206,15 +206,15 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
     if ( !isJaAberto ) {
       await bdHeadquartersBarController.openHeadquartersBar(
-        pfl_id,
-        hld_id,
+        pflId,
+        hldId,
         openDate,
         bar_desc.text,
       );
     }
-    await productsController.loadProdutos(hld_id);
-    await ticketController.loadTicketStatus(hld_id);
-    await ticketController.loadTickets(openDate, hld_id);
+    await productsController.loadProdutos(hldId);
+    await ticketController.loadTicketStatus(hldId);
+    await ticketController.loadTickets(openDate, hldId);
 
     if (context.mounted) {
       Navigator.push(
@@ -222,7 +222,7 @@ class HeadquartersBarState extends State<HeadquartersBar> {
         MaterialPageRoute(
           builder: (context) => HeadquartersBarOpened(
             openDate: openDate,
-            hld_id: hld_id )
+            hld_id: hldId )
         ),
       );
     }

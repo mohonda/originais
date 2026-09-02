@@ -1,6 +1,6 @@
-import 'package:gorouter_exemplo/view/settings/router_settings.dart';
+import 'package:originais/view/settings/router_settings.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
+import 'package:originais/services/my_supabase_client_service.dart';
 
 class AuthController {
   // Pega a instância já inicializada do Supabase

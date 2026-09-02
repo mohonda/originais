@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
-import 'package:gorouter_exemplo/models/vprofile_model.dart';
-import 'package:gorouter_exemplo/models/custom_app_bar.dart';
-import 'package:gorouter_exemplo/view/profile_update_password.dart';
+import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/models/vprofile_model.dart';
+import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/profile_update_password.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});

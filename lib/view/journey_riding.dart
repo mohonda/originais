@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gorouter_exemplo/view/itens_form.dart';
-import 'package:gorouter_exemplo/controllers/bd_journeyriding_controller.dart';
-import 'package:gorouter_exemplo/models/custom_app_bar.dart';
+import 'package:originais/view/itens_form.dart';
+import 'package:originais/controllers/bd_journeyriding_controller.dart';
+import 'package:originais/models/custom_app_bar.dart';
 
 class JourneyRiding extends StatefulWidget {
   const JourneyRiding({super.key});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gorouter_exemplo/view/dashboard_widgetItens.dart';
-import 'package:gorouter_exemplo/view/dashboard_widgetUsers.dart';
-import 'package:gorouter_exemplo/models/custom_app_bar.dart';
+import 'package:originais/view/dashboard_widgetItens.dart';
+import 'package:originais/view/dashboard_widgetUsers.dart';
+import 'package:originais/models/custom_app_bar.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});

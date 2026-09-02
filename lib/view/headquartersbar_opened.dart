@@ -1,20 +1,30 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
-import 'package:gorouter_exemplo/models/profile_model.dart';
+import 'package:originais/models/profile_model.dart';
+
 import 'package:image_picker/image_picker.dart';
-import 'package:gorouter_exemplo/models/custom_app_bar.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:path_provider/path_provider.dart';
 
-import 'package:gorouter_exemplo/controllers/products_controller.dart';
-import 'package:gorouter_exemplo/models/products_model.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
-import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
-import 'package:gorouter_exemplo/models/vprofile_model.dart';
+import 'package:originais/models/custom_app_bar.dart';
 
-import 'package:gorouter_exemplo/controllers/ticketController.dart';
-import 'package:gorouter_exemplo/models/ticketModel.dart';
+import 'package:originais/controllers/products_controller.dart';
+import 'package:originais/models/products_model.dart';
 
-import 'package:gorouter_exemplo/services/general_service.dart';
+import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/models/vprofile_model.dart';
+
+import 'package:originais/controllers/ticketController.dart';
+import 'package:originais/models/ticketModel.dart';
+
+import 'package:originais/services/general_service.dart';
+import 'dart:io';
+
+import 'package:originais/services/general_service.dart';
 
 class HeadquartersBarOpened extends StatefulWidget {
   String openDate;
@@ -151,13 +161,12 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
           // Botão simples de encerramento
           ElevatedButton(
             onPressed: () {
+              final tktTstId = id_ticketStatusList('Ticket opened');
+              ticketController.closeTicketsWithoutPayment( mesa.tkt_id.toString(), tktTstId);
               setState(() {
                 // mesa.status = StatusMesa.fechadaSemPagamento;
-                mesa.tkt_tst_id = id_ticketStatusList(
-                  'Ticket closed without payment',
-                );
+                mesa.tkt_tst_id = tktTstId;
               });
-
               Navigator.pop(dialogContext);
             },
             style: ElevatedButton.styleFrom(
@@ -201,17 +210,22 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final XFile? photo = await _picker.pickImage(
-                          source: ImageSource.gallery,
-                        );
-                        if (photo != null) {
-                          setState(() {
-                            mesa.tkt_paiment_path = photo.path;
-                          });
-                          setDialogState(() {});
-                        }
-                      },
+                    onPressed: () {
+                      // 🟢 Chama o menu de opções
+                      _escolherMetodoAnexo(context, mesa, setDialogState);
+                    },
+                    // child: OutlinedButton.icon(
+                    //   onPressed: () async {
+                    //     final XFile? photo = await _picker.pickImage(
+                    //       source: ImageSource.gallery,
+                    //     );
+                    //     if (photo != null) {
+                    //       setState(() {
+                    //         mesa.tkt_paiment_path = photo.path;
+                    //       });
+                    //       setDialogState(() {});
+                    //     }
+                    //   },
                       icon: Icon(
                         temFoto ? Icons.check_circle : Icons.add_a_photo,
                         color: temFoto ? Colors.green : Colors.indigoAccent,
@@ -264,29 +278,142 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
     );
   }
 
+
+void _escolherMetodoAnexo(BuildContext context, TicketsModel mesa, StateSetter setDialogState) {
+  showModalBottomSheet(
+    context: context,
+    builder: (BuildContext bc) {
+      return SafeArea(
+        child: Wrap(
+          children: <Widget>[
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Tirar Foto'),
+              onTap: () async {
+                Navigator.of(context).pop(); // Fecha o menu
+                final ImagePicker picker = ImagePicker();
+                final XFile? photo = await picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 50, // 🟢 Reduz a qualidade para 50%
+                  maxWidth: 1024,   // 🟢 Limita a largura máxima
+                );
+                
+                
+                if (photo != null) {
+                  setState(() => mesa.tkt_paiment_path = photo.path);
+                  setDialogState(() {});
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.folder),
+              title: const Text('Escolher Arquivo (PDF ou Galeria)'),
+              onTap: () async {
+                Navigator.of(context).pop(); 
+                List<PlatformFile> result = await FilePicker.pickFiles(
+                  type: FileType.custom,
+                  allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+                );
+
+                if (result != null && result.first.path != null) {
+                  // String caminhoFinal = result.files.single.path!;
+                  String caminhoFinal = result.first.path!;
+                  final extensao = caminhoFinal.split('.').last.toLowerCase();
+
+                  // 🟢 Aplica a conversão correta dependendo do arquivo
+                  if (extensao == 'pdf') {
+                    caminhoFinal = await extrairPrimeiraPaginaPdf(caminhoFinal);
+                  } else {
+                    caminhoFinal = await comprimirImagem(caminhoFinal) ?? caminhoFinal;
+                  }
+
+                  setState(() => mesa.tkt_paiment_path = caminhoFinal);
+                  setDialogState(() {});
+                }
+              },
+            ),
+          ],
+        ),
+      );
+    }
+  );
+}
+
+Future<String?> comprimirImagem(String pathOriginal) async {
+  final tempDir = await getTemporaryDirectory();
+  final targetPath = '${tempDir.path}/temp_compress_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+  final result = await FlutterImageCompress.compressAndGetFile(
+    pathOriginal, 
+    targetPath,
+    quality: 60,
+    minWidth: 1024,
+  );
+  
+  return result?.path; // Retorna o caminho da imagem leve
+}
+
+Future<String> extrairPrimeiraPaginaPdf(String pathOriginal) async {
+  // 1. Carrega o PDF original
+  final File fileOriginal = File(pathOriginal);
+  final PdfDocument document = PdfDocument(inputBytes: fileOriginal.readAsBytesSync());
+
+  // 2. Remove todas as páginas, exceto a primeira (índice 0)
+  while (document.pages.count > 1) {
+    document.pages.removeAt(1); 
+  }
+
+  // 3. Salva o novo PDF em um diretório temporário
+  final List<int> bytes = document.saveSync();
+  document.dispose();
+
+  final tempDir = await getTemporaryDirectory();
+  final targetPath = '${tempDir.path}/comprovante_1pg_${DateTime.now().millisecondsSinceEpoch}.pdf';
+  
+  final File novoPdf = File(targetPath);
+  await novoPdf.writeAsBytes(bytes);
+
+  return novoPdf.path; // Retorna o caminho do PDF de 1 página
+}
+
+
   // 🟢 DIÁLOGO DE VER COMPROVANTE ANEXADO
-  void _mostrarComprovante(TicketsModel mesa) {
+void _mostrarComprovante(TicketsModel mesa) {
+    final String? path = mesa.tkt_paiment_path;
+    final bool isPdf = path != null && path.toLowerCase().endsWith('.pdf');
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Comprovante - ${mesa.tkt_table_number}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (mesa.tkt_paiment_path != null)
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 300),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(
-                    File(mesa.tkt_paiment_path!),
-                    fit: BoxFit.contain,
+        content: SizedBox(
+          width: double.maxFinite, // Garante que o PDF tenha largura suficiente
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (path != null)
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 400), // Aumentado levemente para leitura do PDF
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: 
+                    isPdf
+                        ? SfPdfViewer.file(
+                            File(path),
+                            canShowScrollHead: false, // Oculta barra superior do visualizador
+                            canShowScrollStatus: false,
+                          )
+                        :
+                         Image.file(
+                            File(path),
+                            fit: BoxFit.contain,
+                          ),
                   ),
-                ),
-              )
-            else
-              const Text('Nenhuma imagem registrada.'),
-          ],
+                )
+              else
+                const Text('Nenhum comprovante registrado.'),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -385,14 +512,14 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
             if (isAberta) ...[
               OutlinedButton(
                 onPressed: () {
-                  final tkt_tst_id = id_ticketStatusList(
+                  final tktTstId = id_ticketStatusList(
                       'Ticket closed without payment',
                     );
-                  ticketController.closeTicketsWithoutPayment( mesa.tkt_id.toString(), tkt_tst_id);
+                  ticketController.closeTicketsWithoutPayment( mesa.tkt_id.toString(), tktTstId);
                   Navigator.pop(dialogContext);
                   setState(() {
                     // mesa.status = StatusMesa.fechadaSemPagamento;
-                    mesa.tkt_tst_id = tkt_tst_id;
+                    mesa.tkt_tst_id = tktTstId;
                   });
                 },
                 style: OutlinedButton.styleFrom(foregroundColor: Colors.orange),
@@ -414,11 +541,11 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
             ] else if (mesa.tkt_tst_id == id_ticketStatusList('Ticket closed without payment')) ...[
                 OutlinedButton(
                   onPressed: () {
-                    final tkt_tst_id = id_ticketStatusList('Ticket opened');
-                    ticketController.closeTicketsWithoutPayment( mesa.tkt_id.toString(), tkt_tst_id);
+                    final tktTstId = id_ticketStatusList('Ticket opened');
+                    ticketController.closeTicketsWithoutPayment( mesa.tkt_id.toString(), tktTstId);
                     setState(() {
                       // mesa.status = StatusMesa.aberta;
-                      mesa.tkt_tst_id = tkt_tst_id;
+                      mesa.tkt_tst_id = tktTstId;
                     });
                     Navigator.pop(dialogContext);
                   },
@@ -448,7 +575,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
   // POPUP PARA LANÇAR ITENS NA MESA
   Future<void> _mostrarDialogLancarItem(TicketsModel mesa) async {
     // if (mesa.status != StatusMesa.aberta) {
-    if (mesa.tkt_tst_id != '1') {
+    if (mesa.tkt_tst_id != id_ticketStatusList('Ticket opened') ) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Reabra a mesa para lançar novos itens!'),
@@ -553,7 +680,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                       )
                     else
                       DropdownButtonFormField<ProductsModel>(
-                        value: produtoSelecionado,
+                        initialValue: produtoSelecionado,
                         isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Produto',
@@ -625,7 +752,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                           ),
                         ),
                         Text(
-                          '${generalService.currencyMoneyBr((precoCalculado * quantidade).toString())}',
+                          generalService.currencyMoneyBr((precoCalculado * quantidade).toString()),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -645,9 +772,9 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                 ElevatedButton.icon(
                   onPressed: produtoSelecionado == null
                       ? null
-                      : () {
+                      : () async {
                           if (produtoSelecionado != null) {
-                            setState(() {
+                            // setState(() {
                               final indexExistente = mesa.ticketsItems
                                   .indexWhere(
                                     (p) =>
@@ -656,28 +783,62 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                   );
 
                               if (indexExistente >= 0) {
-                                mesa
-                                        .ticketsItems[indexExistente]
-                                        .tit_quantities +=
-                                    quantidade;
+                                await ticketController.updateTicketsItems(
+                                  mesa.ticketsItems[indexExistente].tit_id.toString(),
+                                  mesa.ticketsItems[indexExistente].tit_quantities + quantidade,
+                                );
+                                
+                                setState(() {
+                                  mesa.ticketsItems[indexExistente]
+                                    .tit_quantities += quantidade;
+                                  mesa.ticketsItems[indexExistente]
+                                    .tit_value = 
+                                      mesa.ticketsItems[indexExistente].tit_quantities *
+                                      mesa.ticketsItems[indexExistente].tit_unit_value;
+                                });
+
                               } else {
-                                mesa.ticketsItems.add(
-                                  TicketsItemsModel(
+                                final ticketsItems2Controller = TicketsItemsModel(
                                     tit_hld_id: widget.hld_id,
                                     tit_tkt_id: mesa.tkt_id.toString(),
                                     tit_pdt_id: produtoSelecionado!.pdt_id,
-                                    pdt_name: produtoSelecionado!.pdt_name,
                                     tit_quantities: quantidade,
                                     tit_unit_value: precoCalculado,
                                     tit_value: quantidade * precoCalculado,
-                                  ),
-                                );
-                              }
-                            });
+                                  );
+                                
+                                final ticketsItemsFromController = await ticketController
+                                .insertTicketsItems(ticketsItems2Controller);
+
+                                if (ticketsItemsFromController != null) {
+                                  ticketsItemsFromController.tit_value = quantidade * precoCalculado;
+                                  setState(() {
+                                    ticketsItemsFromController.pdt_name = produtoSelecionado!.pdt_name;
+                                    mesa.ticketsItems.add( ticketsItemsFromController );
+                                  });
+                                }
+
+                                // mesa.ticketsItems.add(
+                                //   TicketsItemsModel(
+                                //     tit_hld_id: widget.hld_id,
+                                //     tit_tkt_id: mesa.tkt_id.toString(),
+                                //     tit_pdt_id: produtoSelecionado!.pdt_id,
+                                //     // pdt_name: produtoSelecionado!.pdt_name,
+                                //     tit_quantities: quantidade,
+                                //     tit_unit_value: precoCalculado,
+                                //     tit_value: quantidade * precoCalculado,
+                                //   ),
+                                // );
+                              // }
+                            // }
+                            // );
+                          }
                             Navigator.pop(dialogContext);
                             _mostrarResumoMesa(mesa);
-                          }
-                        },
+                      }
+                      },
+                
+            
                   // onPressed: () {
                   //   if (produtoSelecionado != null) {
                   //     setState(() {
@@ -885,7 +1046,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                           : ListView.separated(
                               shrinkWrap: true,
                               itemCount: mesa.ticketsItems.length,
-                              separatorBuilder: (_, __) =>
+                              separatorBuilder: (_, _) =>
                                   const Divider(height: 1),
                               itemBuilder: (context, idx) {
                                 final item = mesa.ticketsItems[idx];
@@ -912,7 +1073,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                             Text(
-                                              '${generalService.currencyMoneyBr(item.tit_value.toString())}  (${generalService.currencyMoneyBr(item.tit_unit_value.toString())} un)',
+                                              '${generalService.currencyMoneyBr(item.tit_value.toString())}  (${generalService.currencyMoneyBr(item.tit_unit_value.toString())} un.)',
                                               style: const TextStyle(
                                                 fontSize: 11,
                                                 color: Colors.white54,
@@ -935,17 +1096,29 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                           tooltip: item.tit_quantities > 1
                                               ? 'Diminuir'
                                               : 'Remover Item',
-                                          onPressed: () {
-                                            setState(() {
+                                          onPressed: () async {
+                                            
                                               if (item.tit_quantities > 1) {
-                                                item.tit_quantities--;
-                                                item.tit_value =
+                                                final int tit_quantities = item.tit_quantities - 1;
+                                                await ticketController.updateTicketsItems(
+                                                  item.tit_id.toString(),
+                                                  tit_quantities,
+                                                );
+                                                setState(() {
+                                                  item.tit_quantities = tit_quantities;
+                                                  item.tit_value =
                                                     item.tit_quantities *
                                                     item.tit_unit_value;
+                                                });
                                               } else {
-                                                mesa.ticketsItems.removeAt(idx);
+                                                await ticketController.deleteTicketsItems(
+                                                  item.tit_id.toString()
+                                                );
+                                                setState(() {
+                                                  mesa.ticketsItems.removeAt(idx);
+                                                });
                                               }
-                                            });
+                                            
                                             setDialogState(() {});
                                           },
                                         ),
@@ -970,9 +1143,14 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                             size: 20,
                                           ),
                                           tooltip: 'Aumentar.....',
-                                          onPressed: () {
+                                          onPressed: () async {
+                                            final int tit_quantities = item.tit_quantities + 1;
+                                            await ticketController.updateTicketsItems(
+                                              item.tit_id.toString(),
+                                              tit_quantities,
+                                            );
                                             setState(() {
-                                              item.tit_quantities++;
+                                              item.tit_quantities = tit_quantities;
                                               item.tit_value =
                                                   item.tit_quantities *
                                                   item.tit_unit_value;
@@ -1016,7 +1194,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                           ),
                         ),
                         Text(
-                          '${generalService.currencyMoneyBr(mesa.totalConsumo.toString())}',
+                          generalService.currencyMoneyBr(mesa.totalConsumo.toString()),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -1066,11 +1244,11 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                 else if (mesa.tkt_tst_id == id_ticketStatusList('Ticket closed without payment')) ...[
                   ElevatedButton.icon(
                     onPressed: () {
-                      final tkt_tst_id = id_ticketStatusList('Ticket opened');
-                      ticketController.closeTicketsWithoutPayment( mesa.tkt_id.toString(), tkt_tst_id);
+                      final tktTstId = id_ticketStatusList('Ticket opened');
+                      ticketController.closeTicketsWithoutPayment( mesa.tkt_id.toString(), tktTstId);
                       setState(() {
                         // mesa.status = StatusMesa.aberta;
-                        mesa.tkt_tst_id = tkt_tst_id;
+                        mesa.tkt_tst_id = tktTstId;
                       });
                       Navigator.pop(dialogContext);
                     },
@@ -1279,8 +1457,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                 ? clienteSelecionado.value?.pfl_id
                                 : null;
 
-                            debugPrint('Aqui...${idClienteFinal.toString()}');
-
                             final tickets = TicketsModel(
                               tkt_hld_id: widget.hld_id,
                               tkt_bar_open_date: widget.openDate,
@@ -1294,10 +1470,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                             // 🟢 1. O await fica FORA do setState (o código aguarda a resposta do banco aqui)
                             final ticketFromController = await ticketController
                                 .openTicketsFunction(tickets);
-
-                            debugPrint(
-                              'ticketFromController: ${ticketFromController.toString()}',
-                            );
 
                             // 🟢 2. Atualiza o estado da tela apenas se o retorno for válido
                             if (ticketFromController != null) {
@@ -1366,7 +1538,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
               ),
               const SizedBox(height: 2),
               Text(
-                '${generalService.currencyMoneyBr(_totalVendasGeral.toString())}',
+                generalService.currencyMoneyBr(_totalVendasGeral.toString()),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
@@ -1385,7 +1557,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
               ),
               const SizedBox(height: 2),
               Text(
-                '${generalService.currencyMoneyBr(_totalVendasCadastrados.toString())}',
+                generalService.currencyMoneyBr(_totalVendasCadastrados.toString()),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
@@ -1404,7 +1576,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
               ),
               const SizedBox(height: 2),
               Text(
-                '${generalService.currencyMoneyBr(_totalVendasAvulsos.toString())}',
+                generalService.currencyMoneyBr(_totalVendasAvulsos.toString()),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
@@ -1440,7 +1612,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
     final mesasOrdenadas = _mesasOrdenadas;
 
     return Scaffold(
-      appBar: const CustomFloatingAppBar(title: 'Headquarters Bar'),
+      appBar: CustomFloatingAppBar(title: 'Headquarters Bar - ${generalService.formatarDataBr(widget.openDate)}'),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Card(
@@ -1667,7 +1839,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                                     alignment:
                                                         Alignment.centerLeft,
                                                     child: Text(
-                                                      '${generalService.currencyMoneyBr(mesa.totalConsumo.toString())}',
+                                                      generalService.currencyMoneyBr(mesa.totalConsumo.toString()),
                                                       style: TextStyle(
                                                         fontSize: 12,
                                                         fontWeight:

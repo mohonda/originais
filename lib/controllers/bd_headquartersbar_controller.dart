@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:gorouter_exemplo/models/headquartersbar_model.dart';
+import 'package:originais/models/headquartersbar_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
+import 'package:originais/services/my_supabase_client_service.dart';
 
 final getItBdHeadquartersBarController = GetIt.instance;
 
@@ -29,7 +29,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadHeadquartersBar( String hld_id ) async {
+  Future<void> loadHeadquartersBar( String hldId ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -38,7 +38,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
         supabaseClient
         .from('vheadquarters_bar')
         .select()
-        .eq('bar_hld_id', hld_id)
+        .eq('bar_hld_id', hldId)
       );
       debugPrint(resposta.length.toString());
     
@@ -55,10 +55,10 @@ class BdHeadquartersBarController extends ChangeNotifier {
 
   // ==========================================
   Future<void> openHeadquartersBar(
-    String pfl_id,
-    String hld_id,
+    String pflId,
+    String hldId,
     String openDate,
-    String bar_desc ) async {
+    String barDesc ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -67,10 +67,10 @@ class BdHeadquartersBarController extends ChangeNotifier {
         supabaseClient
         .from('headquarters_bar')
         .insert({
-          'bar_open_pfl_id': pfl_id,
-          'bar_hld_id': hld_id,
+          'bar_open_pfl_id': pflId,
+          'bar_hld_id': hldId,
           'bar_open_date': openDate,
-          'bar_desc': bar_desc,
+          'bar_desc': barDesc,
         })
       );
      

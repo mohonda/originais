@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gorouter_exemplo/models/custom_app_bar.dart';
-import 'package:gorouter_exemplo/services/general_service.dart';
-import 'package:gorouter_exemplo/controllers/bd_vmensalidades_distinct_controller.dart';
-import 'package:gorouter_exemplo/view/monthly_generation_details.dart';
-import 'package:gorouter_exemplo/controllers/bd_payment_value_controller.dart';
-import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
-import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
+import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/services/general_service.dart';
+import 'package:originais/controllers/bd_vmensalidades_distinct_controller.dart';
+import 'package:originais/view/monthly_generation_details.dart';
+import 'package:originais/controllers/bd_payment_value_controller.dart';
+import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/controllers/bd_monthlypayments_controller.dart';
 
 class MonthlyGeneration extends StatefulWidget {
   const MonthlyGeneration({super.key});
@@ -265,7 +265,7 @@ class MonthlyGenerationState extends State<MonthlyGeneration> {
   Future<void> deleteMonthlyGeneration(
     String month,
     String year,
-    String hld_id,
+    String hldId,
   ) async {
     final bool? confirmar = await showDialog<bool>(
       context: context,
@@ -298,7 +298,7 @@ class MonthlyGenerationState extends State<MonthlyGeneration> {
         await bdVMensalidadesDistinctController.deleteMensalidadesDistincts(
           month,
           year,
-          hld_id,
+          hldId,
         );
 
         if (context.mounted) {

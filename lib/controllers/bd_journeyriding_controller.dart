@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
-import 'package:gorouter_exemplo/models/journeyriding_model.dart';
+import 'package:originais/services/my_supabase_client_service.dart';
+import 'package:originais/models/journeyriding_model.dart';
 
 final getItBdJourneyRidingController = GetIt.instance;
 
@@ -84,10 +84,10 @@ class BdJourneyRidingController extends ChangeNotifier {
 
    // ==========================================
   Future<void> insertProfileJourneyRiding(
-    String uj_pfl_id,
-    String uj_hld_id,
-    String uj_jr_id,
-    String uj_promotion_date,
+    String ujPflId,
+    String ujHldId,
+    String ujJrId,
+    String ujPromotionDate,
     ) async {
     try {
       loadingNotifier.value = true;
@@ -96,10 +96,10 @@ class BdJourneyRidingController extends ChangeNotifier {
       await supabaseClient
           .from('user_journey')  
           .insert({
-            'uj_pfl_id': uj_pfl_id,
-            'uj_hld_id': uj_hld_id,
-            'uj_jr_id': uj_jr_id,
-            'uj_promotion_date': uj_promotion_date
+            'uj_pfl_id': ujPflId,
+            'uj_hld_id': ujHldId,
+            'uj_jr_id': ujJrId,
+            'uj_promotion_date': ujPromotionDate
           }); 
 
     } catch (e, stackTrace) {
@@ -107,17 +107,17 @@ class BdJourneyRidingController extends ChangeNotifier {
       debugPrint(errorNotifier.value.toString());
     } finally {
       loadingNotifier.value = false;
-      loadJourneyRidingDetais(uj_pfl_id, uj_hld_id);
+      loadJourneyRidingDetais(ujPflId, ujHldId);
     }
   }
 
   // ==========================================
   Future<void> updateProfileJourneyRiding(
-    String uj_id,
-    String uj_pfl_id,
-    String uj_hld_id,
-    String uj_jr_id,
-    String uj_promotion_date,
+    String ujId,
+    String ujPflId,
+    String ujHldId,
+    String ujJrId,
+    String ujPromotionDate,
     ) async {
     try {
       loadingNotifier.value = true;
@@ -129,25 +129,25 @@ class BdJourneyRidingController extends ChangeNotifier {
             // 'uj_id': uj_id,
             // 'uj_pfl_id': uj_pfl_id,
             // 'uj_hld_id': uj_hld_id,
-            'uj_jr_id': uj_jr_id,
-            'uj_promotion_date': uj_promotion_date
+            'uj_jr_id': ujJrId,
+            'uj_promotion_date': ujPromotionDate
           })
-          .eq( 'uj_id', uj_id);
+          .eq( 'uj_id', ujId);
 
     } catch (e, stackTrace) {
       errorNotifier.value = ("BdItemController::updateItem: $e \n$stackTrace");
       debugPrint(errorNotifier.value.toString());
     } finally {
       loadingNotifier.value = false;
-      loadJourneyRidingDetais(uj_pfl_id, uj_hld_id);
+      loadJourneyRidingDetais(ujPflId, ujHldId);
     }
   }
 
    // ==========================================
   Future<void> deleteProfileJourneyRiding(
-    String uj_id,
-    String uj_pfl_id,
-    String uj_hld_id
+    String ujId,
+    String ujPflId,
+    String ujHldId
     ) async {
     try {
       loadingNotifier.value = true;
@@ -156,14 +156,14 @@ class BdJourneyRidingController extends ChangeNotifier {
       await supabaseClient
           .from('user_journey')  
           .delete()
-          .eq('uj_id', uj_id);
+          .eq('uj_id', ujId);
 
     } catch (e, stackTrace) {
       errorNotifier.value = ("BdItemController::updateItem: $e \n$stackTrace");
       debugPrint(errorNotifier.value.toString());
     } finally {
       loadingNotifier.value = false;
-      loadJourneyRidingDetais(uj_pfl_id, uj_hld_id);
+      loadJourneyRidingDetais(ujPflId, ujHldId);
     }
   }
 

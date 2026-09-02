@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gorouter_exemplo/models/custom_app_bar.dart';
-import 'package:gorouter_exemplo/services/general_service.dart';
-import 'package:gorouter_exemplo/controllers/bd_journeyriding_controller.dart';
-import 'package:gorouter_exemplo/models/journeyriding_model.dart';
+import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/services/general_service.dart';
+import 'package:originais/controllers/bd_journeyriding_controller.dart';
+import 'package:originais/models/journeyriding_model.dart';
 
 class AssociatesProfileJourneyRiding extends StatefulWidget {
   final JourneyRidingModel itemAtual;
@@ -53,7 +53,7 @@ class AssociatesProfileJourneyRidingState
       );
       
       formaPagamentoSelecionada =
-        widget.itemAtual.jr_id?.toString() ?? '';
+        widget.itemAtual.jr_id.toString() ?? '';
     } else {
       datapagamento.text = generalService.formatarDataBr(DateTime.now().toIso8601String());
     }
@@ -161,7 +161,9 @@ class AssociatesProfileJourneyRidingState
                                       
                                       return itemLevel > level;
                                     }).toList();
-                                  } else tmp = listaFormas;
+                                  } else {
+                                    tmp = listaFormas;
+                                  }
                                   
                                   return DropdownButtonFormField<String>(
                                     initialValue: formaPagamentoSelecionada,
@@ -172,7 +174,7 @@ class AssociatesProfileJourneyRidingState
                                       border: OutlineInputBorder(),
                                     ),
                                     hint: const Text('Selecione...'),
-                                    items: tmp?.map((forma) {
+                                    items: tmp.map((forma) {
                                       return DropdownMenuItem<String>(
                                         value: forma.jr_id.toString(),
                                         child: Text(forma.jr_nome.toString()),
@@ -335,9 +337,9 @@ class AssociatesProfileJourneyRidingState
     // ==========================================
   Future<void> deleteProfileJourneyRiding(
     BuildContext context,
-    String uj_id,
-    String uj_pfl_id,
-    String uj_hld_id
+    String ujId,
+    String ujPflId,
+    String ujHldId
   ) async {
     final bool? confirmar = await showDialog<bool>(
       context: context,
@@ -366,7 +368,7 @@ class AssociatesProfileJourneyRidingState
     if (confirmar == true && context.mounted) {
       try {
         await bdJourneyRidingController
-          .deleteProfileJourneyRiding( uj_id, uj_pfl_id, uj_hld_id );
+          .deleteProfileJourneyRiding( ujId, ujPflId, ujHldId );
         
         if (context.mounted) {
           ScaffoldMessenger.of(

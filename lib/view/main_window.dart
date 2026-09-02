@@ -4,15 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sidebarx/sidebarx.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
-import 'package:gorouter_exemplo/view/settings/router_settings.dart';
-import 'package:gorouter_exemplo/controllers/auth_controller.dart';
-import 'package:gorouter_exemplo/controllers/bd_profile_controller.dart';
-import 'package:gorouter_exemplo/controllers/bd_journeyriding_controller.dart';
-import 'package:gorouter_exemplo/controllers/bd_monthlypayments_controller.dart';
-import 'package:gorouter_exemplo/controllers/bd_vprofile_associatestatus_controller.dart';
-import 'package:gorouter_exemplo/controllers/bd_vprofiles_sanctions_controller.dart';
-import 'package:gorouter_exemplo/controllers/bd_vmensalidades_distinct_controller.dart';
+import 'package:originais/services/my_supabase_client_service.dart';
+import 'package:originais/controllers/auth_controller.dart';
+import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/controllers/bd_journeyriding_controller.dart';
+import 'package:originais/controllers/bd_monthlypayments_controller.dart';
+import 'package:originais/controllers/bd_vprofile_associatestatus_controller.dart';
+import 'package:originais/controllers/bd_vmensalidades_distinct_controller.dart';
 
 class MainWindow extends StatefulWidget {
   final StatefulNavigationShell navigationShell;

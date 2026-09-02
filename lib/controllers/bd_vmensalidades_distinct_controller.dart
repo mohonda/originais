@@ -1,9 +1,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:gorouter_exemplo/models/vmensalidades_distinct_model.dart';
+import 'package:originais/models/vmensalidades_distinct_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:gorouter_exemplo/services/my_supabase_client_service.dart';
+import 'package:originais/services/my_supabase_client_service.dart';
 
 final getItBdVMensalidadesDistinctController = GetIt.instance;
 
@@ -56,7 +56,7 @@ class BdVMensalidadesDistinctController extends ChangeNotifier {
   Future<void> deleteMensalidadesDistincts(
     String month,
     String year,
-    String hld_id,
+    String hldId,
   ) async {
     try {
       loadingNotifier.value = true;
@@ -68,7 +68,7 @@ class BdVMensalidadesDistinctController extends ChangeNotifier {
         .delete()
         .eq('mes_mes_referencia', month)
         .eq('mes_ano_referencia', year)
-        .eq('mes_hld_id', hld_id)
+        .eq('mes_hld_id', hldId)
       );
           
     } catch (e, stackTrace) {

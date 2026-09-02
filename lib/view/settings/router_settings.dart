@@ -1,8 +1,8 @@
 import 'package:go_router/go_router.dart';
-import 'package:gorouter_exemplo/view/main_window.dart';
-import 'package:gorouter_exemplo/models/router_model.dart';
+import 'package:originais/view/main_window.dart';
+import 'package:originais/models/router_model.dart';
 import 'package:flutter/material.dart';
-import 'package:gorouter_exemplo/view/login.dart';
+import 'package:originais/view/login.dart';
 
 class RouterSettings {
 
