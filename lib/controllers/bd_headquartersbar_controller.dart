@@ -40,8 +40,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
         .select()
         .eq('bar_hld_id', hldId)
       );
-      debugPrint(resposta.length.toString());
-    
+   
       headquartersBarNotifier.value = resposta.map(
         ( item ) => HeadquartersBarModel.fromJson( item )).toList();
       

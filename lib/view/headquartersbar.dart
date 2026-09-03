@@ -77,7 +77,6 @@ class HeadquartersBarState extends State<HeadquartersBar> {
       // Aqui estou assumindo que loadHeadquartersBar retorna a lista ou atualiza um Notifier
       await bdHeadquartersBarController.loadHeadquartersBar(hldId);
       final barrasAbertas = bdHeadquartersBarController.headquartersBarNotifier.value;
-          debugPrint(barrasAbertas.length.toString());
       
       /* 
        * 2. Transforme a lista do banco em uma Lista de DateTime

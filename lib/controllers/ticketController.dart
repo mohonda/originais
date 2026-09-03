@@ -50,32 +50,6 @@ class TicketController extends ChangeNotifier {
           .map((item) => TicketStatusModel.fromJson(item))
           .toList();
     } catch (e, stackTrace) {
-      ticketStatusNotifier.value = [];
-      errorNotifier.value =
-          ("TicketController::loadProdutos: $e \n$stackTrace");
-    } finally {
-      loadingNotifier.value = false;
-    }
-  }
-
-  // ==========================================
-  Future<void> loadTicketsItems(String hldId) async {
-    try {
-      loadingNotifier.value = true;
-      errorNotifier.value = null;
-
-      final resposta = await mySupabaseClient.safePostgrestCall(
-        () => supabaseClient
-            .from('vtickets_items')
-            .select()
-            .eq('tit_hld_id', hldId),
-      );
-
-      ticketItemsNotifier.value = resposta
-          .map((item) => TicketsItemsModel.fromJson(item))
-          .toList();
-    } catch (e, stackTrace) {
-      ticketItemsNotifier.value = [];
       errorNotifier.value =
           ("TicketController::loadProdutos: $e \n$stackTrace");
     } finally {
@@ -101,7 +75,6 @@ class TicketController extends ChangeNotifier {
           .map((item) => TicketsModel.fromJson(item))
           .toList();
     } catch (e, stackTrace) {
-      ticketNotifier.value = [];
       errorNotifier.value =
           ("TicketController::loadProdutos: $e \n$stackTrace");
     } finally {
@@ -110,34 +83,16 @@ class TicketController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> openTickets(TicketsModel openTickets) async {
+  Future<void> openTicketsFunction(
+    TicketsModel openTickets,
+    String openDate,
+    String hldId
+    ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await mySupabaseClient.safePostgrestCall(
-        () => supabaseClient
-            .from('tickets')
-            .insert(openTickets.toJson())
-            .select(),
-      );
-
-    } catch (e, stackTrace) {
-      ticketNotifier.value = [];
-      errorNotifier.value =
-          ("TicketController::loadProdutos: $e \n$stackTrace");
-    } finally {
-      loadingNotifier.value = false;
-    }
-  }
-
-  // ==========================================
-  Future<TicketsModel?> openTicketsFunction(TicketsModel openTickets) async {
-    try {
-      loadingNotifier.value = true;
-      errorNotifier.value = null;
-
-      final List<dynamic> resposta = await mySupabaseClient.safePostgrestCall(
+      await mySupabaseClient.safePostgrestCall(
         () => supabaseClient.rpc(
           'insert_ticket_with_table_number',
           params: {
@@ -150,21 +105,22 @@ class TicketController extends ChangeNotifier {
           },
         ),
       );
-
-      final tmp = TicketsModel.fromJson(resposta.single);
-      return tmp;
     } catch (e, stackTrace) {
-      ticketNotifier.value = [];
       errorNotifier.value =
           ("TicketController::loadProdutos: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
+      loadTickets( openDate, hldId );
     }
-    return null;
   }
 
   // ==========================================
-  Future<void> closeTicketsWithoutPayment( String tktId, String tktTstId ) async {
+  Future<void> closeTicketsWithoutPayment(
+    String tktId,
+    String tktTstId,
+    String openDate,
+    String hldId
+  ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -177,46 +133,48 @@ class TicketController extends ChangeNotifier {
       );
 
     } catch (e, stackTrace) {
-      ticketNotifier.value = [];
       errorNotifier.value =
           ("TicketController::loadProdutos: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
+      loadTickets( openDate, hldId );
     }
   }
 
   // ==========================================
-  Future<TicketsItemsModel?> insertTicketsItems(TicketsItemsModel ticketsItems) async {
+  Future<void> insertTicketsItems(
+    TicketsItemsModel ticketsItems,
+    String openDate,
+    String hldId)
+  async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      // debugPring()
-
-      final List<dynamic> resposta = await mySupabaseClient.safePostgrestCall(
+      await mySupabaseClient.safePostgrestCall(
         () => supabaseClient
           .from( 'tickets_items' )
           .insert( ticketsItems.toJson() )
-          .select()
       );
-
-      final tmp = TicketsItemsModel.fromJson(resposta.single);
-      return tmp;
     } catch (e, stackTrace) {
-      ticketNotifier.value = [];
       errorNotifier.value =
           ("TicketController::insertTicketsItems: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
+      loadTickets( openDate, hldId );
     }
-    return null;
   }
 
-    Future<void> updateTicketsItems(String tit_id, int tit_quantities) async {
+  // ==========================================
+    Future<void> updateTicketsItems(
+      String tit_id,
+      int tit_quantities,
+      String openDate,
+      String hldId
+    ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
-
 
       await mySupabaseClient.safePostgrestCall(
         () => supabaseClient
@@ -226,21 +184,23 @@ class TicketController extends ChangeNotifier {
       );
 
     } catch (e, stackTrace) {
-      ticketNotifier.value = [];
       errorNotifier.value =
           ("TicketController::insertTicketsItems: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
+      loadTickets( openDate, hldId );
     }
-    return;
   }
 
-  Future<void> deleteTicketsItems( String tit_id ) async {
+  // ==========================================
+  Future<void> deleteTicketsItems(
+    String tit_id,
+    String openDate,
+    String hldId
+  ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
-
-      // debugPring()
 
       await mySupabaseClient.safePostgrestCall(
         () => supabaseClient
@@ -250,13 +210,12 @@ class TicketController extends ChangeNotifier {
       );
 
     } catch (e, stackTrace) {
-      ticketNotifier.value = [];
       errorNotifier.value =
           ("TicketController::insertTicketsItems: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
+      loadTickets( openDate, hldId );
     }
-    return null;
   }
 
 }

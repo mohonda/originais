@@ -97,7 +97,7 @@ class TicketsModel {
   String? tkt_paiment_path;
   String? created_at;
 
-  final List<TicketsItemsModel> ticketsItems;
+  List<TicketsItemsModel> ticketsItems;
 
   TicketsModel({
     this.tkt_id,
