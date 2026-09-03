@@ -29,11 +29,13 @@ import 'package:originais/services/general_service.dart';
 class HeadquartersBarOpened extends StatefulWidget {
   String openDate;
   String hld_id;
+  final bool isReadOnly;
 
   HeadquartersBarOpened({
     super.key,
     required this.openDate,
     required this.hld_id,
+    this.isReadOnly = false,
   });
 
   @override
@@ -42,8 +44,6 @@ class HeadquartersBarOpened extends StatefulWidget {
 
 class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
   final _formKey = GlobalKey<FormState>();
-
-  List<TicketsModel> _mesas = [];
 
   final ImagePicker _picker = ImagePicker();
 
@@ -57,29 +57,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
 
   final ticketController = getItTicketController<TicketController>();
   late List<TicketStatusModel> ticketStatusList = [];
-
-  late List<TicketsItemsModel> ticketItemsList = [];
-
-  late List<TicketsModel> ticketList = [];
-
-  // 🟢 ORDENAÇÃO: ABERTAS EM PRIMEIRA, DEPOIS FECHADAS COM PAGAMENTO E SEM PAGAMENTO
-  List<TicketsModel> get _mesasOrdenadas {
-    final list = List<TicketsModel>.from(_mesas);
-    list.sort((a, b) => a.tkt_tst_id.compareTo(b.tkt_tst_id));
-    return list;
-  }
-
-  // 🟢 CÁLCULOS DE TOTAIS DE VENDAS
-  double get _totalVendasGeral =>
-      _mesas.fold(0.0, (sum, m) => sum + m.totalConsumo);
-
-  double get _totalVendasCadastrados => _mesas
-      .where((m) => m.tkt_has_discount)
-      .fold(0.0, (sum, m) => sum + m.totalConsumo);
-
-  double get _totalVendasAvulsos => _mesas
-      .where((m) => !m.tkt_has_discount)
-      .fold(0.0, (sum, m) => sum + m.totalConsumo);
 
   // ==========================================
   @override
@@ -95,38 +72,13 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
 
     ticketStatusList = ticketController.ticketStatusNotifier.value;
 
-    ticketItemsList = ticketController.ticketItemsNotifier.value;
-
-    ticketList = ticketController.ticketNotifier.value;
-
-    // ticketController.ticketNotifier.addListener(_onTicketsChanged);
-
-    _carregarMesas();
+    ticketController.loadTickets(widget.openDate, widget.hld_id);
   }
+
+  // ---------------------------------------------------------------------------
   @override
   void dispose() {
-    // Sempre remova o listener para evitar vazamento de memória (Memory Leak)
-    // ticketController.ticketNotifier.removeListener(_onTicketsChanged);
     super.dispose();
-  }
-
-  // void _onTicketsChanged() {
-  //   if (mounted) {
-  //     setState(() {
-  //       _mesas = ticketController.ticketNotifier.value;
-  //     });
-  //   }
-  // }
-
-  // ==========================================
-  Future<void> _carregarMesas() async {
-
-    await ticketController.loadTickets(widget.openDate, widget.hld_id);
-    // ticketList = ticketController.ticketNotifier.value;
-
-    // setState(() {
-    //   _mesas = ticketList;
-    // });
   }
 
   // ==========================================
@@ -138,71 +90,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
     return tmp.toString();
   }
 
-  // ---------------------------------------------------------------------------
-  // 2. DIÁLOGO DE FECHAMENTO DIRETO / VIA BOTÃO "X"
-  // ---------------------------------------------------------------------------
-  void _mostrarDialogFecharMesa(TicketsModel mesa) {
-    final bool temConsumo = mesa.totalConsumo > 0.01;
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Encerrar ${mesa.tkt_table_number}'),
-        content: Text(
-          temConsumo
-              ? 'Escolha como deseja encerrar esta mesa:'
-              : 'Esta mesa não possui consumo (R\$ 0,00). Deseja fechar a mesa?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-
-          // Se consumo > 0, permite fechar com pagamento
-          if (temConsumo) ...[
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                _mostrarDialogFecharComPagamento(mesa);
-              },
-              icon: const Icon(Icons.attach_money, size: 16),
-              label: const Text('Fechar e Pagar'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade700,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-
-          // Botão simples de encerramento
-          ElevatedButton(
-            onPressed: () {
-              final tktTstId = id_ticketStatusList('Ticket opened');
-              ticketController.closeTicketsWithoutPayment(
-                mesa.tkt_id.toString(),
-                tktTstId,
-                widget.openDate,
-                widget.hld_id
-                );
-              // setState(() {
-              //   // mesa.status = StatusMesa.fechadaSemPagamento;
-              //   mesa.tkt_tst_id = tktTstId;
-              // });
-              Navigator.pop(dialogContext);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: temConsumo ? Colors.redAccent : Colors.indigo,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(temConsumo ? 'Fechar s/ Pagamento' : 'Fechar Mesa'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 🟢 DIÁLOGO PARA REGISTRAR FECHAMENTO COM PAGAMENTO E ENVIAR FOTO
   // 3. DIÁLOGO DE PAGAMENTO DA MESA
   // ---------------------------------------------------------------------------
   void _mostrarDialogFecharComPagamento(TicketsModel mesa) {
@@ -232,22 +119,10 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                    onPressed: () {
-                      // 🟢 Chama o menu de opções
-                      _escolherMetodoAnexo(context, mesa, setDialogState);
-                    },
-                    // child: OutlinedButton.icon(
-                    //   onPressed: () async {
-                    //     final XFile? photo = await _picker.pickImage(
-                    //       source: ImageSource.gallery,
-                    //     );
-                    //     if (photo != null) {
-                    //       setState(() {
-                    //         mesa.tkt_paiment_path = photo.path;
-                    //       });
-                    //       setDialogState(() {});
-                    //     }
-                    //   },
+                      onPressed: () {
+                        // 🟢 Chama o menu de opções
+                        _escolherMetodoAnexo(context, mesa, setDialogState);
+                      },
                       icon: Icon(
                         temFoto ? Icons.check_circle : Icons.add_a_photo,
                         color: temFoto ? Colors.green : Colors.indigoAccent,
@@ -300,107 +175,119 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  void _escolherMetodoAnexo(
+    BuildContext context,
+    TicketsModel mesa,
+    StateSetter setDialogState,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext bc) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Tirar Foto'),
+                onTap: () async {
+                  Navigator.of(context).pop(); // Fecha o menu
+                  final ImagePicker picker = ImagePicker();
+                  final XFile? photo = await picker.pickImage(
+                    source: ImageSource.camera,
+                    imageQuality: 50, // 🟢 Reduz a qualidade para 50%
+                    maxWidth: 1024, // 🟢 Limita a largura máxima
+                  );
 
-void _escolherMetodoAnexo(BuildContext context, TicketsModel mesa, StateSetter setDialogState) {
-  showModalBottomSheet(
-    context: context,
-    builder: (BuildContext bc) {
-      return SafeArea(
-        child: Wrap(
-          children: <Widget>[
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Tirar Foto'),
-              onTap: () async {
-                Navigator.of(context).pop(); // Fecha o menu
-                final ImagePicker picker = ImagePicker();
-                final XFile? photo = await picker.pickImage(
-                  source: ImageSource.camera,
-                  imageQuality: 50, // 🟢 Reduz a qualidade para 50%
-                  maxWidth: 1024,   // 🟢 Limita a largura máxima
-                );
-                
-                
-                if (photo != null) {
-                  setState(() => mesa.tkt_paiment_path = photo.path);
-                  setDialogState(() {});
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.folder),
-              title: const Text('Escolher Arquivo (PDF ou Galeria)'),
-              onTap: () async {
-                Navigator.of(context).pop(); 
-                List<PlatformFile> result = await FilePicker.pickFiles(
-                  type: FileType.custom,
-                  allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
-                );
-
-                if (result != null && result.first.path != null) {
-                  // String caminhoFinal = result.files.single.path!;
-                  String caminhoFinal = result.first.path!;
-                  final extensao = caminhoFinal.split('.').last.toLowerCase();
-
-                  // 🟢 Aplica a conversão correta dependendo do arquivo
-                  if (extensao == 'pdf') {
-                    caminhoFinal = await extrairPrimeiraPaginaPdf(caminhoFinal);
-                  } else {
-                    caminhoFinal = await comprimirImagem(caminhoFinal) ?? caminhoFinal;
+                  if (photo != null) {
+                    setState(() => mesa.tkt_paiment_path = photo.path);
+                    setDialogState(() {});
                   }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder),
+                title: const Text('Escolher Arquivo (PDF ou Galeria)'),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  List<PlatformFile> result = await FilePicker.pickFiles(
+                    type: FileType.custom,
+                    allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+                  );
 
-                  setState(() => mesa.tkt_paiment_path = caminhoFinal);
-                  setDialogState(() {});
-                }
-              },
-            ),
-          ],
-        ),
-      );
-    }
-  );
-}
+                  if (result != null && result.first.path != null) {
+                    // String caminhoFinal = result.files.single.path!;
+                    String caminhoFinal = result.first.path!;
+                    final extensao = caminhoFinal.split('.').last.toLowerCase();
 
-Future<String?> comprimirImagem(String pathOriginal) async {
-  final tempDir = await getTemporaryDirectory();
-  final targetPath = '${tempDir.path}/temp_compress_${DateTime.now().millisecondsSinceEpoch}.jpg';
+                    // 🟢 Aplica a conversão correta dependendo do arquivo
+                    if (extensao == 'pdf') {
+                      caminhoFinal = await extrairPrimeiraPaginaPdf(
+                        caminhoFinal,
+                      );
+                    } else {
+                      caminhoFinal =
+                          await comprimirImagem(caminhoFinal) ?? caminhoFinal;
+                    }
 
-  final result = await FlutterImageCompress.compressAndGetFile(
-    pathOriginal, 
-    targetPath,
-    quality: 60,
-    minWidth: 1024,
-  );
-  
-  return result?.path; // Retorna o caminho da imagem leve
-}
-
-Future<String> extrairPrimeiraPaginaPdf(String pathOriginal) async {
-  // 1. Carrega o PDF original
-  final File fileOriginal = File(pathOriginal);
-  final PdfDocument document = PdfDocument(inputBytes: fileOriginal.readAsBytesSync());
-
-  // 2. Remove todas as páginas, exceto a primeira (índice 0)
-  while (document.pages.count > 1) {
-    document.pages.removeAt(1); 
+                    setState(() => mesa.tkt_paiment_path = caminhoFinal);
+                    setDialogState(() {});
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
-  // 3. Salva o novo PDF em um diretório temporário
-  final List<int> bytes = document.saveSync();
-  document.dispose();
+  // ---------------------------------------------------------------------------
+  Future<String?> comprimirImagem(String pathOriginal) async {
+    final tempDir = await getTemporaryDirectory();
+    final targetPath =
+        '${tempDir.path}/temp_compress_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-  final tempDir = await getTemporaryDirectory();
-  final targetPath = '${tempDir.path}/comprovante_1pg_${DateTime.now().millisecondsSinceEpoch}.pdf';
-  
-  final File novoPdf = File(targetPath);
-  await novoPdf.writeAsBytes(bytes);
+    final result = await FlutterImageCompress.compressAndGetFile(
+      pathOriginal,
+      targetPath,
+      quality: 60,
+      minWidth: 1024,
+    );
 
-  return novoPdf.path; // Retorna o caminho do PDF de 1 página
-}
+    return result?.path; // Retorna o caminho da imagem leve
+  }
 
+  // ---------------------------------------------------------------------------
+  Future<String> extrairPrimeiraPaginaPdf(String pathOriginal) async {
+    // 1. Carrega o PDF original
+    final File fileOriginal = File(pathOriginal);
+    final PdfDocument document = PdfDocument(
+      inputBytes: fileOriginal.readAsBytesSync(),
+    );
 
+    // 2. Remove todas as páginas, exceto a primeira (índice 0)
+    while (document.pages.count > 1) {
+      document.pages.removeAt(1);
+    }
+
+    // 3. Salva o novo PDF em um diretório temporário
+    final List<int> bytes = document.saveSync();
+    document.dispose();
+
+    final tempDir = await getTemporaryDirectory();
+    final targetPath =
+        '${tempDir.path}/comprovante_1pg_${DateTime.now().millisecondsSinceEpoch}.pdf';
+
+    final File novoPdf = File(targetPath);
+    await novoPdf.writeAsBytes(bytes);
+
+    return novoPdf.path; // Retorna o caminho do PDF de 1 página
+  }
+
+  // ---------------------------------------------------------------------------
   // 🟢 DIÁLOGO DE VER COMPROVANTE ANEXADO
-void _mostrarComprovante(TicketsModel mesa) {
+  void _mostrarComprovante(TicketsModel mesa) {
     final String? path = mesa.tkt_paiment_path;
     final bool isPdf = path != null && path.toLowerCase().endsWith('.pdf');
 
@@ -415,21 +302,19 @@ void _mostrarComprovante(TicketsModel mesa) {
             children: [
               if (path != null)
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 400), // Aumentado levemente para leitura do PDF
+                  constraints: const BoxConstraints(
+                    maxHeight: 400,
+                  ), // Aumentado levemente para leitura do PDF
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: 
-                    isPdf
+                    child: isPdf
                         ? SfPdfViewer.file(
                             File(path),
-                            canShowScrollHead: false, // Oculta barra superior do visualizador
+                            canShowScrollHead:
+                                false, // Oculta barra superior do visualizador
                             canShowScrollStatus: false,
                           )
-                        :
-                         Image.file(
-                            File(path),
-                            fit: BoxFit.contain,
-                          ),
+                        : Image.file(File(path), fit: BoxFit.contain),
                   ),
                 )
               else
@@ -448,11 +333,11 @@ void _mostrarComprovante(TicketsModel mesa) {
   }
 
   // GERENCIAR AÇÕES DE FECHAMENTO/DELEÇÃO DA MESA (ÍCONE DE FECHAR)
+  // ---------------------------------------------------------------------------
   Future<void> _mostrarDialogAcaoMesa(TicketsModel mesa) async {
     return showDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) {
-        // final isAberta = mesa.status == StatusMesa.aberta;
         final isAberta =
             mesa.tkt_tst_id == id_ticketStatusList('Ticket opened');
 
@@ -517,7 +402,6 @@ void _mostrarComprovante(TicketsModel mesa) {
                 ),
               ] else ...[
                 Text(
-                  // mesa.status == StatusMesa.fechadaComPagamento
                   mesa.tkt_tst_id == id_ticketStatusList('Ticket closed (Paid)')
                       ? 'Esta mesa está Fechada COM Pagamento.'
                       : 'Esta mesa está Fechada SEM Pagamento.',
@@ -535,19 +419,15 @@ void _mostrarComprovante(TicketsModel mesa) {
               OutlinedButton(
                 onPressed: () {
                   final tktTstId = id_ticketStatusList(
-                      'Ticket closed without payment',
-                    );
+                    'Ticket closed without payment',
+                  );
                   ticketController.closeTicketsWithoutPayment(
                     mesa.tkt_id.toString(),
                     tktTstId,
                     widget.openDate,
-                    widget.hld_id
+                    widget.hld_id,
                   );
                   Navigator.pop(dialogContext);
-                //   setState(() {
-                //     // mesa.status = StatusMesa.fechadaSemPagamento;
-                //     mesa.tkt_tst_id = tktTstId;
-                //   });
                 },
                 style: OutlinedButton.styleFrom(foregroundColor: Colors.orange),
                 child: const Text('Fechar s/ Pagamento'),
@@ -565,39 +445,21 @@ void _mostrarComprovante(TicketsModel mesa) {
                   child: const Text('Fechar c/ Pagamento'),
                 ),
               ],
-            ] else if (mesa.tkt_tst_id == id_ticketStatusList('Ticket closed without payment')) ...[
-                OutlinedButton(
-                  onPressed: () {
-                    final tktTstId = id_ticketStatusList('Ticket opened');
-                    ticketController.closeTicketsWithoutPayment(
-                      mesa.tkt_id.toString(),
-                      tktTstId,
-                      widget.openDate,
-                      widget.hld_id
-                    );
-
-                    // setState(() {
-                    //   // mesa.status = StatusMesa.aberta;
-                    //   mesa.tkt_tst_id = tktTstId;
-                    // });
-                    Navigator.pop(dialogContext);
-                  },
-                  child: const Text('Reabrir Mesa'),
-                ),
-              // ElevatedButton(
-              //   onPressed: () {
-              //     setState(() {
-              //       // _mesas.removeWhere((m) => m.id == mesa.id);
-              //       _mesas.removeWhere((m) => m.tkt_id == mesa.tkt_id);
-              //     });
-              //     Navigator.pop(dialogContext);
-              //   },
-              //   style: ElevatedButton.styleFrom(
-              //     backgroundColor: Colors.red,
-              //     foregroundColor: Colors.white,
-              //   ),
-              //   child: const Text('Excluir Definitivo'),
-              // ),
+            ] else if (mesa.tkt_tst_id ==
+                id_ticketStatusList('Ticket closed without payment')) ...[
+              OutlinedButton(
+                onPressed: () {
+                  final tktTstId = id_ticketStatusList('Ticket opened');
+                  ticketController.closeTicketsWithoutPayment(
+                    mesa.tkt_id.toString(),
+                    tktTstId,
+                    widget.openDate,
+                    widget.hld_id,
+                  );
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('Reabrir Mesa'),
+              ),
             ],
           ],
         );
@@ -606,9 +468,10 @@ void _mostrarComprovante(TicketsModel mesa) {
   }
 
   // POPUP PARA LANÇAR ITENS NA MESA
+  // ---------------------------------------------------------------------------
   Future<void> _mostrarDialogLancarItem(TicketsModel mesa) async {
     // if (mesa.status != StatusMesa.aberta) {
-    if (mesa.tkt_tst_id != id_ticketStatusList('Ticket opened') ) {
+    if (mesa.tkt_tst_id != id_ticketStatusList('Ticket opened')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Reabra a mesa para lançar novos itens!'),
@@ -785,7 +648,9 @@ void _mostrarComprovante(TicketsModel mesa) {
                           ),
                         ),
                         Text(
-                          generalService.currencyMoneyBr((precoCalculado * quantidade).toString()),
+                          generalService.currencyMoneyBr(
+                            (precoCalculado * quantidade).toString(),
+                          ),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -808,99 +673,41 @@ void _mostrarComprovante(TicketsModel mesa) {
                       : () async {
                           if (produtoSelecionado != null) {
                             // setState(() {
-                              final indexExistente = mesa.ticketsItems
-                                  .indexWhere(
-                                    (p) =>
-                                        p.pdt_name ==
-                                        produtoSelecionado!.pdt_name,
-                                  );
+                            final indexExistente = mesa.ticketsItems.indexWhere(
+                              (p) => p.pdt_name == produtoSelecionado!.pdt_name,
+                            );
 
-                              if (indexExistente >= 0) {
-                                await ticketController.updateTicketsItems(
-                                  mesa.ticketsItems[indexExistente].tit_id.toString(),
-                                  mesa.ticketsItems[indexExistente].tit_quantities + quantidade,
-                                  widget.openDate,
-                                  widget.hld_id
-                                );
-                                
-                                // setState(() {
-                                //   mesa.ticketsItems[indexExistente]
-                                //     .tit_quantities += quantidade;
-                                //   mesa.ticketsItems[indexExistente]
-                                //     .tit_value = 
-                                //       mesa.ticketsItems[indexExistente].tit_quantities *
-                                //       mesa.ticketsItems[indexExistente].tit_unit_value;
-                                // });
+                            if (indexExistente >= 0) {
+                              await ticketController.updateTicketsItems(
+                                mesa.ticketsItems[indexExistente].tit_id
+                                    .toString(),
+                                mesa
+                                        .ticketsItems[indexExistente]
+                                        .tit_quantities +
+                                    quantidade,
+                                widget.openDate,
+                                widget.hld_id,
+                              );
+                            } else {
+                              final ticketsItems2Controller = TicketsItemsModel(
+                                tit_hld_id: widget.hld_id,
+                                tit_tkt_id: mesa.tkt_id.toString(),
+                                tit_pdt_id: produtoSelecionado!.pdt_id,
+                                tit_quantities: quantidade,
+                                tit_unit_value: precoCalculado,
+                                tit_value: quantidade * precoCalculado,
+                              );
 
-                              } else {
-                                final ticketsItems2Controller = TicketsItemsModel(
-                                    tit_hld_id: widget.hld_id,
-                                    tit_tkt_id: mesa.tkt_id.toString(),
-                                    tit_pdt_id: produtoSelecionado!.pdt_id,
-                                    tit_quantities: quantidade,
-                                    tit_unit_value: precoCalculado,
-                                    tit_value: quantidade * precoCalculado,
-                                  );
-                                
-                                final ticketsItemsFromController = await ticketController
-                                .insertTicketsItems(
-                                  ticketsItems2Controller,
-                                  widget.openDate,
-                                  widget.hld_id
-                                );
-
-                                // if (ticketsItemsFromController != null) {
-                                //   ticketsItemsFromController.tit_value = quantidade * precoCalculado;
-                                //   setState(() {
-                                //     ticketsItemsFromController.pdt_name = produtoSelecionado!.pdt_name;
-                                //     mesa.ticketsItems.add( ticketsItemsFromController );
-                                //   });
-                                // }
-
-                                // mesa.ticketsItems.add(
-                                //   TicketsItemsModel(
-                                //     tit_hld_id: widget.hld_id,
-                                //     tit_tkt_id: mesa.tkt_id.toString(),
-                                //     tit_pdt_id: produtoSelecionado!.pdt_id,
-                                //     // pdt_name: produtoSelecionado!.pdt_name,
-                                //     tit_quantities: quantidade,
-                                //     tit_unit_value: precoCalculado,
-                                //     tit_value: quantidade * precoCalculado,
-                                //   ),
-                                // );
-                              // }
-                            // }
-                            // );
-                          }
+                              await ticketController.insertTicketsItems(
+                                ticketsItems2Controller,
+                                widget.openDate,
+                                widget.hld_id,
+                              );
+                            }
                             Navigator.pop(dialogContext);
                             _mostrarResumoMesa(mesa);
-                      }
-                      },
-                
-            
-                  // onPressed: () {
-                  //   if (produtoSelecionado != null) {
-                  //     setState(() {
-                  //       final indexExistente = mesa.pedidos.indexWhere(
-                  //         (p) => p.nome == produtoSelecionado!.pdt_name,
-                  //       );
-
-                  //       if (indexExistente >= 0) {
-                  //         mesa.pedidos[indexExistente].quantidade += quantidade;
-                  //       } else {
-                  //         mesa.pedidos.add(
-                  //           ItemPedidoModel(
-                  //             nome: produtoSelecionado!.pdt_name,
-                  //             quantidade: quantidade,
-                  //             precoUnitario: precoCalculado,
-                  //           ),
-                  //         );
-                  //       }
-                  //     });
-                  //     Navigator.pop(dialogContext);
-                  //     _mostrarResumoMesa(mesa);
-                  //   }
-                  // },
+                          }
+                        },
                   icon: const Icon(Icons.check),
                   label: const Text('Confirmar'),
                   style: ElevatedButton.styleFrom(
@@ -935,9 +742,11 @@ void _mostrarComprovante(TicketsModel mesa) {
                 );
 
                 final bool isFechadaPaga =
-                    mesaAtual.tkt_tst_id == id_ticketStatusList('Ticket closed (Paid)');
+                    mesaAtual.tkt_tst_id ==
+                    id_ticketStatusList('Ticket closed (Paid)');
                 final bool isFechadaSemPag =
-                    mesaAtual.tkt_tst_id == id_ticketStatusList('Ticket closed without payment');
+                    mesaAtual.tkt_tst_id ==
+                    id_ticketStatusList('Ticket closed without payment');
                 final bool isFechada = isFechadaPaga || isFechadaSemPag;
                 final bool temConsumo = mesaAtual.totalConsumo > 0.01;
 
@@ -970,14 +779,16 @@ void _mostrarComprovante(TicketsModel mesa) {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isFechada ? Colors.white54 : Colors.white,
+                                  color: isFechada
+                                      ? Colors.white54
+                                      : Colors.white,
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      if (!isFechada && temConsumo) ...[
+                      if (!isFechada && !widget.isReadOnly && temConsumo) ...[
                         ElevatedButton.icon(
                           onPressed: isLoading
                               ? null
@@ -995,13 +806,11 @@ void _mostrarComprovante(TicketsModel mesa) {
                       ],
                     ],
                   ),
-                  
-                  // 🟢 USAMOS STACK AQUI PARA O LOADING FICAR POR CIMA DO CONTEÚDO
+
                   content: SizedBox(
                     width: 360,
                     child: Stack(
                       children: [
-                        // 1. CONTEÚDO PRINCIPAL DO DIÁLOGO
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1020,7 +829,9 @@ void _mostrarComprovante(TicketsModel mesa) {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: isFechada ? Colors.white54 : Colors.white,
+                                      color: isFechada
+                                          ? Colors.white54
+                                          : Colors.white,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -1032,7 +843,9 @@ void _mostrarComprovante(TicketsModel mesa) {
                               constraints: const BoxConstraints(maxHeight: 220),
                               child: mesaAtual.ticketsItems.isEmpty
                                   ? const Padding(
-                                      padding: EdgeInsets.symmetric(vertical: 24.0),
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 24.0,
+                                      ),
                                       child: Center(
                                         child: Text(
                                           'Nenhum item consumido ainda.',
@@ -1049,7 +862,8 @@ void _mostrarComprovante(TicketsModel mesa) {
                                       separatorBuilder: (_, _) =>
                                           const Divider(height: 1),
                                       itemBuilder: (context, idx) {
-                                        final item = mesaAtual.ticketsItems[idx];
+                                        final item =
+                                            mesaAtual.ticketsItems[idx];
                                         return Padding(
                                           padding: const EdgeInsets.symmetric(
                                             vertical: 4.0,
@@ -1065,12 +879,14 @@ void _mostrarComprovante(TicketsModel mesa) {
                                                       item.pdt_name.toString(),
                                                       style: TextStyle(
                                                         fontSize: 13,
-                                                        fontWeight: FontWeight.w500,
+                                                        fontWeight:
+                                                            FontWeight.w500,
                                                         color: isFechada
                                                             ? Colors.white38
                                                             : Colors.white,
                                                       ),
-                                                      overflow: TextOverflow.ellipsis,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
                                                     Text(
                                                       '${generalService.currencyMoneyBr(item.tit_value.toString())} (${generalService.currencyMoneyBr(item.tit_unit_value.toString())} un.)',
@@ -1082,13 +898,15 @@ void _mostrarComprovante(TicketsModel mesa) {
                                                   ],
                                                 ),
                                               ),
-                                              if (!isFechada) ...[
+                                              if (!isFechada && !widget.isReadOnly) ...[
                                                 IconButton(
                                                   padding: EdgeInsets.zero,
-                                                  constraints: const BoxConstraints(),
+                                                  constraints:
+                                                      const BoxConstraints(),
                                                   icon: Icon(
                                                     item.tit_quantities > 1
-                                                        ? Icons.remove_circle_outline
+                                                        ? Icons
+                                                              .remove_circle_outline
                                                         : Icons.delete_outline,
                                                     color: Colors.redAccent,
                                                     size: 20,
@@ -1096,37 +914,48 @@ void _mostrarComprovante(TicketsModel mesa) {
                                                   onPressed: isLoading
                                                       ? null
                                                       : () async {
-                                                          if (item.tit_quantities > 1) {
-                                                            await ticketController.updateTicketsItems(
-                                                              item.tit_id.toString(),
-                                                              item.tit_quantities - 1,
-                                                              widget.openDate,
-                                                              widget.hld_id,
-                                                            );
+                                                          if (item.tit_quantities >
+                                                              1) {
+                                                            await ticketController
+                                                                .updateTicketsItems(
+                                                                  item.tit_id
+                                                                      .toString(),
+                                                                  item.tit_quantities -
+                                                                      1,
+                                                                  widget
+                                                                      .openDate,
+                                                                  widget.hld_id,
+                                                                );
                                                           } else {
-                                                            await ticketController.deleteTicketsItems(
-                                                              item.tit_id.toString(),
-                                                              widget.openDate,
-                                                              widget.hld_id,
-                                                            );
+                                                            await ticketController
+                                                                .deleteTicketsItems(
+                                                                  item.tit_id
+                                                                      .toString(),
+                                                                  widget
+                                                                      .openDate,
+                                                                  widget.hld_id,
+                                                                );
                                                           }
                                                         },
                                                 ),
                                                 Padding(
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: 8.0,
-                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8.0,
+                                                      ),
                                                   child: Text(
                                                     '${item.tit_quantities}',
                                                     style: const TextStyle(
                                                       fontSize: 14,
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                   ),
                                                 ),
                                                 IconButton(
                                                   padding: EdgeInsets.zero,
-                                                  constraints: const BoxConstraints(),
+                                                  constraints:
+                                                      const BoxConstraints(),
                                                   icon: const Icon(
                                                     Icons.add_circle_outline,
                                                     color: Colors.greenAccent,
@@ -1135,12 +964,15 @@ void _mostrarComprovante(TicketsModel mesa) {
                                                   onPressed: isLoading
                                                       ? null
                                                       : () async {
-                                                          await ticketController.updateTicketsItems(
-                                                            item.tit_id.toString(),
-                                                            item.tit_quantities + 1,
-                                                            widget.openDate,
-                                                            widget.hld_id,
-                                                          );
+                                                          await ticketController
+                                                              .updateTicketsItems(
+                                                                item.tit_id
+                                                                    .toString(),
+                                                                item.tit_quantities +
+                                                                    1,
+                                                                widget.openDate,
+                                                                widget.hld_id,
+                                                              );
                                                         },
                                                 ),
                                               ] else ...[
@@ -1170,7 +1002,9 @@ void _mostrarComprovante(TicketsModel mesa) {
                                   ),
                                 ),
                                 Text(
-                                  generalService.currencyMoneyBr(mesaAtual.totalConsumo.toString()),
+                                  generalService.currencyMoneyBr(
+                                    mesaAtual.totalConsumo.toString(),
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -1182,7 +1016,6 @@ void _mostrarComprovante(TicketsModel mesa) {
                           ],
                         ),
 
-                        // 2. CAMADA DE OVERLAY DE LOADING (SOBREPÕE O DIÁLOGO SEM MUDAR O TAMANHO)
                         if (isLoading)
                           Positioned.fill(
                             child: Container(
@@ -1205,7 +1038,7 @@ void _mostrarComprovante(TicketsModel mesa) {
                       onPressed: () => Navigator.pop(dialogContext),
                       child: const Text('Fechar'),
                     ),
-                    if (!isFechada)
+                    if (!isFechada && !widget.isReadOnly)
                       ElevatedButton.icon(
                         onPressed: isLoading
                             ? null
@@ -1231,7 +1064,7 @@ void _mostrarComprovante(TicketsModel mesa) {
   }
 
   // DIÁLOGO PARA ADICIONAR NOVA MESA
-// DIÁLOGO PARA ADICIONAR NOVA MESA
+  // ---------------------------------------------------------------------------
   Future<void> _mostrarDialogAdicionarMesa() async {
     final nomeClienteController = TextEditingController();
     final dialogFormKey = GlobalKey<FormState>();
@@ -1245,11 +1078,8 @@ void _mostrarComprovante(TicketsModel mesa) {
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            // 🟢 1. Busca a lista ATUALIZADA direto do Notifier do Controller
             final listaMesasAtuais = ticketController.ticketNotifier.value;
 
-            // 🟢 2. Mapeia os IDs dos clientes que já possuem mesas ABERTAS
-            // (Usamos .toString() para garantir a comparação exata do ID)
             final idsClientesComMesaAberta = listaMesasAtuais
                 .where(
                   (m) =>
@@ -1260,9 +1090,11 @@ void _mostrarComprovante(TicketsModel mesa) {
                 .map((m) => m.tkt_pfl_id.toString())
                 .toSet();
 
-            // 🟢 3. Filtra apenas os clientes cadastrados que NÃO têm mesa aberta
             final clientesDisponIVEIS = _clientesCadastrados
-                .where((c) => !idsClientesComMesaAberta.contains(c.pfl_id.toString()))
+                .where(
+                  (c) =>
+                      !idsClientesComMesaAberta.contains(c.pfl_id.toString()),
+                )
                 .toList();
 
             return AlertDialog(
@@ -1407,22 +1239,27 @@ void _mostrarComprovante(TicketsModel mesa) {
                   onPressed: () => Navigator.pop(dialogContext),
                   child: const Text('Cancelar'),
                 ),
-                
-                // 🟢 ESCUTA O LOADING PARA EVITAR CLIQUE DUPLO AO ABRIR MESA
+
                 ValueListenableBuilder<bool>(
                   valueListenable: ticketController.loadingNotifier,
                   builder: (context, isLoading, _) {
                     return ElevatedButton.icon(
-                      onPressed: (isLoading || (isClienteCadastrado && clientesDisponIVEIS.isEmpty))
+                      onPressed:
+                          (isLoading ||
+                              (isClienteCadastrado &&
+                                  clientesDisponIVEIS.isEmpty))
                           ? null
                           : () async {
                               if (dialogFormKey.currentState!.validate()) {
                                 final String nomeFinal = isClienteCadastrado
-                                    ? clienteSelecionado.value?.pfl_full_name ?? ''
+                                    ? clienteSelecionado.value?.pfl_full_name ??
+                                          ''
                                     : nomeClienteController.text.toString();
 
-                                final String? idClienteFinal = isClienteCadastrado
-                                    ? clienteSelecionado.value?.pfl_id.toString()
+                                final String? idClienteFinal =
+                                    isClienteCadastrado
+                                    ? clienteSelecionado.value?.pfl_id
+                                          .toString()
                                     : null;
 
                                 final tickets = TicketsModel(
@@ -1432,12 +1269,17 @@ void _mostrarComprovante(TicketsModel mesa) {
                                   tkt_client_name: nomeFinal,
                                   tkt_pfl_id: idClienteFinal,
                                   tkt_has_discount: isClienteCadastrado,
-                                  tkt_tst_id: id_ticketStatusList('Ticket opened'),
+                                  tkt_tst_id: id_ticketStatusList(
+                                    'Ticket opened',
+                                  ),
                                 );
 
                                 // Envia para o Supabase e atualiza o ticketNotifier
                                 await ticketController.openTicketsFunction(
-                                  tickets, widget.openDate, widget.hld_id );
+                                  tickets,
+                                  widget.openDate,
+                                  widget.hld_id,
+                                );
 
                                 // Fecha o diálogo se ainda estiver montado
                                 if (context.mounted) {
@@ -1472,25 +1314,22 @@ void _mostrarComprovante(TicketsModel mesa) {
   }
 
   // 🟢 WIDGET DO PAINEL DE TOTAIS DE VENDAS
-Widget _buildDashboardVendas() {
+  // ---------------------------------------------------------------------------
+  Widget _buildDashboardVendas() {
     return ValueListenableBuilder<List<TicketsModel>>(
       valueListenable: ticketController.ticketNotifier,
       builder: (context, listaMesas, _) {
-        // 🟢 CÁLCULOS DINÂMICOS BASEADOS NA LISTA REATIVA
         final int totalMesas = listaMesas.length;
 
-        // Soma total do consumo de todas as mesas
         final double totalVendasGeral = listaMesas.fold<double>(
           0.0,
           (soma, mesa) => soma + mesa.totalConsumo,
         );
 
-        // Soma dos Membros (Associados / Desconto)
         final double totalVendasCadastrados = listaMesas
             .where((mesa) => mesa.tkt_has_discount)
             .fold<double>(0.0, (soma, mesa) => soma + mesa.totalConsumo);
 
-        // Soma das Visitas (Avulsos)
         final double totalVendasAvulsos = listaMesas
             .where((mesa) => !mesa.tkt_has_discount)
             .fold<double>(0.0, (soma, mesa) => soma + mesa.totalConsumo);
@@ -1505,7 +1344,6 @@ Widget _buildDashboardVendas() {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // TOTAL MESAS
               Column(
                 children: [
                   const Text(
@@ -1525,7 +1363,6 @@ Widget _buildDashboardVendas() {
               ),
               Container(height: 24, width: 1, color: Colors.white24),
 
-              // TOTAL GERAL
               Column(
                 children: [
                   const Text(
@@ -1545,7 +1382,6 @@ Widget _buildDashboardVendas() {
               ),
               Container(height: 24, width: 1, color: Colors.white24),
 
-              // CADASTRADOS / SÓCIOS
               Column(
                 children: [
                   const Text(
@@ -1567,7 +1403,6 @@ Widget _buildDashboardVendas() {
               ),
               Container(height: 24, width: 1, color: Colors.white24),
 
-              // AVULSOS
               Column(
                 children: [
                   const Text(
@@ -1587,23 +1422,25 @@ Widget _buildDashboardVendas() {
                   ),
                 ],
               ),
-              Container(height: 24, width: 1, color: Colors.white24),
+              
 
-              // BOTÃO ADICIONAR MESA
-              Column(
-                children: [
-                  SizedBox(
-                    width: 45,
-                    height: 35,
-                    child: FloatingActionButton(
-                      heroTag: 'addItemCardFab',
-                      elevation: 2,
-                      onPressed: _mostrarDialogAdicionarMesa,
-                      child: const Icon(Icons.add, size: 20),
+              if ( !widget.isReadOnly ) ...[
+                Container(height: 24, width: 1, color: Colors.white24),
+                Column(
+                  children: [
+                    SizedBox(
+                      width: 45,
+                      height: 35,
+                      child: FloatingActionButton(
+                        heroTag: 'addItemCardFab',
+                        elevation: 2,
+                        onPressed: () { _mostrarDialogAdicionarMesa(); },
+                        child: const Icon(Icons.add, size: 20),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ]
             ],
           ),
         );
@@ -1611,13 +1448,15 @@ Widget _buildDashboardVendas() {
     );
   }
 
-@override
+  // ---------------------------------------------------------------------------
+  @override
   Widget build(BuildContext context) {
     const double distance = 16.0;
 
     return Scaffold(
       appBar: CustomFloatingAppBar(
-        title: 'Headquarters Bar - ${generalService.formatarDataBr(widget.openDate)}',
+        title:
+            'Headquarters Bar - ${generalService.formatarDataBr(widget.openDate)}',
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -1632,12 +1471,33 @@ Widget _buildDashboardVendas() {
               key: _formKey,
               child: Column(
                 children: [
-                  // 🟢 RESUMO DE TOTAIS DE VENDAS
+                  if (widget.isReadOnly)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 6,
+                        horizontal: 12,
+                      ),
+                      color: Colors.amber.shade900.withValues(alpha: 0.8),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.lock_clock, color: Colors.white, size: 16),
+                          SizedBox(width: 8),
+                          Text(
+                            'Modo de Consulta (Somente Leitura)',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   _buildDashboardVendas(),
-
                   const SizedBox(height: distance),
 
-                  // GRADE DE MESAS (REATIVA E COM TRATAMENTO DE LOADING)
                   Expanded(
                     child: ValueListenableBuilder<bool>(
                       valueListenable: ticketController.loadingNotifier,
@@ -1645,17 +1505,15 @@ Widget _buildDashboardVendas() {
                         return ValueListenableBuilder<List<TicketsModel>>(
                           valueListenable: ticketController.ticketNotifier,
                           builder: (context, listaMesas, _) {
-                            // 🟢 1. Se estiver em Loading E a lista estiver vazia (carregamento inicial)
                             if (isLoading && listaMesas.isEmpty) {
                               return const Center(
                                 child: CircularProgressIndicator(),
                               );
                             }
 
-                            // 🟢 2. Ordenação dinâmica da lista recebida pelo Notifier
-                            final mesasOrdenadas = List<TicketsModel>.from(listaMesas);
-                            // Se você tiver um método de ordenação, aplique aqui:
-                            // mesasOrdenadas.sort((a, b) => a.tkt_table_number.compareTo(b.tkt_table_number));
+                            final mesasOrdenadas = List<TicketsModel>.from(
+                              listaMesas,
+                            );
 
                             return InputDecorator(
                               decoration: const InputDecoration(
@@ -1692,32 +1550,30 @@ Widget _buildDashboardVendas() {
                                     : GridView.builder(
                                         gridDelegate:
                                             const SliverGridDelegateWithMaxCrossAxisExtent(
-                                          maxCrossAxisExtent: 180,
-                                          childAspectRatio: 1.40,
-                                          crossAxisSpacing: 10,
-                                          mainAxisSpacing: 10,
-                                        ),
+                                              maxCrossAxisExtent: 180,
+                                              childAspectRatio: 1.40,
+                                              crossAxisSpacing: 10,
+                                              mainAxisSpacing: 10,
+                                            ),
                                         itemCount: mesasOrdenadas.length,
                                         itemBuilder: (context, index) {
                                           final mesa = mesasOrdenadas[index];
                                           final bool isFechadaPaga =
                                               mesa.tkt_tst_id ==
-                                                  id_ticketStatusList(
-                                                    'Ticket closed (Paid)',
-                                                  );
+                                              id_ticketStatusList(
+                                                'Ticket closed (Paid)',
+                                              );
                                           final bool isFechadaSemPag =
                                               mesa.tkt_tst_id ==
-                                                  id_ticketStatusList(
-                                                    'Ticket closed without payment',
-                                                  );
+                                              id_ticketStatusList(
+                                                'Ticket closed without payment',
+                                              );
                                           final bool isFechada =
                                               isFechadaPaga || isFechadaSemPag;
 
                                           // Cores dinâmicas para estado da mesa
-                                          Color cardColor =
-                                              Colors.indigo.withValues(
-                                            alpha: 0.15,
-                                          );
+                                          Color cardColor = Colors.indigo
+                                              .withValues(alpha: 0.15);
                                           Color borderColor =
                                               Colors.indigoAccent;
 
@@ -1725,17 +1581,14 @@ Widget _buildDashboardVendas() {
                                             cardColor = Colors.green.withValues(
                                               alpha: 0.08,
                                             );
-                                            borderColor =
-                                                Colors.green.withValues(
-                                              alpha: 0.4,
-                                            );
+                                            borderColor = Colors.green
+                                                .withValues(alpha: 0.4);
                                           } else if (isFechadaSemPag) {
                                             cardColor = Colors.grey.withValues(
                                               alpha: 0.08,
                                             );
-                                            borderColor = Colors.grey.withValues(
-                                              alpha: 0.3,
-                                            );
+                                            borderColor = Colors.grey
+                                                .withValues(alpha: 0.3);
                                           } else if (mesa.tkt_has_discount) {
                                             cardColor = Colors.amber.withValues(
                                               alpha: 0.12,
@@ -1746,8 +1599,9 @@ Widget _buildDashboardVendas() {
                                           return InkWell(
                                             onTap: () =>
                                                 _mostrarResumoMesa(mesa),
-                                            borderRadius:
-                                                BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                             child: Card(
                                               elevation: isFechada ? 0 : 2,
                                               color: cardColor,
@@ -1760,8 +1614,9 @@ Widget _buildDashboardVendas() {
                                                 ),
                                               ),
                                               child: Padding(
-                                                padding:
-                                                    const EdgeInsets.all(6.0),
+                                                padding: const EdgeInsets.all(
+                                                  6.0,
+                                                ),
                                                 child: Column(
                                                   mainAxisAlignment:
                                                       MainAxisAlignment
@@ -1786,20 +1641,22 @@ Widget _buildDashboardVendas() {
                                                                 : Colors.white,
                                                           ),
                                                         ),
-                                                        GestureDetector(
-                                                          onTap: () =>
-                                                              _mostrarDialogAcaoMesa(
-                                                            mesa,
+                                                        if ( !widget.isReadOnly ) ...[
+                                                          GestureDetector(
+                                                            onTap: () =>
+                                                                _mostrarDialogAcaoMesa(
+                                                                  mesa,
+                                                                ),
+                                                            child: Icon(
+                                                              Icons.close,
+                                                              size: 18,
+                                                              color: isFechada
+                                                                  ? Colors.white38
+                                                                  : Colors
+                                                                        .redAccent,
+                                                            ),
                                                           ),
-                                                          child: Icon(
-                                                            Icons.close,
-                                                            size: 18,
-                                                            color: isFechada
-                                                                ? Colors.white38
-                                                                : Colors
-                                                                    .redAccent,
-                                                          ),
-                                                        ),
+                                                        ]
                                                       ],
                                                     ),
 
@@ -1810,26 +1667,21 @@ Widget _buildDashboardVendas() {
                                                           isFechadaPaga
                                                               ? Icons.task_alt
                                                               : (isFechadaSemPag
-                                                                  ? Icons.block
-                                                                  : (mesa
-                                                                          .tkt_has_discount
-                                                                      ? Icons
-                                                                          .star
-                                                                      : Icons
-                                                                          .person_outline)),
+                                                                    ? Icons
+                                                                          .block
+                                                                    : (mesa.tkt_has_discount
+                                                                          ? Icons.star
+                                                                          : Icons.person_outline)),
                                                           size: 12,
                                                           color: isFechadaPaga
                                                               ? Colors
-                                                                  .greenAccent
+                                                                    .greenAccent
                                                               : (isFechadaSemPag
-                                                                  ? Colors
-                                                                      .white38
-                                                                  : (mesa
-                                                                          .tkt_has_discount
-                                                                      ? Colors
-                                                                          .amber
-                                                                      : Colors
-                                                                          .indigoAccent)),
+                                                                    ? Colors
+                                                                          .white38
+                                                                    : (mesa.tkt_has_discount
+                                                                          ? Colors.amber
+                                                                          : Colors.indigoAccent)),
                                                         ),
                                                         const SizedBox(
                                                           width: 4,
@@ -1838,16 +1690,15 @@ Widget _buildDashboardVendas() {
                                                           child: Text(
                                                             (mesa.tkt_client_name !=
                                                                         null &&
-                                                                    mesa.tkt_client_name!
+                                                                    mesa
+                                                                        .tkt_client_name!
                                                                         .isNotEmpty &&
                                                                     mesa.tkt_client_name !=
                                                                         'null')
-                                                                ? mesa
-                                                                    .tkt_client_name
-                                                                    .toString()
-                                                                : mesa
-                                                                    .pfl_full_name
-                                                                    .toString(),
+                                                                ? mesa.tkt_client_name
+                                                                      .toString()
+                                                                : mesa.pfl_full_name
+                                                                      .toString(),
                                                             maxLines: 1,
                                                             overflow:
                                                                 TextOverflow
@@ -1859,13 +1710,12 @@ Widget _buildDashboardVendas() {
                                                               fontSize: 13,
                                                               color: isFechada
                                                                   ? Colors
-                                                                      .white38
-                                                                  : (mesa
-                                                                          .tkt_has_discount
-                                                                      ? Colors
-                                                                          .amber[200]
-                                                                      : Colors
-                                                                          .white),
+                                                                        .white38
+                                                                  : (mesa.tkt_has_discount
+                                                                        ? Colors
+                                                                              .amber[200]
+                                                                        : Colors
+                                                                              .white),
                                                             ),
                                                           ),
                                                         ),
@@ -1887,30 +1737,27 @@ Widget _buildDashboardVendas() {
                                                             child: Text(
                                                               generalService
                                                                   .currencyMoneyBr(
-                                                                mesa.totalConsumo
-                                                                    .toString(),
-                                                              ),
+                                                                    mesa.totalConsumo
+                                                                        .toString(),
+                                                                  ),
                                                               style: TextStyle(
                                                                 fontSize: 12,
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .bold,
-                                                                color: isFechadaPaga
+                                                                color:
+                                                                    isFechadaPaga
                                                                     ? Colors
-                                                                        .greenAccent
-                                                                        .withValues(
-                                                                        alpha:
-                                                                            0.7,
-                                                                      )
-                                                                    : (isFechadaSemPag
-                                                                        ? Colors
-                                                                            .redAccent
-                                                                            .withValues(
+                                                                          .greenAccent
+                                                                          .withValues(
                                                                             alpha:
-                                                                                0.6,
+                                                                                0.7,
                                                                           )
-                                                                        : Colors
-                                                                            .greenAccent),
+                                                                    : (isFechadaSemPag
+                                                                          ? Colors.redAccent.withValues(
+                                                                              alpha: 0.6,
+                                                                            )
+                                                                          : Colors.greenAccent),
                                                               ),
                                                             ),
                                                           ),
@@ -1918,22 +1765,20 @@ Widget _buildDashboardVendas() {
                                                         if (isFechadaPaga)
                                                           Container(
                                                             padding:
-                                                                const EdgeInsets
-                                                                    .symmetric(
-                                                              horizontal: 4,
-                                                              vertical: 2,
-                                                            ),
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: Colors.green
+                                                                const EdgeInsets.symmetric(
+                                                                  horizontal: 4,
+                                                                  vertical: 2,
+                                                                ),
+                                                            decoration: BoxDecoration(
+                                                              color: Colors
+                                                                  .green
                                                                   .withValues(
-                                                                alpha: 0.2,
-                                                              ),
+                                                                    alpha: 0.2,
+                                                                  ),
                                                               borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                4,
-                                                              ),
+                                                                  BorderRadius.circular(
+                                                                    4,
+                                                                  ),
                                                             ),
                                                             child: const Text(
                                                               'PAGO',
@@ -1950,22 +1795,19 @@ Widget _buildDashboardVendas() {
                                                         else if (isFechadaSemPag)
                                                           Container(
                                                             padding:
-                                                                const EdgeInsets
-                                                                    .symmetric(
-                                                              horizontal: 4,
-                                                              vertical: 2,
-                                                            ),
-                                                            decoration:
-                                                                BoxDecoration(
+                                                                const EdgeInsets.symmetric(
+                                                                  horizontal: 4,
+                                                                  vertical: 2,
+                                                                ),
+                                                            decoration: BoxDecoration(
                                                               color: Colors.red
                                                                   .withValues(
-                                                                alpha: 0.15,
-                                                              ),
+                                                                    alpha: 0.15,
+                                                                  ),
                                                               borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                4,
-                                                              ),
+                                                                  BorderRadius.circular(
+                                                                    4,
+                                                                  ),
                                                             ),
                                                             child: const Text(
                                                               'S/ PAG.',
@@ -1983,22 +1825,20 @@ Widget _buildDashboardVendas() {
                                                             .tkt_has_discount)
                                                           Container(
                                                             padding:
-                                                                const EdgeInsets
-                                                                    .symmetric(
-                                                              horizontal: 4,
-                                                              vertical: 2,
-                                                            ),
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: Colors.amber
+                                                                const EdgeInsets.symmetric(
+                                                                  horizontal: 4,
+                                                                  vertical: 2,
+                                                                ),
+                                                            decoration: BoxDecoration(
+                                                              color: Colors
+                                                                  .amber
                                                                   .withValues(
-                                                                alpha: 0.2,
-                                                              ),
+                                                                    alpha: 0.2,
+                                                                  ),
                                                               borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                4,
-                                                              ),
+                                                                  BorderRadius.circular(
+                                                                    4,
+                                                                  ),
                                                             ),
                                                             child: const Text(
                                                               'Associated',
@@ -2031,7 +1871,6 @@ Widget _buildDashboardVendas() {
 
                   const SizedBox(height: distance),
 
-                  // BOTÕES DE AÇÃO
                   Row(
                     children: [
                       Expanded(
@@ -2045,23 +1884,21 @@ Widget _buildDashboardVendas() {
                           ),
                         ),
                       ),
-                      const SizedBox(width: distance),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            if (_formKey.currentState!.validate()) {
-                              // Ação para salvar/abrir bar
-                            }
-                          },
-                          icon: const Icon(Icons.save),
-                          label: const Text('Open'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                        ),
-                      ),
+                      // const SizedBox(width: distance),
+                      // Expanded(
+                      //   child: ElevatedButton.icon(
+                      //     onPressed: () async {
+                      //       if (_formKey.currentState!.validate()) {}
+                      //     },
+                      //     icon: const Icon(Icons.save),
+                      //     label: const Text('Open'),
+                      //     style: ElevatedButton.styleFrom(
+                      //       backgroundColor: Colors.indigo,
+                      //       foregroundColor: Colors.white,
+                      //       padding: const EdgeInsets.symmetric(vertical: 16),
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   ),
                 ],
@@ -2072,5 +1909,4 @@ Widget _buildDashboardVendas() {
       ),
     );
   }
-
 }

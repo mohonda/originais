@@ -132,6 +132,9 @@ class HeadquartersBarState extends State<HeadquartersBar> {
                     child: CustomMonthCalendar(
                       initialDate: _selectedDate,
                       openDays: _openDays,
+                      minDate: DateTime(2026, 8, 1),
+                      maxDate: DateTime.now(),
+                      onlySelectPastOpenDays: true,
                       onDateSelected: (date) {
                         setState(() {
                           _selectedDate = date;
@@ -193,37 +196,104 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     );
   }
 
+  // void openHeadquartersBar() async {
+  //   String pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
+  //   String hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
+  //   String openDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
+
+  //   bool isJaAberto = _openDays.any((d) => 
+  //         d.year == _selectedDate.year &&
+  //         d.month == _selectedDate.month &&
+  //         d.day == _selectedDate.day);
+
+  //   if ( !isJaAberto ) {
+  //     await bdHeadquartersBarController.openHeadquartersBar(
+  //       pflId,
+  //       hldId,
+  //       openDate,
+  //       bar_desc.text,
+  //     );
+  //   }
+  //   await productsController.loadProdutos(hldId);
+  //   await ticketController.loadTicketStatus(hldId);
+  //   await ticketController.loadTickets(openDate, hldId);
+
+  //   if (context.mounted) {
+  //     Navigator.push(
+  //       context,
+  //       MaterialPageRoute(
+  //         builder: (context) => HeadquartersBarOpened(
+  //           openDate: openDate,
+  //           hld_id: hldId )
+  //       ),
+  //     );
+  //   }
+  // }
   void openHeadquartersBar() async {
-    String pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
-    String hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
-    String openDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
+  String openDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-    bool isJaAberto = _openDays.any((d) => 
-          d.year == _selectedDate.year &&
-          d.month == _selectedDate.month &&
-          d.day == _selectedDate.day);
+  final now = DateTime.now();
 
-    if ( !isJaAberto ) {
-      await bdHeadquartersBarController.openHeadquartersBar(
-        pflId,
-        hldId,
-        openDate,
-        bar_desc.text,
-      );
-    }
-    await productsController.loadProdutos(hldId);
-    await ticketController.loadTicketStatus(hldId);
-    await ticketController.loadTickets(openDate, hldId);
-
-    if (context.mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HeadquartersBarOpened(
-            openDate: openDate,
-            hld_id: hldId )
-        ),
-      );
-    }
+  // 🟢 1. CALCULA O DIA OPERACIONAL (TURNO ATUAL)
+  // Se estiver entre 00:00:00 e 06:00:00, o turno pertence ao dia civil de ONTEM.
+  late DateTime hojeOperacional;
+  if (now.hour < 6 || (now.hour == 6 && now.minute == 0)) {
+    final ontem = now.subtract(const Duration(days: 1));
+    hojeOperacional = DateTime(ontem.year, ontem.month, ontem.day);
+  } else {
+    // Das 06:00:01 em diante, já é o dia civil de HOJE.
+    hojeOperacional = DateTime(now.year, now.month, now.day);
   }
+
+  // 🟢 2. PREPARA A DATA SELECIONADA NO CALENDÁRIO (SEM HORÁRIO)
+  final dataSelecionada = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+
+  // 🟢 3. DEFINE SE É SOMENTE LEITURA
+  // Fica como leitura apenas se a data selecionada for ANTERIOR ao dia operacional atual.
+  final bool isReadOnly = dataSelecionada.isBefore(hojeOperacional);
+
+  // Exemplo de comportamento prático:
+  // - Se for 03:00 AM do dia 04/09: `hojeOperacional` é 03/09.
+  //   -> Selecionar 03/09 = Edição liberada (`isReadOnly = false`).
+  //   -> Selecionar 02/09 = Somente Leitura (`isReadOnly = true`).
+  
+  // - Se for 08:00 AM do dia 04/09: `hojeOperacional` é 04/09.
+  //   -> Selecionar 04/09 = Edição liberada (`isReadOnly = false`).
+  //   -> Selecionar 03/09 = Somente Leitura (`isReadOnly = true`).
+
+  String pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
+  String hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
+
+  bool isJaAberto = _openDays.any((d) => 
+        d.year == _selectedDate.year &&
+        d.month == _selectedDate.month &&
+        d.day == _selectedDate.day);
+
+  if (!isJaAberto && !isReadOnly) {
+    await bdHeadquartersBarController.openHeadquartersBar(
+      pflId,
+      hldId,
+      openDate,
+      bar_desc.text,
+    );
+  }
+
+  await productsController.loadProdutos(hldId);
+  await ticketController.loadTicketStatus(hldId);
+  await ticketController.loadTickets(openDate, hldId);
+
+  if (context.mounted) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HeadquartersBarOpened(
+          openDate: openDate,
+          hld_id: hldId,
+          isReadOnly: isReadOnly, // 🟢 Envia o status correto para a tela
+        ),
+      ),
+    );
+  }
+}
+
 }
