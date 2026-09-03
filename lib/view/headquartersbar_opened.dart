@@ -1,9 +1,13 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:foundation/core.dart';
 import 'package:originais/models/profile_model.dart';
 
 import 'package:image_picker/image_picker.dart';
+import 'package:originais/services/BaseImageUploadService.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:path_provider/path_provider.dart';
@@ -25,6 +29,8 @@ import 'package:originais/services/general_service.dart';
 import 'dart:io';
 
 import 'package:originais/services/general_service.dart';
+import 'package:originais/services/BaseImageUploadService.dart';
+import 'package:originais/controllers/TicketReceiptImageService.dart';
 
 class HeadquartersBarOpened extends StatefulWidget {
   String openDate;
@@ -58,6 +64,10 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
   final ticketController = getItTicketController<TicketController>();
   late List<TicketStatusModel> ticketStatusList = [];
 
+  final loadingNotifier = ValueNotifier<bool>(false);
+  final errorNotifier = ValueNotifier<String?>(null);
+
+  late final TicketReceiptImageService paymentService;
   // ==========================================
   @override
   void initState() {
@@ -73,6 +83,11 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
     ticketStatusList = ticketController.ticketStatusNotifier.value;
 
     ticketController.loadTickets(widget.openDate, widget.hld_id);
+
+    paymentService = TicketReceiptImageService(
+      loadingNotifier: loadingNotifier,
+      errorNotifier: errorNotifier,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -104,14 +119,14 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              title: Text('Pagamento - ${mesa.tkt_table_number}'),
+              title: Text('Pagamento: ${mesa.tkt_table_number}'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Total a pagar: ${generalService.currencyMoneyBr(mesa.totalConsumo.toString())}\n\n'
-                    'Selecione a forma de pagamento ou confirme o recebimento.',
+                    'Comprovante/Foto confirma seu pagamento!!!',
                   ),
                   const SizedBox(height: 16),
 
@@ -119,26 +134,42 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
                         // 🟢 Chama o menu de opções
-                        _escolherMetodoAnexo(context, mesa, setDialogState);
+                        // _escolherMetodoAnexo();
+                        final tst_id = id_ticketStatusList(
+                          'Ticket closed (Paid)',
+                        );
+                        await paymentService.selecionarAnexoEEnviar(
+                          context: context,
+                          payload: {
+                            'tkt_id': mesa.tkt_id,
+                            'pfl_id': mesa.tkt_pfl_id,
+                            'tkt_tst_id': tst_id,
+                            'openDate': widget.openDate,
+                            'hld_id': widget.hld_id,
+                          },
+                        );
+                        if (context.mounted && errorNotifier.value == null) {
+                          Navigator.of(
+                            context,
+                          ).pop(); // Fecha o Dialog da comanda
+                        }
                       },
                       icon: Icon(
-                        temFoto ? Icons.check_circle : Icons.add_a_photo,
-                        color: temFoto ? Colors.green : Colors.indigoAccent,
+                        Icons.add_a_photo,
+                        color: Colors.orangeAccent,
                       ),
                       label: Text(
-                        temFoto
-                            ? 'Comprovante Anexado!'
-                            : 'Anexar Comprovante / Foto',
+                        'Anexar Comprovante / Foto',
                         style: TextStyle(
-                          color: temFoto ? Colors.green : Colors.indigoAccent,
+                          color: Colors.orangeAccent,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(
-                          color: temFoto ? Colors.green : Colors.indigoAccent,
+                          color: Colors.indigoAccent,
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -151,22 +182,22 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   onPressed: () => Navigator.pop(dialogContext),
                   child: const Text('Cancelar'),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      // mesa.status = StatusMesa.fechadaComPagamento;
-                      mesa.tkt_tst_id = id_ticketStatusList(
-                        'Ticket closed (Paid)',
-                      );
-                    });
-                    Navigator.pop(dialogContext);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Confirmar Pagamento'),
-                ),
+                // ElevatedButton(
+                //   onPressed: () {
+                //     setState(() {
+                //       // mesa.status = StatusMesa.fechadaComPagamento;
+                //       mesa.tkt_tst_id = id_ticketStatusList(
+                //         'Ticket closed (Paid)',
+                //       );
+                //     });
+                //     Navigator.pop(dialogContext);
+                //   },
+                //   style: ElevatedButton.styleFrom(
+                //     backgroundColor: Colors.green,
+                //     foregroundColor: Colors.white,
+                //   ),
+                //   child: const Text('Confirmar Pagamento'),
+                // ),
               ],
             );
           },
@@ -176,149 +207,71 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
   }
 
   // ---------------------------------------------------------------------------
-  void _escolherMetodoAnexo(
-    BuildContext context,
-    TicketsModel mesa,
-    StateSetter setDialogState,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext bc) {
-        return SafeArea(
-          child: Wrap(
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Tirar Foto'),
-                onTap: () async {
-                  Navigator.of(context).pop(); // Fecha o menu
-                  final ImagePicker picker = ImagePicker();
-                  final XFile? photo = await picker.pickImage(
-                    source: ImageSource.camera,
-                    imageQuality: 50, // 🟢 Reduz a qualidade para 50%
-                    maxWidth: 1024, // 🟢 Limita a largura máxima
-                  );
-
-                  if (photo != null) {
-                    setState(() => mesa.tkt_paiment_path = photo.path);
-                    setDialogState(() {});
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.folder),
-                title: const Text('Escolher Arquivo (PDF ou Galeria)'),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  List<PlatformFile> result = await FilePicker.pickFiles(
-                    type: FileType.custom,
-                    allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
-                  );
-
-                  if (result != null && result.first.path != null) {
-                    // String caminhoFinal = result.files.single.path!;
-                    String caminhoFinal = result.first.path!;
-                    final extensao = caminhoFinal.split('.').last.toLowerCase();
-
-                    // 🟢 Aplica a conversão correta dependendo do arquivo
-                    if (extensao == 'pdf') {
-                      caminhoFinal = await extrairPrimeiraPaginaPdf(
-                        caminhoFinal,
-                      );
-                    } else {
-                      caminhoFinal =
-                          await comprimirImagem(caminhoFinal) ?? caminhoFinal;
-                    }
-
-                    setState(() => mesa.tkt_paiment_path = caminhoFinal);
-                    setDialogState(() {});
-                  }
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  Future<String?> comprimirImagem(String pathOriginal) async {
-    final tempDir = await getTemporaryDirectory();
-    final targetPath =
-        '${tempDir.path}/temp_compress_${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-    final result = await FlutterImageCompress.compressAndGetFile(
-      pathOriginal,
-      targetPath,
-      quality: 60,
-      minWidth: 1024,
-    );
-
-    return result?.path; // Retorna o caminho da imagem leve
-  }
-
-  // ---------------------------------------------------------------------------
-  Future<String> extrairPrimeiraPaginaPdf(String pathOriginal) async {
-    // 1. Carrega o PDF original
-    final File fileOriginal = File(pathOriginal);
-    final PdfDocument document = PdfDocument(
-      inputBytes: fileOriginal.readAsBytesSync(),
-    );
-
-    // 2. Remove todas as páginas, exceto a primeira (índice 0)
-    while (document.pages.count > 1) {
-      document.pages.removeAt(1);
-    }
-
-    // 3. Salva o novo PDF em um diretório temporário
-    final List<int> bytes = document.saveSync();
-    document.dispose();
-
-    final tempDir = await getTemporaryDirectory();
-    final targetPath =
-        '${tempDir.path}/comprovante_1pg_${DateTime.now().millisecondsSinceEpoch}.pdf';
-
-    final File novoPdf = File(targetPath);
-    await novoPdf.writeAsBytes(bytes);
-
-    return novoPdf.path; // Retorna o caminho do PDF de 1 página
-  }
-
-  // ---------------------------------------------------------------------------
   // 🟢 DIÁLOGO DE VER COMPROVANTE ANEXADO
   void _mostrarComprovante(TicketsModel mesa) {
-    final String? path = mesa.tkt_paiment_path;
-    final bool isPdf = path != null && path.toLowerCase().endsWith('.pdf');
+    final String? imageUrl = mesa.tkt_paiment_path;
+    final bool temComprovante = imageUrl != null && imageUrl.trim().isNotEmpty;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Comprovante - ${mesa.tkt_table_number}'),
+        title: Text(
+          'Proof of payment: ${mesa.tkt_table_number} - ${mesa.pfl_full_name}',
+        ),
         content: SizedBox(
-          width: double.maxFinite, // Garante que o PDF tenha largura suficiente
+          width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (path != null)
+              if (temComprovante)
                 ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxHeight: 400,
-                  ), // Aumentado levemente para leitura do PDF
+                  constraints: const BoxConstraints(maxHeight: 400),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: isPdf
-                        ? SfPdfViewer.file(
-                            File(path),
-                            canShowScrollHead:
-                                false, // Oculta barra superior do visualizador
-                            canShowScrollStatus: false,
-                          )
-                        : Image.file(File(path), fit: BoxFit.contain),
+                    child: InteractiveViewer(
+                      panEnabled: true,
+                      minScale: 1.0, // Zoom mínimo (tamanho original)
+                      maxScale: 4.0,
+                      child: Container(
+                        width: double
+                            .infinity, // 🟢 Centraliza a imagem no meio da largura do Dialog
+                        alignment: Alignment.center,
+                        child: Image.network(
+                          imageUrl,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Padding(
+                              padding: EdgeInsets.all(32.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.broken_image,
+                                    color: Colors.red,
+                                    size: 48,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Erro ao carregar imagem do Supabase.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
                   ),
-                )
-              else
-                const Text('Nenhum comprovante registrado.'),
+                ),
             ],
           ),
         ),
@@ -898,7 +851,8 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                                   ],
                                                 ),
                                               ),
-                                              if (!isFechada && !widget.isReadOnly) ...[
+                                              if (!isFechada &&
+                                                  !widget.isReadOnly) ...[
                                                 IconButton(
                                                   padding: EdgeInsets.zero,
                                                   constraints:
@@ -1013,6 +967,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 8),
                           ],
                         ),
 
@@ -1033,6 +988,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                       ],
                     ),
                   ),
+
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(dialogContext),
@@ -1048,6 +1004,21 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                               },
                         icon: const Icon(Icons.add_shopping_cart, size: 16),
                         label: const Text('Lançar Item'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    if (isFechada)
+                      ElevatedButton.icon(
+                        onPressed: isLoading
+                            ? null
+                            : () {
+                                Navigator.pop(dialogContext);
+                                _mostrarComprovante(mesaAtual);
+                              },
+                        icon: const Icon(Icons.add_shopping_cart, size: 16),
+                        label: const Text('Ver Comprovante'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.indigo,
                           foregroundColor: Colors.white,
@@ -1422,9 +1393,8 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   ),
                 ],
               ),
-              
 
-              if ( !widget.isReadOnly ) ...[
+              if (!widget.isReadOnly) ...[
                 Container(height: 24, width: 1, color: Colors.white24),
                 Column(
                   children: [
@@ -1434,13 +1404,15 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                       child: FloatingActionButton(
                         heroTag: 'addItemCardFab',
                         elevation: 2,
-                        onPressed: () { _mostrarDialogAdicionarMesa(); },
+                        onPressed: () {
+                          _mostrarDialogAdicionarMesa();
+                        },
                         child: const Icon(Icons.add, size: 20),
                       ),
                     ),
                   ],
                 ),
-              ]
+              ],
             ],
           ),
         );
@@ -1641,7 +1613,8 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                                                 : Colors.white,
                                                           ),
                                                         ),
-                                                        if ( !widget.isReadOnly ) ...[
+                                                        if (!widget
+                                                            .isReadOnly) ...[
                                                           GestureDetector(
                                                             onTap: () =>
                                                                 _mostrarDialogAcaoMesa(
@@ -1651,12 +1624,13 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                                               Icons.close,
                                                               size: 18,
                                                               color: isFechada
-                                                                  ? Colors.white38
+                                                                  ? Colors
+                                                                        .white38
                                                                   : Colors
                                                                         .redAccent,
                                                             ),
                                                           ),
-                                                        ]
+                                                        ],
                                                       ],
                                                     ),
 
@@ -1884,21 +1858,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                           ),
                         ),
                       ),
-                      // const SizedBox(width: distance),
-                      // Expanded(
-                      //   child: ElevatedButton.icon(
-                      //     onPressed: () async {
-                      //       if (_formKey.currentState!.validate()) {}
-                      //     },
-                      //     icon: const Icon(Icons.save),
-                      //     label: const Text('Open'),
-                      //     style: ElevatedButton.styleFrom(
-                      //       backgroundColor: Colors.indigo,
-                      //       foregroundColor: Colors.white,
-                      //       padding: const EdgeInsets.symmetric(vertical: 16),
-                      //     ),
-                      //   ),
-                      // ),
                     ],
                   ),
                 ],
@@ -1909,4 +1868,5 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
       ),
     );
   }
+
 }

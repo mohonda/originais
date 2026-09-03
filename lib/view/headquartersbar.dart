@@ -1,8 +1,5 @@
-import 'package:originais/models/ticketModel.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:originais/controllers/bd_headquartersbar_controller.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/models/custom_app_bar.dart';
@@ -12,7 +9,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:originais/controllers/bd_profile_controller.dart';
 import 'package:originais/controllers/products_controller.dart';
 import 'package:originais/controllers/ticketController.dart';
-import 'package:originais/models/ticketModel.dart';
 
 class HeadquartersBar extends StatefulWidget {
   const HeadquartersBar({super.key});
@@ -33,7 +29,6 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
   final ticketController = getItTicketController<TicketController>();
 
-
   final _formKey = GlobalKey<FormState>();
 
   final bar_desc = TextEditingController();
@@ -46,7 +41,7 @@ class HeadquartersBarState extends State<HeadquartersBar> {
   void initState() {
     super.initState();
     initValues();
-    
+
     _carregarDiasAbertos();
   }
 
@@ -58,8 +53,6 @@ class HeadquartersBarState extends State<HeadquartersBar> {
   }
 
   void initValues() {
-    // bdHeadquartersBarController.loadHeadquartersBar('1', '1');
-
     initializeDateFormatting('pt_BR', null).then((_) {
       if (mounted) {
         setState(() {
@@ -69,22 +62,24 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     });
   }
 
- Future<void> _carregarDiasAbertos() async {
+  Future<void> _carregarDiasAbertos() async {
     try {
-      String hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '1';
-      
+      String hldId =
+          bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '1';
+
       // 1. Busque os registros no banco (ajuste conforme seu controller)
       // Aqui estou assumindo que loadHeadquartersBar retorna a lista ou atualiza um Notifier
       await bdHeadquartersBarController.loadHeadquartersBar(hldId);
-      final barrasAbertas = bdHeadquartersBarController.headquartersBarNotifier.value;
-      
+      final barrasAbertas =
+          bdHeadquartersBarController.headquartersBarNotifier.value;
+
       /* 
        * 2. Transforme a lista do banco em uma Lista de DateTime
        * Substitua 'barrasAbertas' pela sua lista real e 'bar_date' pela propriedade da sua data.
        */
       List<DateTime> datas = barrasAbertas.map((bar) {
-         // Se a data vier como String (ex: '2023-10-25'), faça o parse:
-         return DateTime.parse( bar.bar_open_date.toString() ); 
+        // Se a data vier como String (ex: '2023-10-25'), faça o parse:
+        return DateTime.parse(bar.bar_open_date.toString());
         // return bar.bar_open_date;
       }).toList();
 
@@ -106,9 +101,7 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     if (!_isLocaleInitialized) {
       return const Scaffold(
         appBar: CustomFloatingAppBar(title: 'Headquarters Bar'),
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -132,7 +125,7 @@ class HeadquartersBarState extends State<HeadquartersBar> {
                     child: CustomMonthCalendar(
                       initialDate: _selectedDate,
                       openDays: _openDays,
-                      minDate: DateTime(2026, 8, 1),
+                      minDate: DateTime(2026, 9, 1),
                       maxDate: DateTime.now(),
                       onlySelectPastOpenDays: true,
                       onDateSelected: (date) {
@@ -196,104 +189,78 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     );
   }
 
-  // void openHeadquartersBar() async {
-  //   String pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
-  //   String hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
-  //   String openDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
-
-  //   bool isJaAberto = _openDays.any((d) => 
-  //         d.year == _selectedDate.year &&
-  //         d.month == _selectedDate.month &&
-  //         d.day == _selectedDate.day);
-
-  //   if ( !isJaAberto ) {
-  //     await bdHeadquartersBarController.openHeadquartersBar(
-  //       pflId,
-  //       hldId,
-  //       openDate,
-  //       bar_desc.text,
-  //     );
-  //   }
-  //   await productsController.loadProdutos(hldId);
-  //   await ticketController.loadTicketStatus(hldId);
-  //   await ticketController.loadTickets(openDate, hldId);
-
-  //   if (context.mounted) {
-  //     Navigator.push(
-  //       context,
-  //       MaterialPageRoute(
-  //         builder: (context) => HeadquartersBarOpened(
-  //           openDate: openDate,
-  //           hld_id: hldId )
-  //       ),
-  //     );
-  //   }
-  // }
   void openHeadquartersBar() async {
-  String openDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    String openDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-  final now = DateTime.now();
+    final now = DateTime.now();
 
-  // 🟢 1. CALCULA O DIA OPERACIONAL (TURNO ATUAL)
-  // Se estiver entre 00:00:00 e 06:00:00, o turno pertence ao dia civil de ONTEM.
-  late DateTime hojeOperacional;
-  if (now.hour < 6 || (now.hour == 6 && now.minute == 0)) {
-    final ontem = now.subtract(const Duration(days: 1));
-    hojeOperacional = DateTime(ontem.year, ontem.month, ontem.day);
-  } else {
-    // Das 06:00:01 em diante, já é o dia civil de HOJE.
-    hojeOperacional = DateTime(now.year, now.month, now.day);
-  }
+    // 🟢 1. CALCULA O DIA OPERACIONAL (TURNO ATUAL)
+    // Se estiver entre 00:00:00 e 06:00:00, o turno pertence ao dia civil de ONTEM.
+    late DateTime hojeOperacional;
+    if (now.hour < 6 || (now.hour == 6 && now.minute == 0)) {
+      final ontem = now.subtract(const Duration(days: 1));
+      hojeOperacional = DateTime(ontem.year, ontem.month, ontem.day);
+    } else {
+      // Das 06:00:01 em diante, já é o dia civil de HOJE.
+      hojeOperacional = DateTime(now.year, now.month, now.day);
+    }
 
-  // 🟢 2. PREPARA A DATA SELECIONADA NO CALENDÁRIO (SEM HORÁRIO)
-  final dataSelecionada = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
-
-  // 🟢 3. DEFINE SE É SOMENTE LEITURA
-  // Fica como leitura apenas se a data selecionada for ANTERIOR ao dia operacional atual.
-  final bool isReadOnly = dataSelecionada.isBefore(hojeOperacional);
-
-  // Exemplo de comportamento prático:
-  // - Se for 03:00 AM do dia 04/09: `hojeOperacional` é 03/09.
-  //   -> Selecionar 03/09 = Edição liberada (`isReadOnly = false`).
-  //   -> Selecionar 02/09 = Somente Leitura (`isReadOnly = true`).
-  
-  // - Se for 08:00 AM do dia 04/09: `hojeOperacional` é 04/09.
-  //   -> Selecionar 04/09 = Edição liberada (`isReadOnly = false`).
-  //   -> Selecionar 03/09 = Somente Leitura (`isReadOnly = true`).
-
-  String pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
-  String hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
-
-  bool isJaAberto = _openDays.any((d) => 
-        d.year == _selectedDate.year &&
-        d.month == _selectedDate.month &&
-        d.day == _selectedDate.day);
-
-  if (!isJaAberto && !isReadOnly) {
-    await bdHeadquartersBarController.openHeadquartersBar(
-      pflId,
-      hldId,
-      openDate,
-      bar_desc.text,
+    // 🟢 2. PREPARA A DATA SELECIONADA NO CALENDÁRIO (SEM HORÁRIO)
+    final dataSelecionada = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
     );
-  }
 
-  await productsController.loadProdutos(hldId);
-  await ticketController.loadTicketStatus(hldId);
-  await ticketController.loadTickets(openDate, hldId);
+    // 🟢 3. DEFINE SE É SOMENTE LEITURA
+    // Fica como leitura apenas se a data selecionada for ANTERIOR ao dia operacional atual.
+    final bool isReadOnly = dataSelecionada.isBefore(hojeOperacional);
 
-  if (context.mounted) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HeadquartersBarOpened(
-          openDate: openDate,
-          hld_id: hldId,
-          isReadOnly: isReadOnly, // 🟢 Envia o status correto para a tela
+    // Exemplo de comportamento prático:
+    // - Se for 03:00 AM do dia 04/09: `hojeOperacional` é 03/09.
+    //   -> Selecionar 03/09 = Edição liberada (`isReadOnly = false`).
+    //   -> Selecionar 02/09 = Somente Leitura (`isReadOnly = true`).
+
+    // - Se for 08:00 AM do dia 04/09: `hojeOperacional` é 04/09.
+    //   -> Selecionar 04/09 = Edição liberada (`isReadOnly = false`).
+    //   -> Selecionar 03/09 = Somente Leitura (`isReadOnly = true`).
+
+    String pflId =
+        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
+    String hldId =
+        bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
+
+    bool isJaAberto = _openDays.any(
+      (d) =>
+          d.year == _selectedDate.year &&
+          d.month == _selectedDate.month &&
+          d.day == _selectedDate.day,
+    );
+
+    if (!isJaAberto && !isReadOnly) {
+      await bdHeadquartersBarController.openHeadquartersBar(
+        pflId,
+        hldId,
+        openDate,
+        bar_desc.text,
+      );
+    }
+
+    await productsController.loadProdutos(hldId);
+    await ticketController.loadTicketStatus(hldId);
+    await ticketController.loadTickets(openDate, hldId);
+
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HeadquartersBarOpened(
+            openDate: openDate,
+            hld_id: hldId,
+            isReadOnly: isReadOnly,
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
-}
-
 }

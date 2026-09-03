@@ -221,12 +221,26 @@ class _MainWindow extends State<MainWindow> {
         ),
         if (_isCommerceExpanded) ...[
           SidebarXItem(
-            icon: Icons.subdirectory_arrow_right_rounded,
+            iconBuilder: (selected, hovered) {
+              return Icon(
+                Icons.subdirectory_arrow_right_rounded,
+                color: Colors.orangeAccent, 
+                size: 20,
+              );
+            },
+            // icon: Icons.subdirectory_arrow_right_rounded,
             label: '   Headquarters Bar',
+            
             onTap: () => _onItemTapped('headquartersbar', isMobile: isMobile),
           ),
           SidebarXItem(
-            icon: Icons.subdirectory_arrow_right_rounded,
+            iconBuilder: (selected, hovered) {
+              return Icon(
+                Icons.subdirectory_arrow_right_rounded,
+                color: Colors.orangeAccent, 
+                size: 20,
+              );
+            },
             label: '   Outfit',
             onTap: () => _onItemTapped('monthlygeneration', isMobile: isMobile),
           ),
@@ -255,7 +269,13 @@ class _MainWindow extends State<MainWindow> {
         // ================= SUBITENS DE MENSALIDADES =================
         if (_isMensalidadesExpanded) ...[
           SidebarXItem(
-            icon: Icons.subdirectory_arrow_right_rounded,
+            iconBuilder: (selected, hovered) {
+              return Icon(
+                Icons.subdirectory_arrow_right_rounded,
+                color: Colors.orangeAccent, 
+                size: 20,
+              );
+            },
             label: '   Monthly Paiment',
             onTap: () => _onItemTapped('mensalidades', isMobile: isMobile),
           ),
@@ -265,7 +285,13 @@ class _MainWindow extends State<MainWindow> {
           //   onTap: () => _onItemTapped('mensalidades_lista', isMobile: isMobile),
           // ),
           SidebarXItem(
-            icon: Icons.subdirectory_arrow_right_rounded,
+            iconBuilder: (selected, hovered) {
+              return Icon(
+                Icons.subdirectory_arrow_right_rounded,
+                color: Colors.orangeAccent, 
+                size: 20,
+              );
+            },
             label: '   Monthly Generation',
             onTap: () => _onItemTapped('monthlygeneration', isMobile: isMobile),
           ),
