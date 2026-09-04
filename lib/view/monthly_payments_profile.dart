@@ -5,6 +5,7 @@ import 'package:originais/controllers/bd_monthlypayments_controller.dart';
 import 'package:originais/controllers/bd_formapagamento_controller.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/services/general_service.dart';
+import 'package:originais/controllers/MonthlyPaymentsImageService.dart';
 
 class MonthlyPaymentsProfile extends StatefulWidget {
   const MonthlyPaymentsProfile({super.key});
@@ -31,11 +32,14 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
   final valor = TextEditingController();
   final datapagamento = TextEditingController();
   final comprovantepag = TextEditingController();
+  String hld_id = '';
   
   // String? formaPagamentoSelecionada = "";
   final formaPagamentoSelecionada = ValueNotifier<String?>(null);
   
   DateTime? _selectedDate;
+
+  final monthlyPaymentsImageService = MonthlyPaymentsImageService();
 
   // ==========================================
   @override
@@ -69,6 +73,7 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
     final payment = bdMonthlyPaymentsController.monthlyPaymentsIndividual.value;
 
     idController.text = payment?.mes_pfl_id ?? "";
+    hld_id = payment?.mes_hld_id ?? '';
     fullNameController.text = payment?.pfl_full_name ?? "";
 
     final mes = payment?.mes_mes_referencia.toString().padLeft(2, '0') ?? "";
@@ -117,10 +122,14 @@ class MonthlyPaymentsProfileState extends State<MonthlyPaymentsProfile> {
           bdMonthlyPaymentsController.monthlyPaymentsIndividual.value;
       final mes = payment?.mes_mes_referencia.toString().padLeft(2, '0') ?? "";
       final ano = payment?.mes_ano_referencia ?? "";
-      bdMonthlyPaymentsController.selecionarEEnviarFoto(
-        idController.text,
-        mes,
-        ano,
+      monthlyPaymentsImageService.selecionarAnexoEEnviar(
+        context: context,
+        payload: {
+          'pfl_id': idController.text,
+          'hld_id': hld_id,
+          'ano': ano,
+          'mes': mes,
+        },
       );
     }
 

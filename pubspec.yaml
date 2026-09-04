@@ -78,7 +78,31 @@ dev_dependencies:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+  # 🟢 Adicione a biblioteca aqui
+  flutter_launcher_icons: ^0.13.1
 
+# 🟢 Configuração do ícone para as plataformas
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "lib/assets/images/icon.png"
+  min_sdk_android: 21 # opcional
+  
+  # Suporte para Web
+  web:
+    generate: true
+    image_path: "lib/assets/images/icon.png"
+    background_color: "#2E2E48"
+    theme_color: "#2E2E48"
+    
+  # Suporte para Desktop (se aplicável)
+  macos:
+    generate: true
+    image_path: "lib/assets/images/icon.png"
+  windows:
+    generate: true
+    image_path: "lib/assets/images/icon.png"
+    icon_size: 48
 # The following section is specific to Flutter packages.
 flutter:
 

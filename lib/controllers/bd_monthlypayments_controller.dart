@@ -40,6 +40,8 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
 
   String nameConfirmacao = '';
 
+  String hld_id = '1';
+
   // ==========================================
   BdMonthlyPaymentsController() {
     supabaseClient = mySupabaseClient.getSupabaseClient();
@@ -58,14 +60,13 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       final String month = DateTime.now().month.toString().padLeft(2, '0');
       final String year = DateTime.now().year.toString();
 
-
       final resposta = await mySupabaseClient.safePostgrestCall(()=>
         supabaseClient
         .from('vmensalidades')
         .select()
         // .eq('mes_mes_referencia', month)
         // .eq('mes_ano_referencia', year)
-        .eq('mes_hld_id', '1')
+        .eq('mes_hld_id', hld_id)
       );
 
       monthlyPaymentsNotifier.value = 
@@ -114,7 +115,8 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
 
   // ==========================================
   Future<void> updateCheckingCopy(
-    String id,
+    String pfl_id,
+    String hld_id,
     String mesReferencia,
     String anoReferencia,
     String comprovantePag,
@@ -128,8 +130,8 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
         .update({'mes_comprovante_pag': comprovantePag})
         .eq('mes_mes_referencia', mesReferencia)
         .eq('mes_ano_referencia', anoReferencia)
-        .eq('mes_pfl_id', id)
-        .eq('mes_hld_id', '1')
+        .eq('mes_pfl_id', pfl_id)
+        .eq('mes_hld_id', hld_id)
         .select()
         .single();
         
@@ -330,132 +332,6 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       loadingNotifier.value = false;
       loadCurrentMonthlyPayment();
     }
-  }
-
-  // ==========================================
-  // ==========================================
-  // ==========================================
-  // ==========================================
-  Future selecionarEEnviarFoto(String id, String mes, String ano) async {
-  try {
-      final isLinux = !kIsWeb && Platform.isLinux;
-      final isWebOrLinux = kIsWeb || isLinux;
-      
-      List<PlatformFile> result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['png', 'jpg', 'jpeg', 'tiff', 'pdf'],
-        allowMultiple: false,
-        withData: true, // Check data null do Android/iOS/Desktop
-      );
-
-      if ( result == null || result.isEmpty ) return;
-
-      loadingNotifier.value = true;
-      errorNotifier.value = null;
-
-      final PlatformFile file = result.first;
-      final String ext = file.extension?.toLowerCase() ?? '';
-      final Uint8List rawBytes = await file.readAsBytes();
-      Uint8List? compressedBytes;
-
-      if ( rawBytes.isEmpty ) {
-        debugPrint('Erro: Os bytes do arquivo não puderam ser carregados.');
-        return;
-      }
-
-      // ==========================================
-      // Lógica: PDF ou Imagem
-      // ==========================================
-      if (ext == 'pdf') {
-        Uint8List? rawImageBytes;
-
-        try {
-          await for (final page in Printing.raster(
-            rawBytes,
-            pages: [0],
-            dpi: 200,
-          )) {
-            rawImageBytes = await page.toPng();
-            break; // Pega apenas a primeira página
-          }
-        } catch (e) {
-          debugPrint('Erro ao processar PDF: $e');
-          return;
-        }
-
-        if (rawImageBytes == null) {
-          debugPrint('Erro: Falha ao converter o PDF em imagem.');
-          return;
-        }
-
-        compressedBytes = await _compressImageBytes(rawImageBytes, isLinux );
-      } else {
-        compressedBytes = await _compressImageBytes(rawBytes, isLinux);
-      }
-
-      // ==========================================
-      // Upload para o Supabase
-      // ==========================================
-      if (compressedBytes == null) {
-        debugPrint('Erro: Não foi possível comprimir o arquivo final.');
-        return;
-      }
-
-      final fileExt = isWebOrLinux ? 'jpg' : 'webp';
-      final mimeType = isWebOrLinux ? 'image/jpeg' : 'image/webp';
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '$id/${ano}_${mes}_monthlypayments_$timestamp.$fileExt';
-
-      await supabaseClient.storage
-          .from('monthypayments')
-          .uploadBinary(
-            filePath,
-            compressedBytes,
-            fileOptions: FileOptions(upsert: true, contentType: mimeType),
-          );
-
-      final imageUrl = supabaseClient.storage
-          .from('monthypayments')
-          .getPublicUrl(filePath);
-
-      // Salva a URL no perfil do banco de dados
-      await updateCheckingCopy(id, mes, ano, imageUrl);
-      } catch ( e, stackTrace ) {
-      monthlyPaymentsIndividual.value = null;
-      errorNotifier.value = "BdProfileController::selecionarEEnviarFoto: $e \n$stackTrace";
-    } finally {
-      loadingNotifier.value = false;
-    }    
-  }
-
-  // ==========================================
-  // Compressor Baseado em Bytes (Memória)
-  // ==========================================
-  Future<Uint8List?> _compressImageBytes(Uint8List bytes, bool isLinux) async {
-    if ( isLinux ) {
-      // Tratamento puro em Dart para Linux
-      final decodedImage = img.decodeImage(bytes);
-      if (decodedImage == null) return null;
-
-      final resizedImage = img.copyResize(
-        decodedImage,
-        width: decodedImage.width > 800 ? 800 : decodedImage.width,
-        maintainAspect: true,
-      );
-
-      return Uint8List.fromList(
-        img.encodeJpg(
-          resizedImage,
-          quality: 60
-      ));
-    }
-    return await FlutterImageCompress.compressWithList(
-      bytes, // Repare que usamos compressWithList em vez de compressWithFile
-      quality: 60,
-      minWidth: 800,
-      minHeight: 800,
-      format: CompressFormat.webp,
-    );
   }
 
 }

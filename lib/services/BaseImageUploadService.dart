@@ -30,6 +30,8 @@ abstract class BaseImageUploadService {
     required this.errorNotifier,
   });
 
+  bool isDocumentoOuComprovante = true;
+
   // ===========================================================================
   // MÉTODOS ABSTRATOS (Devem ser implementados pelas classes filhas)
   // ===========================================================================
@@ -56,7 +58,10 @@ abstract class BaseImageUploadService {
   Future<void> selecionarAnexoEEnviar({
     required BuildContext context,
     Map<String, dynamic>? payload,
+    bool isDocumentoOuComprovanteLocal = true,
   }) async {
+    isDocumentoOuComprovante = isDocumentoOuComprovanteLocal;
+
     final bool isCameraReady =
         kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS;
 
@@ -226,9 +231,8 @@ abstract class BaseImageUploadService {
 
   Future<Uint8List?> _compressImageBytes(
     Uint8List bytes,
-    bool useDartImage, {
-    bool isDocumentoOuComprovante = true,
-  }) async {
+    bool useDartImage
+    ) async {
     if (useDartImage) {
       var decodedImage = img.decodeImage(bytes);
       if (decodedImage == null) return null;

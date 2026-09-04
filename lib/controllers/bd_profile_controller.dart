@@ -40,7 +40,7 @@ class BdProfileController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadProfiles() async {
+  Future<void> loadProfiles( String hld_id ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -50,7 +50,7 @@ class BdProfileController extends ChangeNotifier {
         supabaseClient
         .from('vprofile')
         .select()
-        .eq('hld_id', '1')
+        .eq('hld_id', hld_id )
         .order('as_id', ascending: true)
         .order('pfl_full_name', ascending: true)
       );
@@ -67,7 +67,7 @@ class BdProfileController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> fetchProfilesById( String id ) async {
+  Future<void> fetchProfilesById( String id, String hld_id ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -77,7 +77,7 @@ class BdProfileController extends ChangeNotifier {
         .from( 'vprofile' )
         .select()
         .eq( 'pfl_id', id )
-        .eq('hld_id', '1')
+        .eq('hld_id', hld_id )
         .maybeSingle()
       );
 
@@ -107,7 +107,6 @@ class BdProfileController extends ChangeNotifier {
         .from( 'vprofile' )
         .select()
         .eq( 'pfl_id', id )
-        .eq( 'hld_id', '1')
         .maybeSingle()
       );
 
@@ -128,7 +127,7 @@ class BdProfileController extends ChangeNotifier {
           .from( 'profiles' )
           .upsert( profileData.toJson() );
 
-        await fetchProfilesById( id );
+        await fetchProfilesById( id, '1' );
       }
     } catch ( e, stackTrace ) {
       pessoaSelecionadaNotifier.value = null;
@@ -141,6 +140,7 @@ class BdProfileController extends ChangeNotifier {
   // ==========================================
   Future<void> updateProfile(
     String id,
+    String hld_id,
     String fullname,
     String nickname,
     String avatarurl,
@@ -152,7 +152,7 @@ class BdProfileController extends ChangeNotifier {
 
       final profileData = ProfileModel(
         pfl_id: id,
-        hld_id: '1',
+        hld_id: hld_id,
         pfl_updated_at: DateTime.now().toIso8601String(),
         pfl_full_name: fullname,
         pfl_nick_name: nickname,
@@ -164,7 +164,7 @@ class BdProfileController extends ChangeNotifier {
         .from( 'profiles' )
         .upsert( profileData.toJson() );
       
-      await fetchProfilesById( id );
+      await fetchProfilesById( id, hld_id );
 
     } catch ( e, stackTrace ) {
       pessoaSelecionadaNotifier.value = null;
@@ -175,71 +175,7 @@ class BdProfileController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future selecionarEEnviarFoto() async {
-    try {
-      loadingNotifier.value = true;
-      errorNotifier.value = null;
-
-      final picker = ImagePicker();
-      String? imageUrl = "";
-
-      final userId = mySupabaseClient.getUserId();
-
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 60,
-      );
-
-      if ( image == null ){
-        return null;
-      } 
-
-      final bytes = await image.readAsBytes();
-      final fileExt = image.name.split('.').last;
-      final dateTime = DateTime.now().toIso8601String();
-      final filePath = '$userId/profile_picture_$dateTime.$fileExt';
-
-      try {
-        await supabaseClient.storage
-          .from( 'avatars' )
-          .uploadBinary(
-            filePath,
-            bytes,
-            fileOptions: const FileOptions(upsert: true),
-          );
-
-      } on StorageException catch (e) {
-        errorNotifier.value = 'Erro de Storage no Supabase: ${e.message} (Status: ${e.statusCode})';
-        rethrow; // Ou trate com uma mensagem para a UI / SnackBar
-      } catch (e, stackTrace) {
-        errorNotifier.value = 'Erro inesperado durante o upload: $e\n$stackTrace';
-        rethrow;
-      }
-
-      try {
-        imageUrl = supabaseClient.storage
-          .from( 'avatars' )
-          .getPublicUrl( filePath );
-          
-        await updateAvatar( userId, imageUrl );
-
-      } on StorageException catch (e) {
-        errorNotifier.value = 'Erro de Storage no Supabase: ${e.message} (Status: ${e.statusCode})';
-        rethrow; // Ou trate com uma mensagem para a UI / SnackBar
-      } catch (e, stackTrace) {
-        errorNotifier.value = 'Erro inesperado durante getPublicUrl: $e\n$stackTrace';
-        rethrow;
-      }
-    } catch ( e, stackTrace ) {
-      pessoaSelecionadaNotifier.value = null;
-      errorNotifier.value = "BdProfileController::updateProfile: $e \n$stackTrace";
-    } finally {
-      loadingNotifier.value = false;
-    }
-  }
-
-  // ==========================================
-  Future<void> updateAvatar( String id, String avatarUrl ) async {
+  Future<void> updateAvatar( String pfl_id, String hld_id, String avatarUrl ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -249,10 +185,10 @@ class BdProfileController extends ChangeNotifier {
         .update({
           'pfl_updated_at': DateTime.now().toIso8601String(),
           'pfl_avatar_url': avatarUrl })
-        .eq('pfl_id', id)
-        .eq('hld_id', '1');
+        .eq('pfl_id', pfl_id)
+        .eq('hld_id', hld_id);
 
-      await fetchProfilesById( id );
+      await fetchProfilesById( pfl_id, hld_id );
 
     } catch ( e, stackTrace ) {
       pessoaSelecionadaNotifier.value = null;

@@ -251,7 +251,7 @@ class MonthlyGenerationState extends State<MonthlyGeneration> {
   void monthlyGenerationDetails() async {
     bdPaymentValueController.loadPaymentValue();
 
-    bdProfileController.loadProfiles();
+    bdProfileController.loadProfiles('1');
 
     if (context.mounted) {
       Navigator.push(

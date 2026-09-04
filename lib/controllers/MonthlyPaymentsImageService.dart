@@ -1,43 +1,46 @@
+import 'package:flutter/material.dart';
 import 'package:originais/services/BaseImageUploadService.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
-import 'package:originais/controllers/ticketController.dart';
+import 'package:originais/controllers/bd_monthlypayments_controller.dart';
 
-class TicketReceiptImageService extends BaseImageUploadService {
+class MonthlyPaymentsImageService extends BaseImageUploadService {
   final SupabaseClient supabaseClient = 
       getItMySupabaseClient<MySupabaseClient>().getSupabaseClient();
 
-  final ticketController = getItTicketController<TicketController>();
+  final bdMonthlyPaymentsController = getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
   
-  TicketReceiptImageService({
-    required super.loadingNotifier,
-    required super.errorNotifier,
-  });
-
+ MonthlyPaymentsImageService({
+    ValueNotifier<bool>? loadingNotifier,
+    ValueNotifier<String?>? errorNotifier,
+  }) : super(
+          loadingNotifier: loadingNotifier ?? ValueNotifier<bool>(false),
+          errorNotifier: errorNotifier ?? ValueNotifier<String?>(null),
+        );
+  
   // ==========================================
   @override
   Future<String> fazerUploadStorage(
     ProcessedImageData imageData, 
     Map<String, dynamic>? payload,
   ) async {
-    final String tkt_id = payload?['tkt_id'];
     final String pfl_id = payload?['pfl_id'];
-    final String tkt_tst_id = payload?['tkt_tst_id'];
-    final String openDate = payload?['openDate'];
     final String hld_id = payload?['hld_id'];
+    final String ano = payload?['ano'];
+    final String mes = payload?['mes'];
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final filePath = '${pfl_id}/${tkt_id}_tickets_$timestamp.${imageData.extension}';
+    final filePath = '${pfl_id}/${ano}_${mes}_monthypayments_$timestamp.${imageData.extension}';
 
     await supabaseClient.storage
-        .from('tickets')
+        .from('monthypayments')
         .uploadBinary(
           filePath,
           imageData.bytes,
           fileOptions: FileOptions(upsert: true, contentType: imageData.mimeType),
         );
 
-    return supabaseClient.storage.from('tickets').getPublicUrl(filePath);
+    return supabaseClient.storage.from('monthypayments').getPublicUrl(filePath);
   }
 
   // ==========================================
@@ -46,21 +49,12 @@ class TicketReceiptImageService extends BaseImageUploadService {
     String imageUrl, 
     Map<String, dynamic>? payload,
   ) async {
-    final String tkt_id = payload?['tkt_id'];
     final String pfl_id = payload?['pfl_id'];
-    final String tkt_tst_id = payload?['tkt_tst_id'];
-    final String openDate = payload?['openDate'];
     final String hld_id = payload?['hld_id'];
-
-    await supabaseClient
-        .from('tickets')
-        .update({
-          'tkt_paiment_path': imageUrl,
-          'tkt_tst_id': tkt_tst_id,
-        })
-        .eq('tkt_id', tkt_id);
+    final String ano = payload?['ano'];
+    final String mes = payload?['mes'];
     
-    await ticketController.loadTickets( openDate, hld_id );
+    await bdMonthlyPaymentsController.updateCheckingCopy(pfl_id, hld_id, mes, ano, imageUrl);
   }
 
 }

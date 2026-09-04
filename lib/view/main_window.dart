@@ -11,6 +11,7 @@ import 'package:originais/controllers/bd_journeyriding_controller.dart';
 import 'package:originais/controllers/bd_monthlypayments_controller.dart';
 import 'package:originais/controllers/bd_vprofile_associatestatus_controller.dart';
 import 'package:originais/controllers/bd_vmensalidades_distinct_controller.dart';
+import 'package:originais/controllers/ProfileImageService.dart';
 
 class MainWindow extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -38,12 +39,18 @@ class _MainWindow extends State<MainWindow> {
       getItBdVMensalidadesDistinctController<
         BdVMensalidadesDistinctController
       >();
+  
+  final paymentService = ProfileImageService();
+
 
   int win = 0;
 
   bool _isMensalidadesExpanded = false;
   bool _isAssemblersExpanded = false;
   bool _isCommerceExpanded = false;
+
+  String pfl_id = '';
+  String hld_id = '';
 
   @override
   void initState() {
@@ -54,12 +61,19 @@ class _MainWindow extends State<MainWindow> {
       extended: true,
     );
 
-    final userId = mySupabaseClient.getUserId();
-    bdProfileController.checkUserProfileExist(userId);
-    bdProfileController.fetchProfilesById(userId);
-    bdProfileController.loadProfiles();
+    pfl_id = mySupabaseClient.getUserId();
+
+    bdProfileController.checkUserProfileExist(pfl_id);
+    
+    hld_id = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '1';
+    bdProfileController.fetchProfilesById( pfl_id, hld_id);
+
+    bdProfileController.loadProfiles( hld_id );
+    
     bdJourneyRidingController.loadJourneyRiding();
+    
     bdMonthlyPaymentsController.loadCurrentMonthlyPayment();
+
     bdVMensalidadesDistinctController.loadMensalidadesDistincts();
   }
 
@@ -309,7 +323,13 @@ class _MainWindow extends State<MainWindow> {
         // ================= SUBITENS DE MENSALIDADES =================
         if (_isAssemblersExpanded) ...[
           SidebarXItem(
-            icon: Icons.subdirectory_arrow_right_rounded,
+            iconBuilder: (selected, hovered) {
+              return Icon(
+                Icons.subdirectory_arrow_right_rounded,
+                color: Colors.orangeAccent, 
+                size: 20,
+              );
+            },
             label: '   Journey Riding',
             onTap: () => _onItemTapped('journalriding', isMobile: isMobile),
           ),
@@ -445,11 +465,15 @@ class _MainWindow extends State<MainWindow> {
                 color: Colors.white70,
               ),
               onPressed: () async {
-                final newUrl = await bdProfileController
-                    .selecionarEEnviarFoto();
-                if (newUrl != null) {
-                  setState(() {});
-                }
+                // final newUrl =
+                await paymentService.selecionarAnexoEEnviar(
+                                                context: context,
+                                                payload: {
+                                                  'pfl_id': pfl_id,
+                                                  'hld_id': hld_id,                                                  
+                                                },
+                                                isDocumentoOuComprovanteLocal: false,
+                                              );
               },
             ),
           ),

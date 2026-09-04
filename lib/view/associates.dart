@@ -86,7 +86,7 @@ class AssociatesState extends State<Associates> {
                       }
 
                       return RefreshIndicator(
-                        onRefresh: bdProfileController.loadProfiles,
+                        onRefresh: () async => await bdProfileController.loadProfiles('1'),
                         color: Colors.green,
                         child: itens.isEmpty
                             ? _buildEmptyState()
@@ -116,7 +116,7 @@ class AssociatesState extends State<Associates> {
           ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
-            onPressed: bdProfileController.loadProfiles,
+            onPressed: () async => await bdProfileController.loadProfiles('1'),
             icon: const Icon(Icons.refresh),
             label: const Text('Tentar novamente'),
           ),

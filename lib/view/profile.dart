@@ -4,6 +4,7 @@ import 'package:originais/controllers/bd_profile_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/view/profile_update_password.dart';
+import 'package:originais/controllers/ProfileImageService.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -22,8 +23,11 @@ class _ProfileState extends State<Profile> {
   final urlController = TextEditingController();
   final bioController = TextEditingController();
   final updatedAtController = TextEditingController();
+  String hld_id = '';
 
   bool isUpdate = false;
+
+  final paymentService = ProfileImageService();
 
   // ==========================================
   @override
@@ -66,6 +70,7 @@ class _ProfileState extends State<Profile> {
   void initValues() {
     idController.text =
         bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? "";
+    hld_id = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
     fullNameController.text =
         bdProfileController.pessoaSelecionadaNotifier.value?.pfl_full_name ??
         "";
@@ -91,6 +96,7 @@ class _ProfileState extends State<Profile> {
     try {
       await bdProfileController.updateProfile(
         idController.text,
+        hld_id,
         fullNameController.text,
         nickNameController.text,
         urlController.text,
@@ -118,7 +124,7 @@ class _ProfileState extends State<Profile> {
         );
         context.pop();
       }
-      await bdProfileController.fetchProfilesById(idController.text);
+      await bdProfileController.fetchProfilesById( idController.text, hld_id );
       isUpdate = false;
     }
   }
@@ -278,9 +284,15 @@ class _ProfileState extends State<Profile> {
                                         Expanded(
                                           flex: 2,
                                           child: GestureDetector(
-                                            onTap: () {
-                                              bdProfileController
-                                                  .selecionarEEnviarFoto();
+                                            onTap: () async {
+                                              await paymentService.selecionarAnexoEEnviar(
+                                                context: context,
+                                                payload: {
+                                                  'pfl_id': idController.text,
+                                                  'hld_id': hld_id,                                                  
+                                                },
+                                                isDocumentoOuComprovanteLocal: false,
+                                              );
                                             },
                                             child: Container(
                                               height: 155,

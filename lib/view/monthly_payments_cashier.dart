@@ -129,17 +129,17 @@ class MonthlyPaymentsCashierState extends State<MonthlyPaymentsCashier> {
   Widget build(BuildContext context) {
     const double distance = 16.0;
 
-    void selecionarEEnviarFoto() {
-      final payment =
-          bdMonthlyPaymentsController.monthlyPaymentsIndividual.value;
-      final mes = payment?.mes_mes_referencia.toString().padLeft(2, '0') ?? "";
-      final ano = payment?.mes_ano_referencia ?? "";
-      bdMonthlyPaymentsController.selecionarEEnviarFoto(
-        idController.text,
-        mes,
-        ano,
-      );
-    }
+    // void selecionarEEnviarFoto() {
+    //   final payment =
+    //       bdMonthlyPaymentsController.monthlyPaymentsIndividual.value;
+    //   final mes = payment?.mes_mes_referencia.toString().padLeft(2, '0') ?? "";
+    //   final ano = payment?.mes_ano_referencia ?? "";
+    //   bdMonthlyPaymentsController.selecionarEEnviarFoto(
+    //     idController.text,
+    //     mes,
+    //     ano,
+    //   );
+    // }
 
     return Scaffold(
       appBar: CustomFloatingAppBar(
