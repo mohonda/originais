@@ -24,13 +24,16 @@ class MonthlyPaymentsFormLayout extends StatefulWidget {
   });
 
   @override
-  State<MonthlyPaymentsFormLayout> createState() => MonthlyPaymentsFormLayoutState();
+  State<MonthlyPaymentsFormLayout> createState() =>
+      MonthlyPaymentsFormLayoutState();
 }
 
 class MonthlyPaymentsFormLayoutState extends State<MonthlyPaymentsFormLayout> {
   final GeneralService generalService = GeneralService();
-  final bdMonthlyPaymentsController = getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
-  final bdFormaPagamentoController = getItBdFormaPagamentoController<BdFormaPagamentoController>();
+  final bdMonthlyPaymentsController =
+      getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
+  final bdFormaPagamentoController =
+      getItBdFormaPagamentoController<BdFormaPagamentoController>();
   final formKey = GlobalKey<FormState>();
 
   // Controllers Compartilhados
@@ -85,14 +88,24 @@ class MonthlyPaymentsFormLayoutState extends State<MonthlyPaymentsFormLayout> {
 
     if (rawValor == "0.00" || rawValor == "0") {
       final int diaAtual = DateTime.now().day;
-      final String diaDescontoStr = payment?.vpg_valor_desconto.toString() ?? "0";
-      final int diaLimiteDesconto = int.tryParse(diaDescontoStr) ?? 0;
+
+      // 🟢 Substitua 'vpg_dia_limite_desconto' pelo nome exato do campo do seu model que guarda o dia
+      final String diaDescontoStr =
+          payment?.vpg_dia_valor_desconto.toString() ?? "0";
+
+      // Converte com segurança mesmo se vier como double ou string decimal
+      final double? diaParsedDouble = double.tryParse(diaDescontoStr);
+      final int diaLimiteDesconto = diaParsedDouble?.toInt() ?? 0;
+
       rawValor = (diaLimiteDesconto > 0 && diaAtual <= diaLimiteDesconto)
           ? (payment?.vpg_valor_desconto.toString() ?? "0.00")
           : (payment?.vpg_valor_normal.toString() ?? "0.00");
     }
 
-    valor.text = generalService.currencyMoneyBr(rawValor).replaceAll("R\$ ", "").trim();
+    valor.text = generalService
+        .currencyMoneyBr(rawValor)
+        .replaceAll("R\$ ", "")
+        .trim();
     comprovantepag.text = payment?.mes_comprovante_pag.toString() ?? "";
     formaPagamentoSelecionada.value = payment?.mes_fpg_id.toString() ?? "";
   }
@@ -169,11 +182,15 @@ class MonthlyPaymentsFormLayoutState extends State<MonthlyPaymentsFormLayout> {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight - 32.0),
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight - 32.0,
+              ),
               child: IntrinsicHeight(
                 child: Card(
                   elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: Form(
@@ -204,12 +221,21 @@ class MonthlyPaymentsFormLayoutState extends State<MonthlyPaymentsFormLayout> {
                                   controller: myreferencia,
                                   enabled: false,
                                   textAlign: TextAlign.end,
-                                  style: const TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    color: Colors.deepOrange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   decoration: InputDecoration(
                                     labelText: 'Ref.: Mês/Ano',
-                                    prefixIcon: const Icon(Icons.calendar_today, color: Colors.blue),
+                                    prefixIcon: const Icon(
+                                      Icons.calendar_today,
+                                      color: Colors.blue,
+                                    ),
                                     disabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.blue.shade200, width: 2),
+                                      borderSide: BorderSide(
+                                        color: Colors.blue.shade200,
+                                        width: 2,
+                                      ),
                                     ),
                                     border: const OutlineInputBorder(),
                                   ),
@@ -243,37 +269,78 @@ class MonthlyPaymentsFormLayoutState extends State<MonthlyPaymentsFormLayout> {
                                       enabled: !widget.readOnly,
                                       keyboardType: TextInputType.number,
                                       textAlign: TextAlign.end,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
                                       decoration: const InputDecoration(
                                         labelText: 'Valor (R\$):',
                                         prefixIcon: Icon(Icons.attach_money),
                                         border: OutlineInputBorder(),
                                       ),
-                                      validator: (v) => v == null || v.trim().isEmpty ? 'Informe o valor' : null,
+                                      validator: (v) =>
+                                          v == null || v.trim().isEmpty
+                                          ? 'Informe o valor'
+                                          : null,
                                     ),
                                     const SizedBox(height: distance),
                                     ListenableBuilder(
-                                      listenable: bdFormaPagamentoController.formaPagamentoNotifier,
+                                      listenable: bdFormaPagamentoController
+                                          .formaPagamentoNotifier,
                                       builder: (context, child) {
-                                        final listaFormas = bdFormaPagamentoController.formaPagamentoNotifier.value;
-                                        if (listaFormas.isEmpty) return const Center(child: CircularProgressIndicator());
+                                        final listaFormas =
+                                            bdFormaPagamentoController
+                                                .formaPagamentoNotifier
+                                                .value;
+                                        if (listaFormas.isEmpty)
+                                          return const Center(
+                                            child: CircularProgressIndicator(),
+                                          );
 
-                                        bool valorExiste = listaFormas.any((f) => f.fpg_id.toString() == formaPagamentoSelecionada.value);
-                                        if (!valorExiste) formaPagamentoSelecionada.value = null;
+                                        bool valorExiste = listaFormas.any(
+                                          (f) =>
+                                              f.fpg_id.toString() ==
+                                              formaPagamentoSelecionada.value,
+                                        );
+                                        if (!valorExiste)
+                                          formaPagamentoSelecionada.value =
+                                              null;
 
                                         return DropdownButtonFormField2<String>(
-                                          valueListenable: formaPagamentoSelecionada,
+                                          valueListenable:
+                                              formaPagamentoSelecionada,
                                           isExpanded: true,
                                           decoration: const InputDecoration(
                                             prefixIcon: Icon(Icons.payment),
                                             labelText: 'Forma de Pagamento:',
-                                            contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                                  vertical: 16,
+                                                  horizontal: 16,
+                                                ),
                                             border: OutlineInputBorder(),
                                           ),
                                           hint: const Text('Selecione...'),
-                                          items: listaFormas.map((f) => DropdownItem<String>(value: f.fpg_id.toString(), child: Text(f.fpg_descricao.toString()))).toList(),
-                                          onChanged: widget.readOnly ? null : (val) => formaPagamentoSelecionada.value = val,
-                                          validator: (val) => val == null || val.isEmpty ? 'Selecione' : null,
+                                          items: listaFormas
+                                              .map(
+                                                (f) => DropdownItem<String>(
+                                                  value: f.fpg_id.toString(),
+                                                  child: Text(
+                                                    f.fpg_descricao.toString(),
+                                                  ),
+                                                ),
+                                              )
+                                              .toList(),
+                                          onChanged: widget.readOnly
+                                              ? null
+                                              : (val) =>
+                                                    formaPagamentoSelecionada
+                                                            .value =
+                                                        val,
+                                          validator: (val) =>
+                                              val == null || val.isEmpty
+                                              ? 'Selecione'
+                                              : null,
                                         );
                                       },
                                     ),
@@ -289,7 +356,10 @@ class MonthlyPaymentsFormLayoutState extends State<MonthlyPaymentsFormLayout> {
                                         prefixIcon: Icon(Icons.calendar_month),
                                         border: OutlineInputBorder(),
                                       ),
-                                      validator: (v) => v == null || v.trim().isEmpty ? 'Informe a data' : null,
+                                      validator: (v) =>
+                                          v == null || v.trim().isEmpty
+                                          ? 'Informe a data'
+                                          : null,
                                     ),
                                   ],
                                 ),
@@ -300,26 +370,42 @@ class MonthlyPaymentsFormLayoutState extends State<MonthlyPaymentsFormLayout> {
                               Expanded(
                                 flex: 1,
                                 child: ValueListenableBuilder<bool>(
-                                  valueListenable: bdMonthlyPaymentsController.loadingNotifier,
+                                  valueListenable: bdMonthlyPaymentsController
+                                      .loadingNotifier,
                                   builder: (context, isLoading, child) {
                                     if (isLoading) {
                                       return Container(
                                         height: 260,
-                                        decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8)),
-                                        child: const Center(child: CircularProgressIndicator()),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[200],
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
                                       );
                                     }
                                     return ValueListenableBuilder(
-                                      valueListenable: bdMonthlyPaymentsController.monthlyPaymentsIndividual,
+                                      valueListenable:
+                                          bdMonthlyPaymentsController
+                                              .monthlyPaymentsIndividual,
                                       builder: (context, value, child) {
-                                        final url = value?.mes_comprovante_pag ?? "";
+                                        final url =
+                                            value?.mes_comprovante_pag ?? "";
                                         return Container(
-                                          height: 260, // 🟢 Altura fixa para evitar barra de rolagem desnecessária
+                                          height:
+                                              260, // 🟢 Altura fixa para evitar barra de rolagem desnecessária
                                           clipBehavior: Clip.antiAlias,
                                           decoration: BoxDecoration(
                                             color: Colors.grey[200],
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.grey.shade400),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.grey.shade400,
+                                            ),
                                           ),
                                           child: url.isNotEmpty
                                               ? Stack(
@@ -335,12 +421,22 @@ class MonthlyPaymentsFormLayoutState extends State<MonthlyPaymentsFormLayout> {
                                                       top: 8,
                                                       right: 8,
                                                       child: CircleAvatar(
-                                                        backgroundColor: Colors.black54,
+                                                        backgroundColor:
+                                                            Colors.black54,
                                                         radius: 18,
                                                         child: IconButton(
-                                                          padding: EdgeInsets.zero,
-                                                          icon: const Icon(Icons.zoom_in, color: Colors.white, size: 20),
-                                                          onPressed: () => _openZoomDialog(context, url),
+                                                          padding:
+                                                              EdgeInsets.zero,
+                                                          icon: const Icon(
+                                                            Icons.zoom_in,
+                                                            color: Colors.white,
+                                                            size: 20,
+                                                          ),
+                                                          onPressed: () =>
+                                                              _openZoomDialog(
+                                                                context,
+                                                                url,
+                                                              ),
                                                         ),
                                                       ),
                                                     ),
@@ -350,29 +446,56 @@ class MonthlyPaymentsFormLayoutState extends State<MonthlyPaymentsFormLayout> {
                                                         bottom: 8,
                                                         right: 8,
                                                         child: CircleAvatar(
-                                                          backgroundColor: Colors.indigo,
+                                                          backgroundColor:
+                                                              Colors.indigo,
                                                           radius: 18,
                                                           child: IconButton(
-                                                            padding: EdgeInsets.zero,
-                                                            icon: const Icon(Icons.edit, color: Colors.white, size: 20),
-                                                            onPressed: widget.onImageTap,
+                                                            padding:
+                                                                EdgeInsets.zero,
+                                                            icon: const Icon(
+                                                              Icons.edit,
+                                                              color:
+                                                                  Colors.white,
+                                                              size: 20,
+                                                            ),
+                                                            onPressed: widget
+                                                                .onImageTap,
                                                           ),
                                                         ),
                                                       ),
                                                   ],
                                                 )
                                               : GestureDetector(
-                                                  onTap: widget.allowImageUpload ? widget.onImageTap : null,
+                                                  onTap: widget.allowImageUpload
+                                                      ? widget.onImageTap
+                                                      : null,
                                                   child: Center(
                                                     child: Column(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
                                                       children: [
-                                                        Icon(Icons.add_a_photo, size: 44, color: Colors.grey[600]),
-                                                        const SizedBox(height: 8),
+                                                        Icon(
+                                                          Icons.add_a_photo,
+                                                          size: 44,
+                                                          color:
+                                                              Colors.grey[600],
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
                                                         Text(
-                                                          widget.allowImageUpload ? 'Toque para\nadicionar' : 'Sem comprovante',
-                                                          textAlign: TextAlign.center,
-                                                          style: const TextStyle(color: Colors.black45, fontSize: 12),
+                                                          widget.allowImageUpload
+                                                              ? 'Toque para\nadicionar'
+                                                              : 'Sem comprovante',
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style:
+                                                              const TextStyle(
+                                                                color: Colors
+                                                                    .black45,
+                                                                fontSize: 12,
+                                                              ),
                                                         ),
                                                       ],
                                                     ),

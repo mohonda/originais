@@ -158,14 +158,23 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
                                 );
                               }
 
-                              return ListView.builder(
-                                itemCount: listaFiltrada.length,
-                                padding: const EdgeInsets.all(8.0),
-                                itemBuilder: (context, index) {
-                                  return _buildMensalidadeCard(
-                                    listaFiltrada[index],
-                                  );
-                                },
+                              return Column(
+                                children: [
+                                  // 📊 Balancete exibido no topo antes dos cards
+                                  _buildBalancete(listaFiltrada),
+
+                                  Expanded(
+                                    child: ListView.builder(
+                                      itemCount: listaFiltrada.length,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                      itemBuilder: (context, index) {
+                                        return _buildMensalidadeCard(
+                                          listaFiltrada[index],
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
                               );
                             }).toList(),
                           ),
@@ -186,21 +195,21 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
                               color: Colors.amber.shade900.withValues(alpha: 0.8),
                               padding: const EdgeInsets.symmetric(
                                   vertical: 8, horizontal: 12),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.lock_clock, color: Colors.white, size: 16),
-                          SizedBox(width: 8),
-                          Text(
-                            'Modo de Consulta (Somente Leitura)',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.lock_clock, color: Colors.white, size: 16),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Modo de Consulta (Somente Leitura)',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             );
                           },
                         ),
@@ -212,6 +221,89 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
             },
           );
         },
+      ),
+    );
+  }
+
+  // 🟢 WIDGET DO BALANCETE / RESUMO
+  // ==========================================
+  Widget _buildBalancete(List<MensalidadesModel> lista) {
+    final int totalPessoas = lista.length;
+    final int quantasPagaram =
+        lista.where((m) => m.mes_data_pagamento.isNotEmpty).length;
+
+    final double totalValorPago = lista.fold<double>(0.0, (soma, m) {
+      if (m.mes_data_pagamento.isNotEmpty) {
+        final double valor = double.tryParse(m.mes_valor.toString()) ?? 0.0;
+        return soma + valor;
+      }
+      return soma;
+    });
+
+    return Container(
+      margin: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.indigo.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.indigo.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          Column(
+            children: [
+              const Text(
+                'Total Pessoas',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$totalPessoas',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+          Container(height: 24, width: 1, color: Colors.grey.shade400),
+          Column(
+            children: [
+              const Text(
+                'Pagaram',
+                style: TextStyle(fontSize: 11, color: Colors.green),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$quantasPagaram',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ),
+          Container(height: 24, width: 1, color: Colors.grey.shade400),
+          Column(
+            children: [
+              const Text(
+                'Total Pago',
+                style: TextStyle(fontSize: 11, color: Colors.green),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                generalService.currencyMoneyBr(totalValorPago.toString()),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
