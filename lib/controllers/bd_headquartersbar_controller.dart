@@ -22,10 +22,47 @@ class BdHeadquartersBarController extends ChangeNotifier {
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
+
+  // 🟢 Guardará o canal ativo do Supabase
+  RealtimeChannel? _realtimeChannel;
   
   // ==========================================
   BdHeadquartersBarController() {
     supabaseClient = mySupabaseClient.getSupabaseClient();
+  }
+
+  // 🟢 INICIA A ESCUTA EM TEMPO REAL
+  void initRealtime(String hldId) {
+    // 1. Cancela se já houver um canal aberto
+    disposeRealtime();
+
+    // 2. Inscreve no canal escutando apenas o 'hldId' do seu estabelecimento
+    _realtimeChannel = supabaseClient
+        .channel('public:headquarters_bar:$hldId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all, // INSERT, UPDATE ou DELETE
+          schema: 'public',
+          table: 'headquarters_bar',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'bar_hld_id',
+            value: hldId,
+          ),
+          callback: (payload) {
+            // Quando QUALQUER aparelho abrir o bar, esse callback roda em todos os outros
+            // e recarrega a lista automaticamente através da sua View!
+            loadHeadquartersBar(hldId);
+          },
+        )
+        .subscribe();
+  }
+
+  // 🟢 ENCERRA A ESCUTA
+  void disposeRealtime() {
+    if (_realtimeChannel != null) {
+      supabaseClient.removeChannel(_realtimeChannel!);
+      _realtimeChannel = null;
+    }
   }
 
   // ==========================================

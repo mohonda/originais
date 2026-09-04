@@ -37,17 +37,29 @@ class HeadquartersBarState extends State<HeadquartersBar> {
   List<DateTime> _openDays = [];
   bool _isLocaleInitialized = false;
 
+  late String pflId = '';
+  late String hldId = '';
+
   @override
   void initState() {
     super.initState();
     initValues();
 
+    pflId =
+        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
+    hldId =
+        bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
+
     _carregarDiasAbertos();
+
+    bdHeadquartersBarController.initRealtime( hldId );
   }
 
   @override
   void dispose() {
     bar_desc.dispose();
+
+    bdHeadquartersBarController.disposeRealtime();
 
     super.dispose();
   }
@@ -64,9 +76,6 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
   Future<void> _carregarDiasAbertos() async {
     try {
-      String hldId =
-          bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '1';
-
       // 1. Busque os registros no banco (ajuste conforme seu controller)
       // Aqui estou assumindo que loadHeadquartersBar retorna a lista ou atualiza um Notifier
       await bdHeadquartersBarController.loadHeadquartersBar(hldId);
@@ -224,11 +233,6 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     // - Se for 08:00 AM do dia 04/09: `hojeOperacional` é 04/09.
     //   -> Selecionar 04/09 = Edição liberada (`isReadOnly = false`).
     //   -> Selecionar 03/09 = Somente Leitura (`isReadOnly = true`).
-
-    String pflId =
-        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
-    String hldId =
-        bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
 
     bool isJaAberto = _openDays.any(
       (d) =>
