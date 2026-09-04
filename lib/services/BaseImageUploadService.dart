@@ -104,7 +104,6 @@ abstract class BaseImageUploadService {
       try {
         loadingNotifier.value = true;
         errorNotifier.value = null;
-        debugPrint('aqui....');
 
         // Executa os métodos especializados da classe filha
         final imageUrl = await fazerUploadStorage(imageData, payload);

@@ -156,10 +156,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                           ).pop(); // Fecha o Dialog da comanda
                         }
                       },
-                      icon: Icon(
-                        Icons.add_a_photo,
-                        color: Colors.orangeAccent,
-                      ),
+                      icon: Icon(Icons.add_a_photo, color: Colors.orangeAccent),
                       label: Text(
                         'Anexar Comprovante / Foto',
                         style: TextStyle(
@@ -168,9 +165,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: Colors.indigoAccent,
-                        ),
+                        side: BorderSide(color: Colors.indigoAccent),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -1447,7 +1442,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
-                        vertical: 6,
+                        vertical: 8,
                         horizontal: 12,
                       ),
                       color: Colors.amber.shade900.withValues(alpha: 0.8),
@@ -1483,9 +1478,27 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                               );
                             }
 
-                            final mesasOrdenadas = List<TicketsModel>.from(
-                              listaMesas,
+                            final idAberto = id_ticketStatusList(
+                              'Ticket opened',
                             );
+
+                            final mesasOrdenadas =
+                                List<TicketsModel>.from(listaMesas)..sort((
+                                  a,
+                                  b,
+                                ) {
+                                  final aAberta = a.tkt_tst_id == idAberto;
+                                  final bAberta = b.tkt_tst_id == idAberto;
+
+                                  // 1. Coloca mesas abertas primeiro e fechadas depois
+                                  if (aAberta && !bAberta) return -1;
+                                  if (!aAberta && bAberta) return 1;
+
+                                  // 2. Ordenação secundária (por número/identificador da mesa)
+                                  return (a.tkt_table_number ?? '').compareTo(
+                                    b.tkt_table_number ?? '',
+                                  );
+                                });
 
                             return InputDecorator(
                               decoration: const InputDecoration(
@@ -1868,5 +1881,4 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
       ),
     );
   }
-
 }

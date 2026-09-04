@@ -3,34 +3,30 @@ import 'package:originais/services/general_service.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/controllers/bd_monthlypayments_controller.dart';
 import 'package:originais/models/mensalidades_model.dart';
-import 'package:originais/view/monthly_payments_profile.dart';
-import 'package:originais/view/monthly_payments_cashier.dart';
+import 'package:originais/view/monthly_payments_cashier_page.dart';
+import 'package:originais/view/monthly_payments_profile_page.dart';
 
 class MonthlyPayments extends StatefulWidget {
   const MonthlyPayments({super.key});
 
-  // ==========================================
   @override
-  State<MonthlyPayments> createState() => _MonthlyPayments();
+  State<MonthlyPayments> createState() => _MonthlyPaymentsState();
 }
 
-class _MonthlyPayments extends State<MonthlyPayments> {
+class _MonthlyPaymentsState extends State<MonthlyPayments> {
   final GeneralService generalService = GeneralService();
   late final BdMonthlyPaymentsController bdMonthlyPaymentsController;
 
   final String _searchQuery = '';
   String _filtroStatus = 'Todos';
 
-  // ==========================================
   @override
   void initState() {
+    super.initState();
     bdMonthlyPaymentsController =
         getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
-
-    super.initState();
   }
 
-  // ==========================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,12 +48,6 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                 );
               }
 
-              // // 1. Extrai e ordena os meses/anos únicos disponíveis na lista
-              // final listaMesAno = lista
-              //     .map((m) => '${m.mes_mes_referencia.toString().padLeft(2, '0')}/${m.mes_ano_referencia}')
-              //     .toSet()
-              //     .toList()..sort((a, b) => b.compareTo(a)); // Mais recentes primeiro
-
               // 1. Extrai os meses/anos únicos
               final listaMesAno = lista
                   .map(
@@ -67,10 +57,10 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                   .toSet()
                   .toList();
 
-              // 2. Ordena cronologicamente por Ano e Mês (do mais recente para o mais antigo)
+              // 2. Ordena cronologicamente por Ano e Mês (mais recente para o mais antigo)
               listaMesAno.sort((a, b) {
-                final partsA = a.split('/'); // [MM, AAAA]
-                final partsB = b.split('/'); // [MM, AAAA]
+                final partsA = a.split('/');
+                final partsB = b.split('/');
 
                 final dateA = DateTime(
                   int.parse(partsA[1]),
@@ -81,101 +71,142 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                   int.parse(partsB[0]),
                 );
 
-                return dateB.compareTo(
-                  dateA,
-                ); // Troque para dateA.compareTo(dateB) se preferir a ordem antiga -> recente
+                return dateB.compareTo(dateA);
               });
+
+              // 3. Define a aba inicial com base no Mês/Ano atual
+              final now = DateTime.now();
+              final mesAnoAtual =
+                  '${now.month.toString().padLeft(2, '0')}/${now.year}';
+              final indexAtual = listaMesAno.indexOf(mesAnoAtual);
+              final int initialIndex = indexAtual != -1 ? indexAtual : 0;
 
               return DefaultTabController(
                 length: listaMesAno.length,
-                child: Column(
-                  children: [
-                    Row(
+                initialIndex: initialIndex,
+                child: Builder(
+                  builder: (tabContext) {
+                    return Column(
                       children: [
-                        // 1. As abas de mês/ano ocupam a maior parte da linha
-                        Expanded(
-                          child: TabBar(
-                            isScrollable: true,
-                            tabAlignment: TabAlignment.start,
-                            tabs: listaMesAno
-                                .map((mesAno) => Tab(text: 'Ref: $mesAno'))
-                                .toList(),
-                          ),
-                        ),
-
-                        // 2. Ícone discreto de filtro no canto direito
-                        PopupMenuButton<String>(
-                          icon: Icon(
-                            Icons.filter_alt_outlined,
-                            color: _filtroStatus == 'Todos'
-                                ? Colors.grey
-                                : Colors.green,
-                          ),
-                          tooltip: 'Filtrar status',
-                          initialValue: _filtroStatus,
-                          onSelected: (status) =>
-                              setState(() => _filtroStatus = status),
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'Todos',
-                              child: Text('Todos'),
+                        // 1. Linha com Abas e Filtro (Fixo no topo)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TabBar(
+                                isScrollable: true,
+                                tabAlignment: TabAlignment.start,
+                                tabs: listaMesAno
+                                    .map((mesAno) => Tab(text: 'Ref: $mesAno'))
+                                    .toList(),
+                              ),
                             ),
-                            const PopupMenuItem(
-                              value: 'Pagas',
-                              child: Text('Pagas'),
-                            ),
-                            const PopupMenuItem(
-                              value: 'Pendentes',
-                              child: Text('Pendentes'),
+                            PopupMenuButton<String>(
+                              icon: Icon(
+                                Icons.filter_alt_outlined,
+                                color: _filtroStatus == 'Todos'
+                                    ? Colors.grey
+                                    : Colors.green,
+                              ),
+                              tooltip: 'Filtrar status',
+                              initialValue: _filtroStatus,
+                              onSelected: (status) =>
+                                  setState(() => _filtroStatus = status),
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'Todos',
+                                  child: Text('Todos'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'Pagas',
+                                  child: Text('Pagas'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'Pendentes',
+                                  child: Text('Pendentes'),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
 
-                    // 4. CONTEÚDO DAS LISTAS POR MÊS/ANO
-                    Expanded(
-                      child: TabBarView(
-                        children: listaMesAno.map((mesAnoRef) {
-                          // Filtra os itens do mês específico da aba + status selecionado
-                          final listaFiltrada = lista.where((m) {
-                            final refAtual =
-                                '${m.mes_mes_referencia.toString().padLeft(2, '0')}/${m.mes_ano_referencia}';
-                            if (refAtual != mesAnoRef) return false;
+                        // 2. Conteúdo das Listas
+                        Expanded(
+                          child: TabBarView(
+                            children: listaMesAno.map((mesAnoRef) {
+                              final listaFiltrada = lista.where((m) {
+                                final refAtual =
+                                    '${m.mes_mes_referencia.toString().padLeft(2, '0')}/${m.mes_ano_referencia}';
+                                if (refAtual != mesAnoRef) return false;
 
-                            final nomeMatch = m.pfl_full_name
-                                .toLowerCase()
-                                .contains(_searchQuery.toLowerCase());
-                            final isPago = m.mes_data_pagamento.isNotEmpty;
+                                final nomeMatch = m.pfl_full_name
+                                    .toLowerCase()
+                                    .contains(_searchQuery.toLowerCase());
+                                final isPago = m.mes_data_pagamento.isNotEmpty;
 
-                            if (_filtroStatus == 'Pagas') {
-                              return nomeMatch && isPago;
-                            }
-                            if (_filtroStatus == 'Pendentes') {
-                              return nomeMatch && !isPago;
-                            }
-                            return nomeMatch;
-                          }).toList();
+                                if (_filtroStatus == 'Pagas') {
+                                  return nomeMatch && isPago;
+                                }
+                                if (_filtroStatus == 'Pendentes') {
+                                  return nomeMatch && !isPago;
+                                }
+                                return nomeMatch;
+                              }).toList();
 
-                          if (listaFiltrada.isEmpty) {
-                            return const Center(
-                              child: Text('Nenhum registro para este filtro.'),
-                            );
-                          }
+                              if (listaFiltrada.isEmpty) {
+                                return const Center(
+                                  child: Text('Nenhum registro para este filtro.'),
+                                );
+                              }
 
-                          return ListView.builder(
-                            itemCount: listaFiltrada.length,
-                            padding: const EdgeInsets.all(8.0),
-                            itemBuilder: (context, index) {
-                              return _buildMensalidadeCard(
-                                listaFiltrada[index],
+                              return ListView.builder(
+                                itemCount: listaFiltrada.length,
+                                padding: const EdgeInsets.all(8.0),
+                                itemBuilder: (context, index) {
+                                  return _buildMensalidadeCard(
+                                    listaFiltrada[index],
+                                  );
+                                },
                               );
-                            },
-                          );
-                        }).toList(),
+                            }).toList(),
+                          ),
+                        ),
+
+                        // 🟢 3. Mensagem no Rodapé da Página (Elimina o flicker)
+                        AnimatedBuilder(
+                          animation: DefaultTabController.of(tabContext),
+                          builder: (context, child) {
+                            final controller = DefaultTabController.of(tabContext);
+                            final abaSelecionada = listaMesAno[controller.index];
+                            final isAbaAtual = abaSelecionada == mesAnoAtual;
+
+                            if (isAbaAtual) return const SizedBox.shrink();
+
+                            return Container(
+                              width: double.infinity,
+                              color: Colors.amber.shade900.withValues(alpha: 0.8),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8, horizontal: 12),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.lock_clock, color: Colors.white, size: 16),
+                          SizedBox(width: 8),
+                          Text(
+                            'Modo de Consulta (Somente Leitura)',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                            );
+                          },
+                        ),
+                      ],
+                    );
+                  },
                 ),
               );
             },
@@ -197,12 +228,11 @@ class _MonthlyPayments extends State<MonthlyPayments> {
         mensalidade.mes_ano_referencia,
       );
 
-      // Abre a tela somente após carregar os dados com sucesso
       if (context.mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const MonthlyPaymentsProfile(),
+            builder: (context) => const MonthlyPaymentsProfilePage(),
           ),
         );
       }
@@ -223,17 +253,16 @@ class _MonthlyPayments extends State<MonthlyPayments> {
         mensalidade.mes_ano_referencia,
       );
 
-      // Abre a tela somente após carregar os dados com sucesso
       if (context.mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const MonthlyPaymentsCashier(),
+            builder: (context) => const MonthlyPaymentsCashierPage(),
           ),
         );
       }
     } catch (e) {
-      debugPrint('monthlyPaymentsIndividual error: $e');
+      debugPrint('monthlyPaymentsCashier error: $e');
     }
   }
 
@@ -246,6 +275,15 @@ class _MonthlyPayments extends State<MonthlyPayments> {
       isCancelado = true;
     }
 
+    // Validação de Mês/Ano Atual
+    final now = DateTime.now();
+    final int mesRef =
+        int.tryParse(mensalidade.mes_mes_referencia.toString()) ?? 0;
+    final int anoRef =
+        int.tryParse(mensalidade.mes_ano_referencia.toString()) ?? 0;
+
+    final bool isMesAnoAtual = (mesRef == now.month) && (anoRef == now.year);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -256,42 +294,37 @@ class _MonthlyPayments extends State<MonthlyPayments> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              flex: 1, // Ocupa 3/8 do espaço horizontal
+              flex: 1,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: isPago
-                            ? Colors.green.shade100
-                            : Colors.orange.shade100,
-                        child: Icon(
-                          isPago ? Icons.check_circle : Icons.pending_actions,
-                          color: isPago ? Colors.green : Colors.orange,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isPago ? '  PAGO  ' : 'PENDENTE',
-                        style: TextStyle(
-                          color: isPago
-                              ? Colors.green.shade900
-                              : Colors.orange.shade900,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  CircleAvatar(
+                    backgroundColor: isPago
+                        ? Colors.green.shade100
+                        : Colors.orange.shade100,
+                    child: Icon(
+                      isPago ? Icons.check_circle : Icons.pending_actions,
+                      color: isPago ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isPago ? '  PAGO  ' : 'PENDENTE',
+                    style: TextStyle(
+                      color: isPago
+                          ? Colors.green.shade900
+                          : Colors.orange.shade900,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
             ),
 
-            // ================= COLUNA 1: DADOS DO SÓCIO =================
+            // COLUNA 1: DADOS DO SÓCIO
             Expanded(
-              flex: 3, // Ocupa 3/8 do espaço horizontal
+              flex: 3,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -320,10 +353,11 @@ class _MonthlyPayments extends State<MonthlyPayments> {
               ),
             ),
 
-            const VerticalDivider(width: 16, thickness: 1), // Divisória visual
-            // ================= COLUNA 2: DADOS DO PAGAMENTO =================
+            const VerticalDivider(width: 16, thickness: 1),
+
+            // COLUNA 2: DADOS DO PAGAMENTO
             Expanded(
-              flex: 2, // Ocupa 3/8 do espaço horizontal
+              flex: 2,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -334,8 +368,9 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       minimumSize: const Size(0, 28),
                     ),
-                    onPressed: () =>
-                        monthlyPaymentsIndividual(mensalidade, context),
+                    onPressed: isMesAnoAtual
+                        ? () => monthlyPaymentsIndividual(mensalidade, context)
+                        : null,
                     child: const Text(
                       'Payment',
                       style: TextStyle(fontSize: 11),
@@ -346,7 +381,7 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
-                      color: isCancelado ? Colors.redAccent : Colors.white,
+                      color: isCancelado ? Colors.redAccent : null,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -371,9 +406,10 @@ class _MonthlyPayments extends State<MonthlyPayments> {
             ),
 
             const VerticalDivider(width: 16, thickness: 1),
-            // ================= COLUNA 3: CONFIRMAÇÃO DO TESOUREIRO =================
+
+            // COLUNA 3: CONFIRMAÇÃO DO TESOUREIRO
             Expanded(
-              flex: 2, // Ocupa 2/8 do espaço horizontal
+              flex: 2,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -384,11 +420,9 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       minimumSize: const Size(0, 28),
                     ),
-                    onPressed: () => {
-                      isPago
-                          ? monthlyPaymentsCashier(mensalidade, context)
-                          : (),
-                    },
+                    onPressed: (isMesAnoAtual && isPago)
+                        ? () => monthlyPaymentsCashier(mensalidade, context)
+                        : null,
                     child: const Text(
                       'Cashier',
                       style: TextStyle(fontSize: 11),
@@ -397,7 +431,6 @@ class _MonthlyPayments extends State<MonthlyPayments> {
                   const SizedBox(height: 4),
                   Text(
                     'Date: ${isConfirmado || isCancelado ? generalService.formatarDataBr(mensalidade.mes_data_confirmacao) : ""}',
-
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
