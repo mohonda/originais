@@ -32,30 +32,27 @@ class BdHeadquartersBarController extends ChangeNotifier {
   }
 
   // 🟢 INICIA A ESCUTA EM TEMPO REAL
-  void initRealtime(String hldId) {
-    // 1. Cancela se já houver um canal aberto
-    disposeRealtime();
+void initRealtime(String hldId) {
+  disposeRealtime();
 
-    // 2. Inscreve no canal escutando apenas o 'hldId' do seu estabelecimento
-    _realtimeChannel = supabaseClient
-        .channel('public:headquarters_bar:$hldId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all, // INSERT, UPDATE ou DELETE
-          schema: 'public',
-          table: 'headquarters_bar',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'bar_hld_id',
-            value: hldId,
-          ),
-          callback: (payload) {
-            // Quando QUALQUER aparelho abrir o bar, esse callback roda em todos os outros
-            // e recarrega a lista automaticamente através da sua View!
-            loadHeadquartersBar(hldId);
-          },
-        )
-        .subscribe();
-  }
+  _realtimeChannel = supabaseClient
+      .channel('public:headquarters_bar:$hldId')
+      .onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'headquarters_bar',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'bar_hld_id',
+          value: hldId,
+        ),
+        callback: (payload) {
+          // 🟢 Recarrega em segundo plano sem travar a interface
+          loadHeadquartersBar(hldId, showLoading: false);
+        },
+      )
+      .subscribe();
+}
 
   // 🟢 ENCERRA A ESCUTA
   void disposeRealtime() {
@@ -66,29 +63,29 @@ class BdHeadquartersBarController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadHeadquartersBar( String hldId ) async {
-    try {
-      loadingNotifier.value = true;
-      errorNotifier.value = null;
+// 2. Adicione o parâmetro opcional 'showLoading' no seu método
+Future<void> loadHeadquartersBar(String hldId, {bool showLoading = true}) async {
+  try {
+    if (showLoading) loadingNotifier.value = true;
+    errorNotifier.value = null;
 
-      final resposta = await mySupabaseClient.safePostgrestCall(()=>
-        supabaseClient
-        .from('vheadquarters_bar')
-        .select()
-        .eq('bar_hld_id', hldId)
-      );
-   
-      headquartersBarNotifier.value = resposta.map(
-        ( item ) => HeadquartersBarModel.fromJson( item )).toList();
-      
-    } catch (e, stackTrace) {
-      headquartersBarNotifier.value = [];
-      errorNotifier.value = ("BdHeadquartersBarController::loadHeadquartersBar: $e \n$stackTrace");
-    } finally {
-      loadingNotifier.value = false;
-    }
+    final resposta = await mySupabaseClient.safePostgrestCall(()=>
+      supabaseClient
+      .from('vheadquarters_bar')
+      .select()
+      .eq('bar_hld_id', hldId)
+    );
+ 
+    headquartersBarNotifier.value = resposta.map(
+      ( item ) => HeadquartersBarModel.fromJson( item )).toList();
+    
+  } catch (e, stackTrace) {
+    headquartersBarNotifier.value = [];
+    errorNotifier.value = ("BdHeadquartersBarController::loadHeadquartersBar: $e \n$stackTrace");
+  } finally {
+    if (showLoading) loadingNotifier.value = false;
   }
-
+}
   // ==========================================
   Future<void> openHeadquartersBar(
     String pflId,

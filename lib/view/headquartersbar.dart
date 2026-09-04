@@ -24,13 +24,10 @@ class HeadquartersBarState extends State<HeadquartersBar> {
       getItBdHeadquartersBarController<BdHeadquartersBarController>();
 
   final bdProfileController = getItBdProfileController<BdProfileController>();
-
   final productsController = getItProductsController<ProductsController>();
-
   final ticketController = getItTicketController<TicketController>();
 
   final _formKey = GlobalKey<FormState>();
-
   final bar_desc = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
@@ -45,22 +42,23 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     super.initState();
     initValues();
 
-    pflId =
-        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
-    hldId =
-        bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
+    pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
+    hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
 
-    _carregarDiasAbertos();
+    // 🟢 1. Escuta alterações no Notifier do Controller (Realtime + Carga inicial)
+    bdHeadquartersBarController.headquartersBarNotifier.addListener(_onHeadquartersBarChanged);
 
-    bdHeadquartersBarController.initRealtime( hldId );
+    // 🟢 2. Carga inicial e inicialização do canal em Tempo Real
+    _carregarDadosIniciais();
   }
 
   @override
   void dispose() {
-    bar_desc.dispose();
-
+    // 🟢 Remove o ouvinte para evitar vazamento de memória
+    bdHeadquartersBarController.headquartersBarNotifier.removeListener(_onHeadquartersBarChanged);
     bdHeadquartersBarController.disposeRealtime();
 
+    bar_desc.dispose();
     super.dispose();
   }
 
@@ -74,32 +72,23 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     });
   }
 
-  Future<void> _carregarDiasAbertos() async {
-    try {
-      // 1. Busque os registros no banco (ajuste conforme seu controller)
-      // Aqui estou assumindo que loadHeadquartersBar retorna a lista ou atualiza um Notifier
-      await bdHeadquartersBarController.loadHeadquartersBar(hldId);
-      final barrasAbertas =
-          bdHeadquartersBarController.headquartersBarNotifier.value;
+  Future<void> _carregarDadosIniciais() async {
+    await bdHeadquartersBarController.loadHeadquartersBar(hldId);
+    bdHeadquartersBarController.initRealtime(hldId);
+  }
 
-      /* 
-       * 2. Transforme a lista do banco em uma Lista de DateTime
-       * Substitua 'barrasAbertas' pela sua lista real e 'bar_date' pela propriedade da sua data.
-       */
-      List<DateTime> datas = barrasAbertas.map((bar) {
-        // Se a data vier como String (ex: '2023-10-25'), faça o parse:
-        return DateTime.parse(bar.bar_open_date.toString());
-        // return bar.bar_open_date;
-      }).toList();
+  // 🟢 3. Atualiza os dias abertos do calendário sempre que o controller mudar
+  void _onHeadquartersBarChanged() {
+    final barrasAbertas = bdHeadquartersBarController.headquartersBarNotifier.value;
 
-      // 3. Atualize a tela com os dias encontrados
-      if (mounted) {
-        setState(() {
-          _openDays = datas;
-        });
-      }
-    } catch (e) {
-      debugPrint('Erro ao carregar dias abertos: $e');
+    List<DateTime> datas = barrasAbertas.map((bar) {
+      return DateTime.parse(bar.bar_open_date.toString());
+    }).toList();
+
+    if (mounted) {
+      setState(() {
+        _openDays = datas;
+      });
     }
   }
 
@@ -129,7 +118,7 @@ class HeadquartersBarState extends State<HeadquartersBar> {
               key: _formKey,
               child: Column(
                 children: [
-                  // 🟢 1. O CALENDÁRIO OCUPA 100% DO ESPAÇO RESTANTE
+                  // 🟢 CALENDÁRIO ATUALIZADO EM TEMPO REAL
                   Expanded(
                     child: CustomMonthCalendar(
                       initialDate: _selectedDate,
@@ -147,12 +136,10 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
                   const SizedBox(height: distance),
 
-                  // 🟢 2. BOTÕES FIXADOS NO RODAPÉ DO CARD
                   TextFormField(
                     controller: bar_desc,
                     keyboardType: TextInputType.text,
                     maxLength: 50,
-
                     textAlign: TextAlign.start,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
@@ -164,9 +151,6 @@ class HeadquartersBarState extends State<HeadquartersBar> {
                       border: OutlineInputBorder(),
                       counterText: '',
                     ),
-                    // validator: (value) => value == null || value.trim().isEmpty
-                    //     ? 'Provide the description!!!'
-                    //     : null,
                   ),
                   const SizedBox(height: distance),
                   Row(
@@ -203,36 +187,22 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
     final now = DateTime.now();
 
-    // 🟢 1. CALCULA O DIA OPERACIONAL (TURNO ATUAL)
-    // Se estiver entre 00:00:00 e 06:00:00, o turno pertence ao dia civil de ONTEM.
+    // CALCULA O DIA OPERACIONAL
     late DateTime hojeOperacional;
     if (now.hour < 6 || (now.hour == 6 && now.minute == 0)) {
       final ontem = now.subtract(const Duration(days: 1));
       hojeOperacional = DateTime(ontem.year, ontem.month, ontem.day);
     } else {
-      // Das 06:00:01 em diante, já é o dia civil de HOJE.
       hojeOperacional = DateTime(now.year, now.month, now.day);
     }
 
-    // 🟢 2. PREPARA A DATA SELECIONADA NO CALENDÁRIO (SEM HORÁRIO)
     final dataSelecionada = DateTime(
       _selectedDate.year,
       _selectedDate.month,
       _selectedDate.day,
     );
 
-    // 🟢 3. DEFINE SE É SOMENTE LEITURA
-    // Fica como leitura apenas se a data selecionada for ANTERIOR ao dia operacional atual.
     final bool isReadOnly = dataSelecionada.isBefore(hojeOperacional);
-
-    // Exemplo de comportamento prático:
-    // - Se for 03:00 AM do dia 04/09: `hojeOperacional` é 03/09.
-    //   -> Selecionar 03/09 = Edição liberada (`isReadOnly = false`).
-    //   -> Selecionar 02/09 = Somente Leitura (`isReadOnly = true`).
-
-    // - Se for 08:00 AM do dia 04/09: `hojeOperacional` é 04/09.
-    //   -> Selecionar 04/09 = Edição liberada (`isReadOnly = false`).
-    //   -> Selecionar 03/09 = Somente Leitura (`isReadOnly = true`).
 
     bool isJaAberto = _openDays.any(
       (d) =>

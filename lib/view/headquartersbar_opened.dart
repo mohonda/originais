@@ -68,6 +68,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
   final errorNotifier = ValueNotifier<String?>(null);
 
   late final TicketReceiptImageService paymentService;
+
   // ==========================================
   @override
   void initState() {
@@ -88,11 +89,15 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
       loadingNotifier: loadingNotifier,
       errorNotifier: errorNotifier,
     );
+
+    ticketController.initRealtime(widget.openDate, widget.hld_id);
   }
 
   // ---------------------------------------------------------------------------
   @override
   void dispose() {
+    ticketController.disposeRealtime();
+    
     super.dispose();
   }
 

@@ -37,35 +37,61 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
   final generalService = getItGeneralService<GeneralService>();
 
   String idConfirmacao = '';
-
   String nameConfirmacao = '';
-
   String hld_id = '1';
+
+  // 🟢 Guardará o canal ativo do Supabase Realtime
+  RealtimeChannel? _realtimeChannel;
 
   // ==========================================
   BdMonthlyPaymentsController() {
     supabaseClient = mySupabaseClient.getSupabaseClient();
-    
     idConfirmacao = mySupabaseClient.getUserId();
-
     loadCashierName( idConfirmacao );
   }
-  
-  // ==========================================
-  Future<void> loadCurrentMonthlyPayment() async {
-    try {
-      loadingNotifier.value = true;
-      errorNotifier.value = null;
 
-      final String month = DateTime.now().month.toString().padLeft(2, '0');
-      final String year = DateTime.now().year.toString();
+  // 🟢 INICIA A ESCUTA EM TEMPO REAL
+  void initRealtime(String hldId) {
+    disposeRealtime();
+
+    _realtimeChannel = supabaseClient
+        .channel('public:mensalidades:$hldId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all, // INSERT, UPDATE ou DELETE
+          schema: 'public',
+          table: 'mensalidades',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'mes_hld_id',
+            value: hldId,
+          ),
+          callback: (payload) {
+            // Atualiza a lista em segundo plano sem exibir o indicador de carregamento
+            loadCurrentMonthlyPayment(showLoading: false);
+          },
+        )
+        .subscribe();
+  }
+
+  // 🟢 ENCERRA A ESCUTA DE EVENTOS
+  void disposeRealtime() {
+    if (_realtimeChannel != null) {
+      supabaseClient.removeChannel(_realtimeChannel!);
+      _realtimeChannel = null;
+    }
+  }
+
+  // ==========================================
+  // 🟢 Adicionado parâmetro 'showLoading' para atualizar via Realtime silenciosamente
+  Future<void> loadCurrentMonthlyPayment({bool showLoading = true}) async {
+    try {
+      if (showLoading) loadingNotifier.value = true;
+      errorNotifier.value = null;
 
       final resposta = await mySupabaseClient.safePostgrestCall(()=>
         supabaseClient
         .from('vmensalidades')
         .select()
-        // .eq('mes_mes_referencia', month)
-        // .eq('mes_ano_referencia', year)
         .eq('mes_hld_id', hld_id)
       );
 
@@ -77,7 +103,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       monthlyPaymentsNotifier.value = [];
       debugPrint("BdMonthlyPaymentsController::loadCurrentMonthlyPayment: $e\n$stackTrace");
     } finally {
-      loadingNotifier.value = false;
+      if (showLoading) loadingNotifier.value = false;
     }
   }
 
@@ -138,7 +164,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
         monthlyPaymentsIndividual.value = MensalidadesModel.fromJson( resposta );
     } catch (e, stackTrace) {
       monthlyPaymentsIndividual.value = null;
-      errorNotifier.value = 'BdMonthlyPaymentsController::loadMonthlyPaymentsIndividual:  $e\n$stackTrace';
+      errorNotifier.value = 'BdMonthlyPaymentsController::updateCheckingCopy:  $e\n$stackTrace';
     } finally {
       loadingNotifier.value = false;
     }
@@ -183,7 +209,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
 
     } catch (e, stackTrace) {
       monthlyPaymentsIndividual.value = null;
-      errorNotifier.value = 'BdMonthlyPaymentsController::loadMonthlyPaymentsIndividual:  $e\n$stackTrace';
+      errorNotifier.value = 'BdMonthlyPaymentsController::updatePaymentsProfile:  $e\n$stackTrace';
     } finally {
       loadCurrentMonthlyPayment();
       loadingNotifier.value = false;
@@ -240,7 +266,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
     }
   }
 
-// ==========================================
+  // ==========================================
   Future<void> cancelPaymentsCashier(
     String id,
     String mes,
@@ -287,7 +313,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
   }
 
   // ==========================================
-   Future<void> loadCashierName( String id ) async {
+  Future<void> loadCashierName( String id ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -313,7 +339,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
     }
   }
 
-// ==========================================
+  // ==========================================
   Future<void> insertMonthlyGeneration(
     List<Map<String, dynamic>> filteredList
   ) async {
@@ -327,7 +353,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
 
     } catch (e, stackTrace) {
       monthlyPaymentsIndividual.value = null;
-      errorNotifier.value = 'BdMonthlyPaymentsController::loadMonthlyPaymentsIndividual:  $e\n$stackTrace';
+      errorNotifier.value = 'BdMonthlyPaymentsController::insertMonthlyGeneration:  $e\n$stackTrace';
     } finally {
       loadingNotifier.value = false;
       loadCurrentMonthlyPayment();

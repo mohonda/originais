@@ -25,6 +25,13 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
     super.initState();
     bdMonthlyPaymentsController =
         getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
+    bdMonthlyPaymentsController.initRealtime(bdMonthlyPaymentsController.hld_id);
+  }
+  
+  @override
+  void dispose() {
+    bdMonthlyPaymentsController.disposeRealtime();
+    super.dispose();
   }
 
   @override

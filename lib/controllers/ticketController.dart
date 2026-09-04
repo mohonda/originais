@@ -28,9 +28,53 @@ class TicketController extends ChangeNotifier {
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
 
+  // 🟢 Guardará o canal ativo do Supabase Realtime
+  RealtimeChannel? _realtimeChannel;
+
   // ==========================================
   TicketController() {
     supabaseClient = mySupabaseClient.getSupabaseClient();
+  }
+
+  // 🟢 INICIA A ESCUTA EM TEMPO REAL
+  void initRealtime(String openDate, String hldId) {
+    disposeRealtime();
+
+    _realtimeChannel = supabaseClient
+        .channel('public:tickets:$hldId:$openDate')
+        // 1. Escuta alterações em comanda/mesa (abrir, fechar, alterar status)
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'tickets',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'tkt_hld_id',
+            value: hldId,
+          ),
+          callback: (payload) {
+            // Atualiza em segundo plano sem disparar o loadingNotifier na tela
+            loadTickets(openDate, hldId, showLoading: false);
+          },
+        )
+        // 2. Escuta alterações nos itens inseridos/alterados/deletados nas mesas
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'tickets_items',
+          callback: (payload) {
+            loadTickets(openDate, hldId, showLoading: false);
+          },
+        )
+        .subscribe();
+  }
+
+  // 🟢 ENCERRA A ESCUTA DE EVENTOS
+  void disposeRealtime() {
+    if (_realtimeChannel != null) {
+      supabaseClient.removeChannel(_realtimeChannel!);
+      _realtimeChannel = null;
+    }
   }
 
   // ==========================================
@@ -51,16 +95,17 @@ class TicketController extends ChangeNotifier {
           .toList();
     } catch (e, stackTrace) {
       errorNotifier.value =
-          ("TicketController::loadProdutos: $e \n$stackTrace");
+          ("TicketController::loadTicketStatus: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
     }
   }
 
   // ==========================================
-  Future<void> loadTickets(String openDate, String hldId) async {
+  // 🟢 Adicionado o parâmetro opcional showLoading para não travar a UI ao receber eventos realtime
+  Future<void> loadTickets(String openDate, String hldId, {bool showLoading = true}) async {
     try {
-      loadingNotifier.value = true;
+      if (showLoading) loadingNotifier.value = true;
       errorNotifier.value = null;
 
       final resposta = await mySupabaseClient.safePostgrestCall(
@@ -76,9 +121,9 @@ class TicketController extends ChangeNotifier {
           .toList();
     } catch (e, stackTrace) {
       errorNotifier.value =
-          ("TicketController::loadProdutos: $e \n$stackTrace");
+          ("TicketController::loadTickets: $e \n$stackTrace");
     } finally {
-      loadingNotifier.value = false;
+      if (showLoading) loadingNotifier.value = false;
     }
   }
 
@@ -107,7 +152,7 @@ class TicketController extends ChangeNotifier {
       );
     } catch (e, stackTrace) {
       errorNotifier.value =
-          ("TicketController::loadProdutos: $e \n$stackTrace");
+          ("TicketController::openTicketsFunction: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
       loadTickets( openDate, hldId );
@@ -134,7 +179,7 @@ class TicketController extends ChangeNotifier {
 
     } catch (e, stackTrace) {
       errorNotifier.value =
-          ("TicketController::loadProdutos: $e \n$stackTrace");
+          ("TicketController::closeTicketsWithoutPayment: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
       loadTickets( openDate, hldId );
@@ -166,12 +211,12 @@ class TicketController extends ChangeNotifier {
   }
 
   // ==========================================
-    Future<void> updateTicketsItems(
-      String tit_id,
-      int tit_quantities,
-      String openDate,
-      String hldId
-    ) async {
+  Future<void> updateTicketsItems(
+    String tit_id,
+    int tit_quantities,
+    String openDate,
+    String hldId
+  ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -185,7 +230,7 @@ class TicketController extends ChangeNotifier {
 
     } catch (e, stackTrace) {
       errorNotifier.value =
-          ("TicketController::insertTicketsItems: $e \n$stackTrace");
+          ("TicketController::updateTicketsItems: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
       loadTickets( openDate, hldId );
@@ -211,7 +256,7 @@ class TicketController extends ChangeNotifier {
 
     } catch (e, stackTrace) {
       errorNotifier.value =
-          ("TicketController::insertTicketsItems: $e \n$stackTrace");
+          ("TicketController::deleteTicketsItems: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
       loadTickets( openDate, hldId );
