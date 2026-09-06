@@ -30,18 +30,16 @@ class _ProfileMonthlyPaymentState extends State<ProfileMonthlyPayment> {
     pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
     hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
 
-    // 🟢 1. Escuta atualizações da lista geral acionadas pelo Realtime
+    // Escuta atualizações via Realtime
     bdMonthlyPaymentsController.monthlyPaymentsNotifier.addListener(
       _onRealtimeUpdate,
     );
 
-    // 🟢 Busca SOMENTE os dados do perfil selecionado no banco
     _carregarMensalidadesPerfil();
   }
 
   @override
   void dispose() {
-    // 🟢 Remove o listener para evitar vazamento de memória
     bdMonthlyPaymentsController.monthlyPaymentsNotifier.removeListener(
       _onRealtimeUpdate,
     );
@@ -49,7 +47,6 @@ class _ProfileMonthlyPaymentState extends State<ProfileMonthlyPayment> {
   }
 
   void _onRealtimeUpdate() {
-    // Sempre que chegar um evento do Realtime no controller, recarrega o perfil
     bdMonthlyPaymentsController.loadMonthlyPaymentsByProfile(pflId, hldId);
   }
 
@@ -63,244 +60,296 @@ class _ProfileMonthlyPaymentState extends State<ProfileMonthlyPayment> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ValueListenableBuilder<bool>(
-            valueListenable: bdMonthlyPaymentsController.loadingNotifier,
-            builder: (context, isLoading, child) {
-              if (isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
+    return ValueListenableBuilder<bool>(
+      valueListenable: bdMonthlyPaymentsController.loadingNotifier,
+      builder: (context, isLoading, child) {
+        if (isLoading) {
+          return const Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-              // 🟢 Ouve o Notifier exclusivo do perfil
-              return ValueListenableBuilder<List<MensalidadesModel>>(
-                valueListenable:
-                    bdMonthlyPaymentsController.monthlyPaymentsProfileNotifier,
-                builder: (context, listaDoUsuario, child) {
-                  if (listaDoUsuario.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'Nenhuma mensalidade registrada para este usuário.',
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                    );
-                  }
-
-                  // 🟢 ORDENAÇÃO CRONOLÓGICA (Mais recente primeiro)
-                  final listaOrdenada =
-                      List<MensalidadesModel>.from(listaDoUsuario)
-                        ..sort((a, b) {
-                          final dateA = DateTime(
-                            int.tryParse(a.mes_ano_referencia) ?? 0,
-                            int.tryParse(a.mes_mes_referencia) ?? 0,
-                          );
-                          final dateB = DateTime(
-                            int.tryParse(b.mes_ano_referencia) ?? 0,
-                            int.tryParse(b.mes_mes_referencia) ?? 0,
-                          );
-                          return dateB.compareTo(dateA);
-                        });
-
-                  return Column(
-                    children: [
-                      _buildResumoUsuario(listaOrdenada),
-
-                      const SizedBox(height: 8),
-
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: listaOrdenada.length,
-                          padding: const EdgeInsets.symmetric(vertical: 4.0),
-                          itemBuilder: (context, index) {
-                            return _buildMensalidadeUsuarioCard(
-                              listaOrdenada[index],
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  );
-                },
+        return ValueListenableBuilder<List<MensalidadesModel>>(
+          valueListenable:
+              bdMonthlyPaymentsController.monthlyPaymentsProfileNotifier,
+          builder: (context, listaDoUsuario, child) {
+            if (listaDoUsuario.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Center(
+                  child: Text(
+                    'Nenhuma mensalidade registrada para este usuário.',
+                    style: TextStyle(color: Colors.white54, fontSize: 13),
+                  ),
+                ),
               );
-            },
-          ),
-        ),
-      ),
+            }
+
+            // Ordenação cronológica (Mais recente primeiro)
+            final listaOrdenada = List<MensalidadesModel>.from(listaDoUsuario)
+              ..sort((a, b) {
+                final dateA = DateTime(
+                  int.tryParse(a.mes_ano_referencia) ?? 0,
+                  int.tryParse(a.mes_mes_referencia) ?? 0,
+                );
+                final dateB = DateTime(
+                  int.tryParse(b.mes_ano_referencia) ?? 0,
+                  int.tryParse(b.mes_mes_referencia) ?? 0,
+                );
+                return dateB.compareTo(dateA);
+              });
+
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 📊 Resumo do Usuário
+                  _buildResumoUsuario(listaOrdenada),
+
+                  const SizedBox(height: 12),
+
+                  // 📋 Lista de Mensalidades
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: listaOrdenada.length,
+                    itemBuilder: (context, index) {
+                      return _buildMensalidadeUsuarioCard(
+                        listaOrdenada[index],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
+  // 📊 Card de Resumo
   Widget _buildResumoUsuario(List<MensalidadesModel> lista) {
     final int total = lista.length;
-    final int pagas = lista
-        .where((m) => m.mes_data_pagamento.isNotEmpty)
-        .length;
+    final int pagas =
+        lista.where((m) => m.mes_data_pagamento.isNotEmpty).length;
     final int pendentes = total - pagas;
+
+    final double totalPago = lista.fold<double>(0.0, (soma, m) {
+      if (m.mes_data_pagamento.isNotEmpty) {
+        final double valor = double.tryParse(m.mes_valor.toString()) ?? 0.0;
+        return soma + valor;
+      }
+      return soma;
+    });
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.indigo.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.indigo.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          Column(
-            children: [
-              const Text(
-                'Total',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '$total',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
-              ),
-            ],
-          ),
-          Container(height: 24, width: 1, color: Colors.grey.shade400),
-          Column(
-            children: [
-              const Text(
-                'Pagas',
-                style: TextStyle(fontSize: 11, color: Colors.green),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '$pagas',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: Colors.green,
-                ),
-              ),
-            ],
-          ),
-          Container(height: 24, width: 1, color: Colors.grey.shade400),
-          Column(
-            children: [
-              const Text(
-                'Pendentes',
-                style: TextStyle(fontSize: 11, color: Colors.orange),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '$pendentes',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: Colors.orange,
-                ),
-              ),
-            ],
+          _buildResumoColumn('Total', '$total', Colors.white70),
+          Container(height: 24, width: 1, color: Colors.white24),
+          _buildResumoColumn('Pagas', '$pagas', Colors.greenAccent),
+          Container(height: 24, width: 1, color: Colors.white24),
+          _buildResumoColumn('Pendentes', '$pendentes', Colors.orangeAccent),
+          Container(height: 24, width: 1, color: Colors.white24),
+          _buildResumoColumn(
+            'Total Pago',
+            generalService.currencyMoneyBr(totalPago.toString()),
+            Colors.indigoAccent,
           ),
         ],
       ),
     );
   }
 
+  Widget _buildResumoColumn(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.white54)),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color),
+        ),
+      ],
+    );
+  }
+
+  // 📋 Card Individual da Mensalidade
   Widget _buildMensalidadeUsuarioCard(MensalidadesModel mensalidade) {
     final bool isPago = mensalidade.mes_data_pagamento.isNotEmpty;
     final bool isConfirmado = mensalidade.mes_data_confirmacao.isNotEmpty;
-    late bool isCancelado = false;
-    if (!isPago && isConfirmado) {
-      isCancelado = true;
-    }
+    final bool isCancelado = !isPago && isConfirmado;
 
     final now = DateTime.now();
-    final int mesRef =
-        int.tryParse(mensalidade.mes_mes_referencia.toString()) ?? 0;
-    final int anoRef =
-        int.tryParse(mensalidade.mes_ano_referencia.toString()) ?? 0;
+    final int mesRef = int.tryParse(mensalidade.mes_mes_referencia.toString()) ?? 0;
+    final int anoRef = int.tryParse(mensalidade.mes_ano_referencia.toString()) ?? 0;
     final bool isMesAnoAtual = (mesRef == now.month) && (anoRef == now.year);
 
+    final String valorExibicao = isPago
+        ? generalService.currencyMoneyBr(mensalidade.mes_valor)
+        : generalService.currencyMoneyBr(mensalidade.vpg_valor_normal);
+
+    final String refFormatada =
+        'Ref: ${mensalidade.mes_mes_referencia.toString().padLeft(2, '0')}/${mensalidade.mes_ano_referencia}';
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+      margin: const EdgeInsets.symmetric(vertical: 6.0),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.indigo.withValues(alpha: 0.3), width: 1),
+      ),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Icon(
+          Icons.calendar_month_outlined,
+          color: isCancelado
+              ? Colors.redAccent
+              : (isPago ? Colors.greenAccent : Colors.orangeAccent),
+        ),
+        title: Row(
           children: [
-            CircleAvatar(
-              backgroundColor: isPago
-                  ? Colors.green.shade100
-                  : Colors.orange.shade100,
-              child: Icon(
-                isPago ? Icons.check_circle : Icons.pending_actions,
-                color: isPago ? Colors.green : Colors.orange,
-              ),
+            Text(
+              refFormatada,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Ref: ${mensalidade.mes_mes_referencia.toString().padLeft(2, '0')}/${mensalidade.mes_ano_referencia}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  if (isPago) ...[
-                    Text(
-                    'Valor Ref: ${generalService.currencyMoneyBr(mensalidade.mes_valor)}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                  ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Pago em: ${generalService.formatarDataBr(mensalidade.mes_data_pagamento)} (${mensalidade.fpg_descricao})',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                    ),
-                  ] else ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'Valor: ${generalService.currencyMoneyBr(mensalidade.vpg_valor_normal)}',
-                      style: TextStyle(fontSize: 12, color:  isCancelado ? Colors.redAccent : Colors.grey[700]),                      
-                    ),
-                    if (isCancelado) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        'Payment canceled for the Cashier.',
-                        style: TextStyle(fontSize: 12, color: Colors.redAccent),                      
-                      ),                        
-                    ]
-                  ],
-                ],
-              ),
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isPago ? Colors.green : Colors.indigo,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-              ),
-              onPressed: isMesAnoAtual
-                  ? () => _abrirPagamentoPerfil(mensalidade)
-                  : null,
-              icon: const Icon(Icons.payment, size: 16),
-              label: Text(
-                isPago ? 'Detalhes' : 'Pagar',
-                style: const TextStyle(fontSize: 12),
-              ),
-            ),
+            const SizedBox(width: 8),
+            _buildStatusBadge(isPago, isCancelado),
           ],
         ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4.0),
+          child: Text(
+            'Valor: $valorExibicao',
+            style: const TextStyle(fontSize: 12, color: Colors.white70),
+          ),
+        ),
+        children: [
+          const Divider(height: 1),
+          Container(
+            padding: const EdgeInsets.all(12.0),
+            color: Colors.black12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isPago) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Pago em:',
+                        style: TextStyle(fontSize: 12, color: Colors.white54),
+                      ),
+                      Text(
+                        generalService.formatarDataBr(mensalidade.mes_data_pagamento),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                  if (mensalidade.fpg_descricao.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Forma de Pagamento:',
+                          style: TextStyle(fontSize: 12, color: Colors.white54),
+                        ),
+                        Text(
+                          mensalidade.fpg_descricao,
+                          style: const TextStyle(fontSize: 12, color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ],
+                ] else if (isCancelado) ...[
+                  const Text(
+                    'Pagamento cancelado para o Caixa.',
+                    style: TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.bold),
+                  ),
+                ] else ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Valor Normal:',
+                        style: TextStyle(fontSize: 12, color: Colors.white54),
+                      ),
+                      Text(
+                        valorExibicao,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                ],
+
+                const SizedBox(height: 12),
+
+                // 🔘 Botão de Ação
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isPago ? Colors.indigo : Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      ),
+                      onPressed: isMesAnoAtual
+                          ? () => _abrirPagamentoPerfil(mensalidade)
+                          : null,
+                      icon: Icon(isPago ? Icons.visibility : Icons.payment, size: 16),
+                      label: Text(
+                        isPago ? 'Detalhes' : 'Pagar Agora',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🏷️ Badge de Status
+  Widget _buildStatusBadge(bool isPago, bool isCancelado) {
+    String label = 'PENDENTE';
+    Color color = Colors.orangeAccent;
+    Color bgColor = Colors.orange.withValues(alpha: 0.15);
+
+    if (isPago) {
+      label = 'PAGO';
+      color = Colors.greenAccent;
+      bgColor = Colors.green.withValues(alpha: 0.15);
+    } else if (isCancelado) {
+      label = 'CANCELADO';
+      color = Colors.redAccent;
+      bgColor = Colors.red.withValues(alpha: 0.15);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 0.8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: color),
       ),
     );
   }
@@ -322,7 +371,7 @@ class _ProfileMonthlyPaymentState extends State<ProfileMonthlyPayment> {
         );
       }
     } catch (e) {
-      debugPrint('Error ao abrir MonthlyPaymentsProfilePage: $e');
+      debugPrint('Erro ao abrir MonthlyPaymentsProfilePage: $e');
     }
   }
 }

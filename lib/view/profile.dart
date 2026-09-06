@@ -4,6 +4,7 @@ import 'package:originais/controllers/bd_profile_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/services/general_service.dart';
+import 'package:originais/view/journey_riding.dart';
 import 'package:originais/view/profile_update_password.dart';
 import 'package:originais/controllers/ProfileImageService.dart';
 // 🟢 Importe suas telas correspondentes aqui:
@@ -12,6 +13,10 @@ import 'package:originais/view/ProfileMonthlyPayment.dart'; // Exemplo para a ab
 import 'package:originais/view/ProfileHeadquartersBar.dart'; 
 import 'package:originais/controllers/ticketController.dart';
 import 'package:originais/models/ticketModel.dart';
+import 'package:originais/view/profileExecutiveCommittee.dart'; 
+import 'package:originais/view/profileSanctions.dart'; 
+import 'package:originais/view/profileJourneyRiding.dart'; 
+import 'package:originais/view/profileAssociateStatus.dart'; 
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -197,7 +202,51 @@ class _ProfileState extends State<Profile> {
                       children: [
                         Icon(Icons.sports_bar),
                         SizedBox(height: 2),
-                        Text('Headquarters Bar', style: TextStyle(fontSize: 11)),
+                        Text('Bar', style: TextStyle(fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  ButtonSegment(
+                    value: 'Executive Committee',
+                    label: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.manage_accounts),
+                        SizedBox(height: 2),
+                        Text('Exec. Committee', style: TextStyle(fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  ButtonSegment(
+                    value: 'Sanctions',
+                    label: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.gavel),
+                        SizedBox(height: 2),
+                        Text('Sanctions', style: TextStyle(fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  ButtonSegment(
+                    value: 'Journey of the Riding',
+                    label: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.motorcycle_sharp),
+                        SizedBox(height: 2),
+                        Text('Journey Riding', style: TextStyle(fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  ButtonSegment(
+                    value: 'Associate Status',
+                    label: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.link),
+                        SizedBox(height: 2),
+                        Text('Associate Status', style: TextStyle(fontSize: 11)),
                       ],
                     ),
                   ),
@@ -226,9 +275,21 @@ class _ProfileState extends State<Profile> {
 
       case 'Headquarters Bar':
         return ProfileHeadquartersBar(
-    pflId: idController.text,
-    hldId: hld_id,
-  );
+          pflId: idController.text,
+          hldId: hld_id,
+        );
+      
+      case 'Executive Committee':
+        return ProfileExecutiveCommittee();
+
+      case 'Sanctions':
+        return ProfileSanctions();
+      
+      case 'Journey of the Riding':
+        return ProfileJourneyRiding();
+      
+      case 'Associate Status':
+        return ProfileAssociateStatus();
 
       case 'Profile':
       default:
