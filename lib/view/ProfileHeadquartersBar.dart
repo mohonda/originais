@@ -26,10 +26,20 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     super.initState();
     ticketController = getItTicketController<TicketController>();
     generalService = getItGeneralService<GeneralService>();
+    
+    ticketController.loadTicketsByProfileWithItems(widget.pflId, widget.hldId);
+
+    ticketController.initRealtimeProfile(widget.pflId, widget.hldId);
 
     // 🟢 1. Carrega os dados iniciais do usuário atual
     _carregarEIniciarRealtime();
   }
+@override
+void dispose() {
+  // 3. Cancela a assinatura quando fechar ou mudar de tela
+  ticketController.disposeRealtimeProfile();
+  super.dispose();
+}
 
   Future<void> _carregarEIniciarRealtime() async {
     await ticketController.loadTicketsByProfileWithItems(widget.pflId, widget.hldId);
