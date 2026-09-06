@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:originais/controllers/ticketController.dart';
 import 'package:originais/models/ticketModel.dart';
 import 'package:originais/services/general_service.dart';
+import 'package:originais/view/headquartersbar_opened.dart';
 
 class ProfileHeadquartersBar extends StatefulWidget {
   final String pflId;
   final String hldId;
+  /// Data atual do caixa/bar aberto (Ex: "YYYY-MM-DD").
+  final String? currentOpenDate;
 
   const ProfileHeadquartersBar({
     super.key,
     required this.pflId,
     required this.hldId,
+    this.currentOpenDate,
   });
 
   @override
@@ -26,25 +30,18 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     super.initState();
     ticketController = getItTicketController<TicketController>();
     generalService = getItGeneralService<GeneralService>();
-    
+
+    // 1. Carrega os tickets do perfil
     ticketController.loadTicketsByProfileWithItems(widget.pflId, widget.hldId);
 
+    // 2. Ativa escuta Realtime
     ticketController.initRealtimeProfile(widget.pflId, widget.hldId);
-
-    // 🟢 1. Carrega os dados iniciais do usuário atual
-    _carregarEIniciarRealtime();
   }
-@override
-void dispose() {
-  // 3. Cancela a assinatura quando fechar ou mudar de tela
-  ticketController.disposeRealtimeProfile();
-  super.dispose();
-}
 
-  Future<void> _carregarEIniciarRealtime() async {
-    await ticketController.loadTicketsByProfileWithItems(widget.pflId, widget.hldId);
-    // 🟢 2. Ativa o canal Realtime para este perfil
-    ticketController.initRealtime(widget.pflId, widget.hldId);
+  @override
+  void dispose() {
+    ticketController.disposeRealtimeProfile();
+    super.dispose();
   }
 
   @override
@@ -69,12 +66,12 @@ void dispose() {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 📊 Resumo de Consumo e Totais (atualiza automaticamente com o Notifier)
+              // 📊 Resumo do Usuário
               _buildResumoUsuario(tickets),
 
               const SizedBox(height: 12),
 
-              // 📋 Lista de Tickets / Comandas
+              // 📋 Lista de Tickets
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -90,7 +87,7 @@ void dispose() {
     );
   }
 
-  // 📊 Card de Resumo e Totais
+  // 📊 Card de Resumo
   Widget _buildResumoUsuario(List<TicketsModel> lista) {
     final int total = lista.length;
 
@@ -146,10 +143,12 @@ void dispose() {
     );
   }
 
-  // Card individual do Ticket
+  // 📋 Card Individual do Ticket
   Widget _buildTicketCard(BuildContext context, TicketsModel ticket) {
     final bool temItens = ticket.ticketsItems.isNotEmpty;
     final bool temComprovante = ticket.tkt_paiment_path != null && ticket.tkt_paiment_path!.trim().isNotEmpty;
+    final bool isPago = ticket.tst_name == 'Ticket closed (Paid)' || temComprovante;
+    final bool isCancelado = ticket.tst_name == 'Ticket closed without payment';
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6.0),
@@ -162,7 +161,9 @@ void dispose() {
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Icon(
           Icons.confirmation_number_outlined,
-          color: ticket.tkt_has_discount ? Colors.amber : Colors.indigoAccent,
+          color: isCancelado
+              ? Colors.redAccent
+              : (isPago ? Colors.greenAccent : (ticket.tkt_has_discount ? Colors.amber : Colors.indigoAccent)),
         ),
         title: Row(
           children: [
@@ -233,10 +234,90 @@ void dispose() {
                       );
                     },
                   ),
+                const Divider(height: 16),
+
+                // 🔘 Botões de Ação (Comprovante / Ir para Pagamento)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (temComprovante)
+                      OutlinedButton.icon(
+                        onPressed: () => _mostrarComprovante(context, ticket),
+                        icon: const Icon(Icons.image_search, size: 16),
+                        label: const Text('Ver Comprovante'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.orangeAccent,
+                          side: const BorderSide(color: Colors.orangeAccent),
+                        ),
+                      )
+                    else
+                      const SizedBox.shrink(),
+
+                    // 🟢 Botão de Pagamento para tickets pendentes
+                    if (!isPago && !isCancelado)
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        ),
+                        onPressed: () => _irParaPagamento(context, ticket),
+                        icon: const Icon(Icons.payment, size: 16),
+                        label: const Text('Pagar Agora', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // 🟢 FLUXO DE NAVEGAÇÃO E VALIDAÇÃO DE DATAS
+  void _irParaPagamento(BuildContext context, TicketsModel ticket) async {
+    final String barOpenDate = widget.currentOpenDate ?? ticket.tkt_bar_open_date;
+
+    // Se a data da comanda for diferente da data atual do bar aberto, solicita confirmação
+    if (widget.currentOpenDate != null && ticket.tkt_bar_open_date != widget.currentOpenDate) {
+      final bool? confirmar = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Comanda de Data Anterior', style: TextStyle(fontSize: 16)),
+          content: Text(
+            'Esta comanda é do dia ${generalService.formatarDataBr(ticket.tkt_bar_open_date)}.\n\n'
+            'Deseja realizar o pagamento no caixa ativo do dia ${generalService.formatarDataBr(widget.currentOpenDate!)}?',
+            style: const TextStyle(fontSize: 13),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Prosseguir'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmar != true) return;
+    }
+
+    if (!context.mounted) return;
+
+    // Redireciona para o HeadquartersBarOpened com a comanda selecionada
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HeadquartersBarOpened(
+          ticketSelecionado: ticket,
+          openDate: barOpenDate,
+          hld_id: widget.hldId,
+        ),
       ),
     );
   }
@@ -246,10 +327,16 @@ void dispose() {
     Color color = Colors.orangeAccent;
     Color bgColor = Colors.orange.withValues(alpha: 0.15);
 
-    if (ticket.tkt_paiment_path != null && ticket.tkt_paiment_path!.isNotEmpty) {
+    final bool temComprovante = ticket.tkt_paiment_path != null && ticket.tkt_paiment_path!.trim().isNotEmpty;
+
+    if (ticket.tst_name == 'Ticket closed (Paid)' || temComprovante) {
       label = 'PAGO';
       color = Colors.greenAccent;
       bgColor = Colors.green.withValues(alpha: 0.15);
+    } else if (ticket.tst_name == 'Ticket closed without payment') {
+      label = 'CANCELADO';
+      color = Colors.redAccent;
+      bgColor = Colors.red.withValues(alpha: 0.15);
     }
 
     return Container(
@@ -262,6 +349,53 @@ void dispose() {
       child: Text(
         label,
         style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: color),
+      ),
+    );
+  }
+
+  void _mostrarComprovante(BuildContext context, TicketsModel ticket) {
+    final String imageUrl = ticket.tkt_paiment_path!;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          'Comprovante - ${ticket.tkt_table_number}',
+          style: const TextStyle(fontSize: 16),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 400),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: InteractiveViewer(
+                    panEnabled: true,
+                    minScale: 1.0,
+                    maxScale: 4.0,
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Text(
+                        'Erro ao carregar imagem do comprovante.',
+                        style: TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Fechar'),
+          ),
+        ],
       ),
     );
   }

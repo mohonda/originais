@@ -26,22 +26,21 @@ import 'package:originais/controllers/ticketController.dart';
 import 'package:originais/models/ticketModel.dart';
 
 import 'package:originais/services/general_service.dart';
-import 'dart:io';
-
-import 'package:originais/services/general_service.dart';
-import 'package:originais/services/BaseImageUploadService.dart';
 import 'package:originais/controllers/TicketReceiptImageService.dart';
 
 class HeadquartersBarOpened extends StatefulWidget {
-  String openDate;
-  String hld_id;
+  final String openDate;
+  final String hld_id;
   final bool isReadOnly;
+  // 🟢 1. Novo parâmetro para receber a comanda do perfil
+  final TicketsModel? ticketSelecionado;
 
-  HeadquartersBarOpened({
+  const HeadquartersBarOpened({
     super.key,
     required this.openDate,
     required this.hld_id,
     this.isReadOnly = false,
+    this.ticketSelecionado, // 👈 Recebe a comanda opcionalmente
   });
 
   @override
@@ -91,13 +90,19 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
     );
 
     ticketController.initRealtime(widget.openDate, widget.hld_id);
+
+    // 🟢 2. Se um ticket foi repassado, abre automaticamente o resumo/pagamento ao carregar a tela
+    if (widget.ticketSelecionado != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _mostrarResumoMesa(widget.ticketSelecionado!);
+      });
+    }
   }
 
   // ---------------------------------------------------------------------------
   @override
   void dispose() {
     ticketController.disposeRealtime();
-    
     super.dispose();
   }
 
@@ -140,8 +145,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () async {
-                        // 🟢 Chama o menu de opções
-                        // _escolherMetodoAnexo();
                         final tst_id = id_ticketStatusList(
                           'Ticket closed (Paid)',
                         );
@@ -156,13 +159,11 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                           },
                         );
                         if (context.mounted && errorNotifier.value == null) {
-                          Navigator.of(
-                            context,
-                          ).pop(); // Fecha o Dialog da comanda
+                          Navigator.of(context).pop(); // Fecha o Dialog da comanda
                         }
                       },
-                      icon: Icon(Icons.add_a_photo, color: Colors.orangeAccent),
-                      label: Text(
+                      icon: const Icon(Icons.add_a_photo, color: Colors.orangeAccent),
+                      label: const Text(
                         'Anexar Comprovante / Foto',
                         style: TextStyle(
                           color: Colors.orangeAccent,
@@ -170,7 +171,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.indigoAccent),
+                        side: const BorderSide(color: Colors.indigoAccent),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -182,22 +183,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   onPressed: () => Navigator.pop(dialogContext),
                   child: const Text('Cancelar'),
                 ),
-                // ElevatedButton(
-                //   onPressed: () {
-                //     setState(() {
-                //       // mesa.status = StatusMesa.fechadaComPagamento;
-                //       mesa.tkt_tst_id = id_ticketStatusList(
-                //         'Ticket closed (Paid)',
-                //       );
-                //     });
-                //     Navigator.pop(dialogContext);
-                //   },
-                //   style: ElevatedButton.styleFrom(
-                //     backgroundColor: Colors.green,
-                //     foregroundColor: Colors.white,
-                //   ),
-                //   child: const Text('Confirmar Pagamento'),
-                // ),
               ],
             );
           },
@@ -230,11 +215,10 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                     borderRadius: BorderRadius.circular(8),
                     child: InteractiveViewer(
                       panEnabled: true,
-                      minScale: 1.0, // Zoom mínimo (tamanho original)
+                      minScale: 1.0,
                       maxScale: 4.0,
                       child: Container(
-                        width: double
-                            .infinity, // 🟢 Centraliza a imagem no meio da largura do Dialog
+                        width: double.infinity,
                         alignment: Alignment.center,
                         child: Image.network(
                           imageUrl,
@@ -423,7 +407,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
   // POPUP PARA LANÇAR ITENS NA MESA
   // ---------------------------------------------------------------------------
   Future<void> _mostrarDialogLancarItem(TicketsModel mesa) async {
-    // if (mesa.status != StatusMesa.aberta) {
     if (mesa.tkt_tst_id != id_ticketStatusList('Ticket opened')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -493,10 +476,10 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                     ),
                     const SizedBox(height: 8),
                     SegmentedButton<String>(
-                      style: ButtonStyle(
+                      style: const ButtonStyle(
                         textStyle: WidgetStatePropertyAll(
                           TextStyle(
-                            fontSize: 8, // 👈 Ajuste o tamanho da fonte aqui
+                            fontSize: 8,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -504,23 +487,18 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                       segments: const [
                         ButtonSegment(
                           value: 'Bebidas',
-                          // label: Text('Bebidas'),
                           icon: Icon(Icons.sports_bar),
-
                         ),
                         ButtonSegment(
                           value: 'Drinks',
-                          // label: Text('Drinks'),
                           icon: Icon(Icons.local_bar_outlined),
                         ),
                         ButtonSegment(
                           value: 'Porções',
-                          // label: Text('Porções'),
                           icon: Icon(Icons.restaurant_outlined),
                         ),
                         ButtonSegment(
                           value: 'Outfit',
-                          // label: Text('Outfit'),
                           icon: Icon(Icons.checkroom),
                         ),
                       ],
@@ -548,7 +526,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                         decoration: const InputDecoration(
                           labelText: 'Produto',
                           border: OutlineInputBorder(),
-                          // prefixIcon: Icon(Icons.fastfood_outlined),
                         ),
                         items: produtosFiltrados.map((prod) {
                           return DropdownMenuItem<ProductsModel>(
@@ -639,7 +616,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                       ? null
                       : () async {
                           if (produtoSelecionado != null) {
-                            // setState(() {
                             final indexExistente = mesa.ticketsItems.indexWhere(
                               (p) => p.pdt_name == produtoSelecionado!.pdt_name,
                             );
@@ -693,360 +669,376 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
   // ---------------------------------------------------------------------------
   // POPUP DE RESUMO DA MESA (COM OVERLAY DE LOADING ESTÁVEL)
   // ---------------------------------------------------------------------------
-  Future<void> _mostrarResumoMesa(TicketsModel mesa) async {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return ValueListenableBuilder<bool>(
-          valueListenable: ticketController.loadingNotifier,
-          builder: (context, isLoading, _) {
-            return ValueListenableBuilder<List<TicketsModel>>(
-              valueListenable: ticketController.ticketNotifier,
-              builder: (context, listaMesasAtualizada, _) {
-                final mesaAtual = listaMesasAtualizada.firstWhere(
-                  (m) => m.tkt_id == mesa.tkt_id,
-                  orElse: () => mesa,
-                );
+Future<void> _mostrarResumoMesa(TicketsModel mesa) async {
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return ValueListenableBuilder<bool>(
+        valueListenable: ticketController.loadingNotifier,
+        builder: (context, isLoading, _) {
+          return ValueListenableBuilder<List<TicketsModel>>(
+            valueListenable: ticketController.ticketNotifier,
+            builder: (context, listaMesasAtualizada, _) {
+              final mesaAtual = listaMesasAtualizada.firstWhere(
+                (m) => m.tkt_id == mesa.tkt_id,
+                orElse: () => mesa,
+              );
 
-                final bool isFechadaPaga =
-                    mesaAtual.tkt_tst_id ==
-                    id_ticketStatusList('Ticket closed (Paid)');
-                final bool isFechadaSemPag =
-                    mesaAtual.tkt_tst_id ==
-                    id_ticketStatusList('Ticket closed without payment');
-                final bool isFechada = isFechadaPaga || isFechadaSemPag;
-                final bool temConsumo = mesaAtual.totalConsumo > 0.01;
+              final bool isFechadaPaga =
+                  mesaAtual.tkt_tst_id == id_ticketStatusList('Ticket closed (Paid)');
+              final bool isFechadaSemPag =
+                  mesaAtual.tkt_tst_id == id_ticketStatusList('Ticket closed without payment');
+              final bool isFechada = isFechadaPaga || isFechadaSemPag;
+              final bool temConsumo = mesaAtual.totalConsumo > 0.01;
+              final bool temComprovante =
+                  mesaAtual.tkt_paiment_path != null && mesaAtual.tkt_paiment_path!.trim().isNotEmpty;
 
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  titlePadding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                  title: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.table_bar,
-                              color: isFechadaPaga
-                                  ? Colors.green
-                                  : (isFechadaSemPag
-                                        ? Colors.grey
-                                        : (mesaAtual.tkt_has_discount
-                                              ? Colors.amber
-                                              : Colors.indigoAccent)),
-                            ),
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                mesaAtual.tkt_table_number,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: isFechada
-                                      ? Colors.white54
-                                      : Colors.white,
-                                ),
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                titlePadding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.table_bar,
+                            color: isFechadaPaga
+                                ? Colors.green
+                                : (isFechadaSemPag
+                                    ? Colors.grey
+                                    : (mesaAtual.tkt_has_discount
+                                        ? Colors.amber
+                                        : Colors.indigoAccent)),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              mesaAtual.tkt_table_number,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isFechada ? Colors.white54 : Colors.white,
                               ),
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!isFechada && !widget.isReadOnly && temConsumo) ...[
+                      ElevatedButton.icon(
+                        onPressed: isLoading
+                            ? null
+                            : () {
+                                Navigator.pop(dialogContext);
+                                _mostrarDialogFecharComPagamento(mesaAtual);
+                              },
+                        icon: const Icon(Icons.attach_money, size: 16),
+                        label: const Text('Fechar e Pagar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade700,
+                          foregroundColor: Colors.white,
                         ),
                       ),
-                      if (!isFechada && !widget.isReadOnly && temConsumo) ...[
-                        ElevatedButton.icon(
-                          onPressed: isLoading
-                              ? null
-                              : () {
-                                  Navigator.pop(dialogContext);
-                                  _mostrarDialogFecharComPagamento(mesaAtual);
-                                },
-                          icon: const Icon(Icons.attach_money, size: 16),
-                          label: const Text('Fechar e Pagar'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green.shade700,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ],
                     ],
-                  ),
-
-                  content: SizedBox(
-                    width: 360,
-                    child: Stack(
-                      children: [
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.person_outline,
-                                  size: 16,
-                                  color: Colors.white70,
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    mesaAtual.tkt_client_name.toString(),
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: isFechada
-                                          ? Colors.white54
-                                          : Colors.white,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Divider(height: 20),
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(maxHeight: 220),
-                              child: mesaAtual.ticketsItems.isEmpty
-                                  ? const Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 24.0,
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          'Nenhum item consumido ainda.',
-                                          style: TextStyle(
-                                            color: Colors.white54,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  : ListView.separated(
-                                      shrinkWrap: true,
-                                      itemCount: mesaAtual.ticketsItems.length,
-                                      separatorBuilder: (_, _) =>
-                                          const Divider(height: 1),
-                                      itemBuilder: (context, idx) {
-                                        final item =
-                                            mesaAtual.ticketsItems[idx];
-                                        return Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 4.0,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      item.pdt_name.toString(),
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: isFechada
-                                                            ? Colors.white38
-                                                            : Colors.white,
-                                                      ),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                    Text(
-                                                      '${generalService.currencyMoneyBr(item.tit_value.toString())} (${generalService.currencyMoneyBr(item.tit_unit_value.toString())} un.)',
-                                                      style: const TextStyle(
-                                                        fontSize: 11,
-                                                        color: Colors.white54,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              if (!isFechada &&
-                                                  !widget.isReadOnly) ...[
-                                                IconButton(
-                                                  padding: EdgeInsets.zero,
-                                                  constraints:
-                                                      const BoxConstraints(),
-                                                  icon: Icon(
-                                                    item.tit_quantities > 1
-                                                        ? Icons
-                                                              .remove_circle_outline
-                                                        : Icons.delete_outline,
-                                                    color: Colors.redAccent,
-                                                    size: 20,
-                                                  ),
-                                                  onPressed: isLoading
-                                                      ? null
-                                                      : () async {
-                                                          if (item.tit_quantities >
-                                                              1) {
-                                                            await ticketController
-                                                                .updateTicketsItems(
-                                                                  item.tit_id
-                                                                      .toString(),
-                                                                  item.tit_quantities -
-                                                                      1,
-                                                                  widget
-                                                                      .openDate,
-                                                                  widget.hld_id,
-                                                                );
-                                                          } else {
-                                                            await ticketController
-                                                                .deleteTicketsItems(
-                                                                  item.tit_id
-                                                                      .toString(),
-                                                                  widget
-                                                                      .openDate,
-                                                                  widget.hld_id,
-                                                                );
-                                                          }
-                                                        },
-                                                ),
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8.0,
-                                                      ),
-                                                  child: Text(
-                                                    '${item.tit_quantities}',
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ),
-                                                IconButton(
-                                                  padding: EdgeInsets.zero,
-                                                  constraints:
-                                                      const BoxConstraints(),
-                                                  icon: const Icon(
-                                                    Icons.add_circle_outline,
-                                                    color: Colors.greenAccent,
-                                                    size: 20,
-                                                  ),
-                                                  onPressed: isLoading
-                                                      ? null
-                                                      : () async {
-                                                          await ticketController
-                                                              .updateTicketsItems(
-                                                                item.tit_id
-                                                                    .toString(),
-                                                                item.tit_quantities +
-                                                                    1,
-                                                                widget.openDate,
-                                                                widget.hld_id,
-                                                              );
-                                                        },
-                                                ),
-                                              ] else ...[
-                                                Text(
-                                                  '${item.tit_quantities}',
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    color: Colors.white54,
-                                                  ),
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    ),
-                            ),
-                            const Divider(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Total Parcial:',
+                  ],
+                ),
+                content: SizedBox(
+                  width: 360,
+                  child: Stack(
+                    children: [
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person_outline,
+                                size: 16,
+                                color: Colors.white70,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  mesaAtual.tkt_client_name.toString(),
                                   style: TextStyle(
                                     fontSize: 14,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w600,
+                                    color: isFechada ? Colors.white54 : Colors.white,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                Text(
-                                  generalService.currencyMoneyBr(
-                                    mesaAtual.totalConsumo.toString(),
-                                  ),
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.greenAccent,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                          ],
-                        ),
-
-                        if (isLoading)
-                          Positioned.fill(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.4),
-                                borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.indigoAccent,
+                            ],
+                          ),
+                          
+                          // 🟢 MENSAGEM / BOTÃO RÁPIDO SE A MESA ESTIVER PAGA
+                          if (isFechadaPaga) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.greenAccent.withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(Icons.check_circle, color: Colors.greenAccent, size: 18),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Conta Paga',
+                                        style: TextStyle(
+                                          color: Colors.greenAccent,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (temComprovante)
+                                    InkWell(
+                                      onTap: () => _mostrarComprovante(mesaAtual),
+                                      child: const Row(
+                                        children: [
+                                          Icon(Icons.receipt_long, color: Colors.amber, size: 16),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Ver Recibo',
+                                            style: TextStyle(
+                                              color: Colors.amber,
+                                              fontSize: 12,
+                                              decoration: TextDecoration.underline,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+
+                          const Divider(height: 20),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 200),
+                            child: mesaAtual.ticketsItems.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 24.0),
+                                    child: Center(
+                                      child: Text(
+                                        'Nenhum item consumido ainda.',
+                                        style: TextStyle(
+                                          color: Colors.white54,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    shrinkWrap: true,
+                                    itemCount: mesaAtual.ticketsItems.length,
+                                    separatorBuilder: (_, _) => const Divider(height: 1),
+                                    itemBuilder: (context, idx) {
+                                      final item = mesaAtual.ticketsItems[idx];
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    item.pdt_name.toString(),
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w500,
+                                                      color: isFechada ? Colors.white38 : Colors.white,
+                                                    ),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                  Text(
+                                                    '${generalService.currencyMoneyBr(item.tit_value.toString())} (${generalService.currencyMoneyBr(item.tit_unit_value.toString())} un.)',
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.white54,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            if (!isFechada && !widget.isReadOnly) ...[
+                                              IconButton(
+                                                padding: EdgeInsets.zero,
+                                                constraints: const BoxConstraints(),
+                                                icon: Icon(
+                                                  item.tit_quantities > 1
+                                                      ? Icons.remove_circle_outline
+                                                      : Icons.delete_outline,
+                                                  color: Colors.redAccent,
+                                                  size: 20,
+                                                ),
+                                                onPressed: isLoading
+                                                    ? null
+                                                    : () async {
+                                                        if (item.tit_quantities > 1) {
+                                                          await ticketController.updateTicketsItems(
+                                                            item.tit_id.toString(),
+                                                            item.tit_quantities - 1,
+                                                            widget.openDate,
+                                                            widget.hld_id,
+                                                          );
+                                                        } else {
+                                                          await ticketController.deleteTicketsItems(
+                                                            item.tit_id.toString(),
+                                                            widget.openDate,
+                                                            widget.hld_id,
+                                                          );
+                                                        }
+                                                      },
+                                              ),
+                                              Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                                child: Text(
+                                                  '${item.tit_quantities}',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                              IconButton(
+                                                padding: EdgeInsets.zero,
+                                                constraints: const BoxConstraints(),
+                                                icon: const Icon(
+                                                  Icons.add_circle_outline,
+                                                  color: Colors.greenAccent,
+                                                  size: 20,
+                                                ),
+                                                onPressed: isLoading
+                                                    ? null
+                                                    : () async {
+                                                        await ticketController.updateTicketsItems(
+                                                          item.tit_id.toString(),
+                                                          item.tit_quantities + 1,
+                                                          widget.openDate,
+                                                          widget.hld_id,
+                                                        );
+                                                      },
+                                              ),
+                                            ] else ...[
+                                              Text(
+                                                'x${item.tit_quantities}',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.white54,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                          ),
+                          const Divider(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Total:',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
                                 ),
+                              ),
+                              Text(
+                                generalService.currencyMoneyBr(
+                                  mesaAtual.totalConsumo.toString(),
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.greenAccent,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                      if (isLoading)
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.4),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.indigoAccent,
                               ),
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
-
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(dialogContext),
-                      child: const Text('Fechar'),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text('Fechar'),
+                  ),
+                  if (!isFechada && !widget.isReadOnly)
+                    ElevatedButton.icon(
+                      onPressed: isLoading
+                          ? null
+                          : () {
+                              Navigator.pop(dialogContext);
+                              _mostrarDialogLancarItem(mesaAtual);
+                            },
+                      icon: const Icon(Icons.add_shopping_cart, size: 16),
+                      label: const Text('Lançar Item'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white,
+                      ),
                     ),
-                    if (!isFechada && !widget.isReadOnly)
-                      ElevatedButton.icon(
-                        onPressed: isLoading
-                            ? null
-                            : () {
-                                Navigator.pop(dialogContext);
-                                _mostrarDialogLancarItem(mesaAtual);
-                              },
-                        icon: const Icon(Icons.add_shopping_cart, size: 16),
-                        label: const Text('Lançar Item'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo,
-                          foregroundColor: Colors.white,
-                        ),
+                  // 🟢 BOTÃO DE VER COMPROVANTE (CORRIGIDO ÍCONE E CONDIÇÃO)
+                  if (isFechadaPaga)
+                    ElevatedButton.icon(
+                      onPressed: isLoading
+                          ? null
+                          : () {
+                              Navigator.pop(dialogContext);
+                              _mostrarComprovante(mesaAtual);
+                            },
+                      icon: const Icon(Icons.receipt_long, size: 16), // 👈 Ícone de recibo
+                      label: Text(temComprovante ? 'Ver Comprovante' : 'Sem Comprovante'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: temComprovante ? Colors.indigo : Colors.grey.shade700,
+                        foregroundColor: Colors.white,
                       ),
-                    if (isFechada)
-                      ElevatedButton.icon(
-                        onPressed: isLoading
-                            ? null
-                            : () {
-                                Navigator.pop(dialogContext);
-                                _mostrarComprovante(mesaAtual);
-                              },
-                        icon: const Icon(Icons.add_shopping_cart, size: 16),
-                        label: const Text('Ver Comprovante'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
+                    ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    },
+  );
+}
 
   // DIÁLOGO PARA ADICIONAR NOVA MESA
   // ---------------------------------------------------------------------------
@@ -1259,14 +1251,12 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                   ),
                                 );
 
-                                // Envia para o Supabase e atualiza o ticketNotifier
                                 await ticketController.openTicketsFunction(
                                   tickets,
                                   widget.openDate,
                                   widget.hld_id,
                                 );
 
-                                // Fecha o diálogo se ainda estiver montado
                                 if (context.mounted) {
                                   Navigator.pop(dialogContext);
                                 }
@@ -1509,11 +1499,9 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                   final aAberta = a.tkt_tst_id == idAberto;
                                   final bAberta = b.tkt_tst_id == idAberto;
 
-                                  // 1. Coloca mesas abertas primeiro e fechadas depois
                                   if (aAberta && !bAberta) return -1;
                                   if (!aAberta && bAberta) return 1;
 
-                                  // 2. Ordenação secundária (por número/identificador da mesa)
                                   return (a.tkt_table_number ?? '').compareTo(
                                     b.tkt_table_number ?? '',
                                   );
@@ -1575,7 +1563,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                           final bool isFechada =
                                               isFechadaPaga || isFechadaSemPag;
 
-                                          // Cores dinâmicas para estado da mesa
                                           Color cardColor = Colors.indigo
                                               .withValues(alpha: 0.15);
                                           Color borderColor =
@@ -1628,7 +1615,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.start,
                                                   children: [
-                                                    // Topo
                                                     Row(
                                                       mainAxisAlignment:
                                                           MainAxisAlignment
@@ -1666,7 +1652,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                                       ],
                                                     ),
 
-                                                    // Nome do Cliente
                                                     Row(
                                                       children: [
                                                         Icon(
@@ -1728,7 +1713,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                                       ],
                                                     ),
 
-                                                    // Rodapé
                                                     Row(
                                                       mainAxisAlignment:
                                                           MainAxisAlignment
