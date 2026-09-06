@@ -268,7 +268,7 @@ class _CustomMonthCalendarState extends State<CustomMonthCalendar> {
                   ); // 🟢 Valida permissão de clique
 
                   return GestureDetector(
-                    onTap: isSelectable
+                    onTap: isSelectable || isToday
                         ? () {
                             setState(() {
                               _selectedDate = date;

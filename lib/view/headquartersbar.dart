@@ -235,6 +235,11 @@ class HeadquartersBarState extends State<HeadquartersBar> {
           ),
         ),
       );
+      if (mounted) {
+        setState(() {
+          _selectedDate = DateTime.now();
+        });
+      }
     }
   }
 }
