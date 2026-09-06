@@ -28,21 +28,28 @@ class TicketController extends ChangeNotifier {
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
 
-  // 🟢 Guardará o canal ativo do Supabase Realtime
-  RealtimeChannel? _realtimeChannel;
+  final ValueNotifier<List<TicketsModel>> profileTicketsNotifier =
+      ValueNotifier<List<TicketsModel>>([]);
 
-  // ==========================================
+  final ValueNotifier<List<TicketsModel>> profileTicketsWithItemsNotifier =
+      ValueNotifier<List<TicketsModel>>([]);
+
+  // 🟢 Canais do Supabase Realtime
+  RealtimeChannel? _realtimeChannel;
+  RealtimeChannel? _realtimeProfileChannel; // 👈 Canal dedicado para o perfil
+
   TicketController() {
     supabaseClient = mySupabaseClient.getSupabaseClient();
   }
 
-  // 🟢 INICIA A ESCUTA EM TEMPO REAL
+  // ==========================================
+  // 🟢 REALTIME DO BAR (VENDA DIÁRIA)
+  // ==========================================
   void initRealtime(String openDate, String hldId) {
     disposeRealtime();
 
     _realtimeChannel = supabaseClient
         .channel('public:tickets:$hldId:$openDate')
-        // 1. Escuta alterações em comanda/mesa (abrir, fechar, alterar status)
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
@@ -53,11 +60,9 @@ class TicketController extends ChangeNotifier {
             value: hldId,
           ),
           callback: (payload) {
-            // Atualiza em segundo plano sem disparar o loadingNotifier na tela
             loadTickets(openDate, hldId, showLoading: false);
           },
         )
-        // 2. Escuta alterações nos itens inseridos/alterados/deletados nas mesas
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
@@ -69,7 +74,6 @@ class TicketController extends ChangeNotifier {
         .subscribe();
   }
 
-  // 🟢 ENCERRA A ESCUTA DE EVENTOS
   void disposeRealtime() {
     if (_realtimeChannel != null) {
       supabaseClient.removeChannel(_realtimeChannel!);
@@ -77,6 +81,50 @@ class TicketController extends ChangeNotifier {
     }
   }
 
+  // ==========================================
+  // 🟢 REALTIME DO PERFIL DO USUÁRIO
+  // ==========================================
+  void initRealtimeProfile(String pflId, String hldId) {
+    disposeRealtimeProfile();
+
+    _realtimeProfileChannel = supabaseClient
+        .channel('public:tickets_profile:$hldId:$pflId')
+        // 1. Escuta alterações em tickets vinculados ao perfil selecionado
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'tickets',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'tkt_pfl_id',
+            value: pflId,
+          ),
+          callback: (payload) {
+            // Recarrega os dados em segundo plano sem piscar o loading na tela
+            loadTicketsByProfileWithItems(pflId, hldId, showLoading: false);
+          },
+        )
+        // 2. Escuta inclusão/alteração/remoção de itens em comandas
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'tickets_items',
+          callback: (payload) {
+            loadTicketsByProfileWithItems(pflId, hldId, showLoading: false);
+          },
+        )
+        .subscribe();
+  }
+
+  void disposeRealtimeProfile() {
+    if (_realtimeProfileChannel != null) {
+      supabaseClient.removeChannel(_realtimeProfileChannel!);
+      _realtimeProfileChannel = null;
+    }
+  }
+
+  // ==========================================
+  // MÉTODOS DE CARREGAMENTO DE DADOS
   // ==========================================
   Future<void> loadTicketStatus(String hldId) async {
     try {
@@ -101,8 +149,6 @@ class TicketController extends ChangeNotifier {
     }
   }
 
-  // ==========================================
-  // 🟢 Adicionado o parâmetro opcional showLoading para não travar a UI ao receber eventos realtime
   Future<void> loadTickets(String openDate, String hldId, {bool showLoading = true}) async {
     try {
       if (showLoading) loadingNotifier.value = true;
@@ -127,6 +173,62 @@ class TicketController extends ChangeNotifier {
     }
   }
 
+  // 🟢 CORRIGIDO: Removido o reset inicial (profileTicketsWithItemsNotifier.value = []) 
+  // para evitar o efeito de tela piscando durante atualizações realtime
+  Future<void> loadTicketsByProfileWithItems(
+    String pfl_id,
+    String hldId, {
+    bool showLoading = true,
+  }) async {
+    try {
+      if (showLoading) loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      final resposta = await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+            .from('vtickets')
+            .select('''*, vtickets_items(*)''')
+            .eq('tkt_pfl_id', pfl_id)
+            .eq('tkt_hld_id', hldId),
+      );
+
+      profileTicketsWithItemsNotifier.value = resposta
+          .map((item) => TicketsModel.fromJson(item))
+          .toList();
+    } catch (e, stackTrace) {
+      profileTicketsWithItemsNotifier.value = [];
+      errorNotifier.value =
+          ("TicketController::loadTicketsByProfileWithItems: $e \n$stackTrace");
+    } finally {
+      if (showLoading) loadingNotifier.value = false;
+    }
+  }
+
+  Future<void> loadTicketsByProfile(String pflId, String hldId) async {
+    try {
+      loadingNotifier.value = true;
+      
+      final resposta = await mySupabaseClient.safePostgrestCall(() =>
+        supabaseClient
+          .from('vtickets')
+          .select()
+          .eq('tkt_hld_id', hldId)
+          .eq('tkt_pfl_id', pflId)
+      );
+
+      profileTicketsNotifier.value = 
+          resposta.map((item) => TicketsModel.fromJson(item)).toList();
+
+    } catch (e, stackTrace) {
+      profileTicketsNotifier.value = [];
+      debugPrint("TicketController::loadTicketsByProfile: $e\n$stackTrace");
+    } finally {
+      loadingNotifier.value = false;
+    }
+  }
+
+  // ==========================================
+  // AÇÕES DO TICKET (INSERT, UPDATE, DELETE)
   // ==========================================
   Future<void> openTicketsFunction(
     TicketsModel openTickets,
@@ -159,7 +261,6 @@ class TicketController extends ChangeNotifier {
     }
   }
 
-  // ==========================================
   Future<void> closeTicketsWithoutPayment(
     String tktId,
     String tktTstId,
@@ -186,7 +287,6 @@ class TicketController extends ChangeNotifier {
     }
   }
 
-  // ==========================================
   Future<void> insertTicketsItems(
     TicketsItemsModel ticketsItems,
     String openDate,
@@ -210,7 +310,6 @@ class TicketController extends ChangeNotifier {
     }
   }
 
-  // ==========================================
   Future<void> updateTicketsItems(
     String tit_id,
     int tit_quantities,
@@ -237,7 +336,6 @@ class TicketController extends ChangeNotifier {
     }
   }
 
-  // ==========================================
   Future<void> deleteTicketsItems(
     String tit_id,
     String openDate,
@@ -262,5 +360,4 @@ class TicketController extends ChangeNotifier {
       loadTickets( openDate, hldId );
     }
   }
-
 }

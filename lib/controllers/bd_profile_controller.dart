@@ -197,4 +197,5 @@ class BdProfileController extends ChangeNotifier {
       loadingNotifier.value = false;
     }
   }
+
 }

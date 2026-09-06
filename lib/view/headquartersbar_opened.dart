@@ -493,21 +493,35 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                     ),
                     const SizedBox(height: 8),
                     SegmentedButton<String>(
+                      style: ButtonStyle(
+                        textStyle: WidgetStatePropertyAll(
+                          TextStyle(
+                            fontSize: 8, // 👈 Ajuste o tamanho da fonte aqui
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                       segments: const [
                         ButtonSegment(
                           value: 'Bebidas',
-                          label: Text('Bebidas'),
-                          icon: Icon(Icons.local_bar_outlined),
+                          // label: Text('Bebidas'),
+                          icon: Icon(Icons.sports_bar),
+
                         ),
                         ButtonSegment(
                           value: 'Drinks',
-                          label: Text('Drinks'),
-                          icon: Icon(Icons.local_cafe_outlined),
+                          // label: Text('Drinks'),
+                          icon: Icon(Icons.local_bar_outlined),
                         ),
                         ButtonSegment(
                           value: 'Porções',
-                          label: Text('Porções'),
+                          // label: Text('Porções'),
                           icon: Icon(Icons.restaurant_outlined),
+                        ),
+                        ButtonSegment(
+                          value: 'Outfit',
+                          // label: Text('Outfit'),
+                          icon: Icon(Icons.checkroom),
                         ),
                       ],
                       selected: {categoriaSelecionada},
@@ -534,7 +548,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                         decoration: const InputDecoration(
                           labelText: 'Produto',
                           border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.fastfood_outlined),
+                          // prefixIcon: Icon(Icons.fastfood_outlined),
                         ),
                         items: produtosFiltrados.map((prod) {
                           return DropdownMenuItem<ProductsModel>(

@@ -30,6 +30,10 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
 
   final ValueNotifier<MensalidadesModel?> monthlyPaymentsIndividual =
       ValueNotifier<MensalidadesModel?>(null);
+  
+  // 🟢 Notifier específico para o histórico do perfil selecionado
+  final ValueNotifier<List<MensalidadesModel>> monthlyPaymentsProfileNotifier =
+    ValueNotifier<List<MensalidadesModel>>([]);
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
@@ -359,5 +363,29 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       loadCurrentMonthlyPayment();
     }
   }
+// 🟢 Consulta no banco filtrando diretamente pelo mes_pfl_id
+Future<void> loadMonthlyPaymentsByProfile(String pflId, String hldId) async {
+  try {
+    loadingNotifier.value = true;
+    errorNotifier.value = null;
+
+    final resposta = await mySupabaseClient.safePostgrestCall(() =>
+      supabaseClient
+        .from('vmensalidades')
+        .select()
+        .eq('mes_hld_id', hldId)
+        .eq('mes_pfl_id', pflId)
+    );
+
+    monthlyPaymentsProfileNotifier.value = 
+        resposta.map((item) => MensalidadesModel.fromJson(item)).toList();
+
+  } catch (e, stackTrace) {
+    monthlyPaymentsProfileNotifier.value = [];
+    debugPrint("BdMonthlyPaymentsController::loadMonthlyPaymentsByProfile: $e\n$stackTrace");
+  } finally {
+    loadingNotifier.value = false;
+  }
+}
 
 }

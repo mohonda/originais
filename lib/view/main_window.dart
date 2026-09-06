@@ -247,17 +247,17 @@ class _MainWindow extends State<MainWindow> {
             
             onTap: () => _onItemTapped('headquartersbar', isMobile: isMobile),
           ),
-          SidebarXItem(
-            iconBuilder: (selected, hovered) {
-              return Icon(
-                Icons.subdirectory_arrow_right_rounded,
-                color: Colors.orangeAccent, 
-                size: 20,
-              );
-            },
-            label: '   Outfit',
-            onTap: () => _onItemTapped('monthlygeneration', isMobile: isMobile),
-          ),
+          // SidebarXItem(
+          //   iconBuilder: (selected, hovered) {
+          //     return Icon(
+          //       Icons.subdirectory_arrow_right_rounded,
+          //       color: Colors.orangeAccent, 
+          //       size: 20,
+          //     );
+          //   },
+          //   label: '   Outfit',
+          //   onTap: () => _onItemTapped('monthlygeneration', isMobile: isMobile),
+          // ),
         ],
 
         SidebarXItem(
