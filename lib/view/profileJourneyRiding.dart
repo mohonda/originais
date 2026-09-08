@@ -5,7 +5,16 @@ import 'package:originais/models/journeyriding_model.dart';
 import 'package:originais/services/general_service.dart';
 
 class ProfileJourneyRiding extends StatefulWidget {
-  const ProfileJourneyRiding({super.key});
+  final String? pflId;
+  final String? hldId;
+  final void Function(JourneyRidingModel)? onEdit;
+
+  const ProfileJourneyRiding({
+    super.key,
+    required this.pflId,
+    required this.hldId,
+    this.onEdit,
+  });
 
   @override
   State<ProfileJourneyRiding> createState() => _ProfileJourneyRidingState();
@@ -26,14 +35,38 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
         getItBdJourneyRidingController.get<BdJourneyRidingController>();
     profileController = getItBdProfileController<BdProfileController>();
 
-    pflId = profileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
-    hldId = profileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
+    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
+    
+    pflId = widget.pflId ?? pessoaLogada?.pfl_id?.toString() ?? '';
+    hldId = widget.hldId ?? pessoaLogada?.hld_id?.toString() ?? '';
 
-    _carregarJornada();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carregarJornada();
+    });
   }
 
   Future<void> _carregarJornada() async {
-    await controller.loadJourneyRidingDetais(pflId, hldId);
+    if (pflId.isEmpty) return;
+
+    await Future.wait([
+      controller.loadJourneyRidingDetais(pflId, hldId),
+      controller.loadJourneyRiding(hldId),
+    ]);
+  }
+
+  int _parseLevel(dynamic levelValue) {
+    if (levelValue == null) return 0;
+    final str = levelValue.toString().trim();
+    if (str.isEmpty) return 0;
+
+    final directInt = int.tryParse(str);
+    if (directInt != null) return directInt;
+
+    final directDouble = double.tryParse(str);
+    if (directDouble != null) return directDouble.toInt();
+
+    final onlyDigits = str.replaceAll(RegExp(r'[^0-9]'), '');
+    return int.tryParse(onlyDigits) ?? 0;
   }
 
   @override
@@ -50,51 +83,106 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
 
         return ValueListenableBuilder<List<JourneyRidingModel>>(
           valueListenable: controller.vProfileJourneyridingDetaisNotifier,
-          builder: (context, listaJornada, child) {
-            if (listaJornada.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Center(
-                  child: Text(
-                    'Nenhuma graduação ou etapa registrada para este perfil.',
-                    style: TextStyle(color: Colors.white54, fontSize: 13),
+          builder: (context, listaJornadaPerfil, child) {
+            return ValueListenableBuilder<List<JourneyRidingModel>>(
+              valueListenable: controller.bdJourneyRidingNotifier,
+              builder: (context, todasEtapas, child) {
+                if (listaJornadaPerfil.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(24.0),
+                    child: Center(
+                      child: Text(
+                        'Nenhuma graduação ou etapa registrada para este perfil.',
+                        style: TextStyle(color: Colors.white54, fontSize: 13),
+                      ),
+                    ),
+                  );
+                }
+
+                // 1. Identifica a graduação ATUAL pela data mais recente
+                final historicoPorData = List<JourneyRidingModel>.from(listaJornadaPerfil)
+                  ..sort((a, b) {
+                    final dateA = DateTime.tryParse(a.uj_promotion_date ?? '') ?? DateTime(1900);
+                    final dateB = DateTime.tryParse(b.uj_promotion_date ?? '') ?? DateTime(1900);
+                    final dateComp = dateB.compareTo(dateA);
+                    if (dateComp != 0) return dateComp;
+                    return _parseLevel(b.jr_level).compareTo(_parseLevel(a.jr_level));
+                  });
+
+                final graduacaoAtual = historicoPorData.first;
+                final int currentLevel = _parseLevel(graduacaoAtual.jr_level);
+
+                // 2. Ordena histórico do perfil por Nível (Decrescente)
+                final historicoOrdenado = List<JourneyRidingModel>.from(listaJornadaPerfil)
+                  ..sort((a, b) => _parseLevel(b.jr_level).compareTo(_parseLevel(a.jr_level)));
+
+                // 3. Ordena o catálogo global por Nível (Crescente)
+                final catalogoOrdenado = List<JourneyRidingModel>.from(todasEtapas)
+                  ..sort((a, b) => _parseLevel(a.jr_level).compareTo(_parseLevel(b.jr_level)));
+
+                // 4. Busca o IMEDIATO PRÓXIMO NÍVEL
+                JourneyRidingModel? proximoNivel;
+                for (var etapa in catalogoOrdenado) {
+                  final lvl = _parseLevel(etapa.jr_level);
+                  if (lvl > currentLevel) {
+                    proximoNivel = etapa;
+                    break;
+                  }
+                }
+
+                // SingleChildScrollView adicionado para evitar overflow com muitas promoções
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 📊 Resumo do Usuário
+                      _buildResumoJornada(
+                        lista: historicoOrdenado,
+                        proximoNivel: proximoNivel,
+                        catalogoCarregado: todasEtapas.isNotEmpty,
+                        isLoading: isLoading,
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // 🎯 Card de Destaque: Próximo Level
+                      if (proximoNivel != null) ...[
+                        _buildProximoNivelCard(
+                          proximo: proximoNivel,
+                          graduacaoAtual: graduacaoAtual,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      const Text(
+                        'Histórico de Graduações',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // 📋 Lista de Etapas Concluídas
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: historicoOrdenado.length,
+                        itemBuilder: (context, index) {
+                          final bool isAtual = historicoOrdenado[index].jr_id == graduacaoAtual.jr_id;
+                          return _buildJornadaCard(
+                            historicoOrdenado[index],
+                            isAtual,
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                ),
-              );
-            }
-
-            // Ordena os registros pela data de promoção (Mais recente primeiro)
-            final listaOrdenada = List<JourneyRidingModel>.from(listaJornada)
-              ..sort((a, b) {
-                // final dateA = DateTime.tryParse(a.uj_promotion_date ?? '') ?? DateTime(1970);
-                // final dateB = DateTime.tryParse(b.uj_promotion_date ?? '') ?? DateTime(1970);
-                final levelA = a.jr_level;
-                final levelB = b.jr_level;
-                return levelB.compareTo(levelA);
-              });
-
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 📊 Resumo do Usuário
-                  _buildResumoJornada(listaOrdenada),
-
-                  const SizedBox(height: 12),
-
-                  // 📋 Lista de Etapas da Jornada
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: listaOrdenada.length,
-                    itemBuilder: (context, index) {
-                      final bool isAtual = index == 0; // A mais recente é a graduação atual
-                      return _buildJornadaCard(listaOrdenada[index], isAtual);
-                    },
-                  ),
-                ],
-              ),
+                );
+              },
             );
           },
         );
@@ -103,18 +191,28 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
   }
 
   // 📊 Card de Resumo da Jornada
-  Widget _buildResumoJornada(List<JourneyRidingModel> lista) {
+  Widget _buildResumoJornada({
+    required List<JourneyRidingModel> lista,
+    required JourneyRidingModel? proximoNivel,
+    required bool catalogoCarregado,
+    required bool isLoading,
+  }) {
     final int totalEtapas = lista.length;
-    final JourneyRidingModel? graduacaoAtual = lista.isNotEmpty ? lista.first : null;
+    final JourneyRidingModel? graduacaoAtual =
+        lista.isNotEmpty ? lista.first : null;
 
-    final String nomeGraduacaoAtual = graduacaoAtual?.jr_nome ??
+    final String nomeGraduacaoAtual =
         graduacaoAtual?.jr_nome ??
-        graduacaoAtual?.jr_level ??
-        'N/A';
+        (graduacaoAtual?.jr_level != null ? 'Lvl ${graduacaoAtual!.jr_level}' : 'N/A');
 
-    final String dataUltimaPromocao = graduacaoAtual?.uj_promotion_date != null
-        ? generalService.formatarDataBr(graduacaoAtual!.uj_promotion_date!)
-        : 'N/A';
+    final String nomeProximaGraduacao;
+    if (proximoNivel != null) {
+      nomeProximaGraduacao = proximoNivel.jr_nome ?? 'Lvl ${_parseLevel(proximoNivel.jr_level)}';
+    } else if (isLoading || (!catalogoCarregado && totalEtapas > 0)) {
+      nomeProximaGraduacao = 'Carregando...';
+    } else {
+      nomeProximaGraduacao = 'Nível Máximo';
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -126,11 +224,25 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildResumoColumn('Total Etapas', '$totalEtapas', Colors.white70),
+          Expanded(
+            child: _buildResumoColumn('Total Etapas', '$totalEtapas', Colors.white70),
+          ),
           Container(height: 24, width: 1, color: Colors.white24),
-          _buildResumoColumn('Graduação Atual', nomeGraduacaoAtual, Colors.greenAccent),
+          Expanded(
+            child: _buildResumoColumn(
+              'Graduação Atual',
+              nomeGraduacaoAtual,
+              Colors.greenAccent,
+            ),
+          ),
           Container(height: 24, width: 1, color: Colors.white24),
-          _buildResumoColumn('Última Promoção', dataUltimaPromocao, Colors.indigoAccent),
+          Expanded(
+            child: _buildResumoColumn(
+              'Próximo Level',
+              nomeProximaGraduacao,
+              proximoNivel != null ? Colors.amberAccent : Colors.cyanAccent,
+            ),
+          ),
         ],
       ),
     );
@@ -141,14 +253,20 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
       children: [
         Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 11, color: Colors.white54),
         ),
         const SizedBox(height: 2),
         Text(
           value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 14,
+            fontSize: 13,
             color: color,
           ),
         ),
@@ -156,10 +274,212 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
-  // 📋 Card Individual da Promoção / Graduação
+  // 🎯 Card de Próximo Nível
+  Widget _buildProximoNivelCard({
+    required JourneyRidingModel proximo,
+    required JourneyRidingModel? graduacaoAtual,
+  }) {
+    final String nome = proximo.jr_nome ?? 'Próxima Graduação';
+    final String nivel = proximo.jr_level?.toString() ?? '';
+
+    final String? promoDateStr = graduacaoAtual?.uj_promotion_date;
+    final DateTime? promoDate =
+        promoDateStr != null ? DateTime.tryParse(promoDateStr) : null;
+    final int minDays = _parseLevel(graduacaoAtual?.jr_minimum_time_indays);
+
+    DateTime? dataElegivel;
+    int? diasRestantes;
+
+    if (promoDate != null && minDays > 0) {
+      dataElegivel = promoDate.add(Duration(days: minDays));
+      final hoje = DateTime.now();
+      final hojeDataApenas = DateTime(hoje.year, hoje.month, hoje.day);
+      final elegivelDataApenas = DateTime(
+        dataElegivel.year,
+        dataElegivel.month,
+        dataElegivel.day,
+      );
+      diasRestantes = elegivelDataApenas.difference(hojeDataApenas).inDays;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.amber.withValues(alpha: 0.15),
+            Colors.orange.withValues(alpha: 0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.amber.withValues(alpha: 0.4),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.stars_rounded,
+                  color: Colors.amberAccent,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'PRÓXIMO OBJETIVO',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amberAccent,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        if (nivel.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Lvl $nivel',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      nome,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildBadgeContagemRegressiva(diasRestantes),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: Colors.white12),
+          const SizedBox(height: 10),
+
+          if (minDays > 0) ...[
+            _buildInfoLinhaProgresso(
+              'Tempo Mínimo Exigido:',
+              '$minDays dias no nível atual',
+            ),
+            if (dataElegivel != null) ...[
+              const SizedBox(height: 4),
+              _buildInfoLinhaProgresso(
+                'Elegível a partir de:',
+                generalService.formatarDataBr(dataElegivel.toIso8601String()),
+              ),
+            ],
+          ] else ...[
+            const Text(
+              'Sem tempo mínimo de permanência exigido para a promoção.',
+              style: TextStyle(fontSize: 11, color: Colors.white54),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBadgeContagemRegressiva(int? diasRestantes) {
+    if (diasRestantes == null) return const SizedBox.shrink();
+
+    final bool isApto = diasRestantes <= 0;
+    final String textoBadge =
+        isApto ? 'APTO / CONCLUÍDO' : 'Faltam $diasRestantes dia(s)';
+    final Color corBase = isApto ? Colors.greenAccent : Colors.orangeAccent;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: corBase.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: corBase.withValues(alpha: 0.6), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isApto ? Icons.check_circle_outline : Icons.timer_outlined,
+            size: 13,
+            color: corBase,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            textoBadge,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: corBase,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoLinhaProgresso(String rotulo, String valor) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          rotulo,
+          style: const TextStyle(fontSize: 11, color: Colors.white54),
+        ),
+        Text(
+          valor,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: Colors.white70,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildJornadaCard(JourneyRidingModel etapa, bool isAtual) {
-    final String tituloEtapa = etapa.jr_nome ?? etapa.jr_nome ?? 'Graduação / Etapa';
-    final String dataPromocao = generalService.formatarDataBr(etapa.uj_promotion_date ?? '');
+    final String tituloEtapa = etapa.jr_nome ?? 'Graduação / Etapa';
+    final String dataPromocao = generalService.formatarDataBr(
+      etapa.uj_promotion_date ?? '',
+    );
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6.0),
@@ -175,7 +495,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Icon(
           Icons.military_tech_outlined,
-          color: isAtual ? Colors.amberAccent : Colors.indigoAccent,
+          color: isAtual ? Colors.greenAccent : Colors.indigoAccent,
         ),
         title: Row(
           children: [
@@ -190,6 +510,12 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
               ),
             ),
             const SizedBox(width: 8),
+            if (widget.onEdit != null)
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.orange, size: 20),
+                tooltip: 'Editar Nível',
+                onPressed: () => widget.onEdit!(etapa),
+              ),
             _buildStatusBadge(isAtual),
           ],
         ),
@@ -209,8 +535,19 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildInfoRow('Etapa / Graduação:', tituloEtapa),
+                if (etapa.jr_level != null) ...[
+                  const SizedBox(height: 6),
+                  _buildInfoRow('Nível:', '${etapa.jr_level}'),
+                ],
                 const SizedBox(height: 6),
                 _buildInfoRow('Data da Promoção:', dataPromocao),
+                if (etapa.jr_minimum_time_indays != null) ...[
+                  const SizedBox(height: 6),
+                  _buildInfoRow(
+                    'Tempo Mínimo Exigido:',
+                    '${etapa.jr_minimum_time_indays} dias',
+                  ),
+                ],
                 if (etapa.jr_desc != null && etapa.jr_desc!.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   _buildInfoRow('Observações:', etapa.jr_desc!),
@@ -248,7 +585,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
-  // 🏷️ Badge de Status
   Widget _buildStatusBadge(bool isAtual) {
     final String label = isAtual ? 'ATUAL' : 'CONCLUÍDA';
     final Color color = isAtual ? Colors.greenAccent : Colors.white38;
@@ -273,4 +609,5 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
       ),
     );
   }
+
 }

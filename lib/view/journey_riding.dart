@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:originais/view/itens_form.dart';
 import 'package:originais/controllers/bd_journeyriding_controller.dart';
 import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/controllers/bd_profile_controller.dart';
 
 class JourneyRiding extends StatefulWidget {
   const JourneyRiding({super.key});
@@ -14,11 +15,20 @@ class JourneyRiding extends StatefulWidget {
 class JourneyRidingState extends State<JourneyRiding> {
   final bdJourneyRidingController =
       getItBdJourneyRidingController<BdJourneyRidingController>();
+  
+  final bdProfileController = getItBdProfileController<BdProfileController>();
+
+  late String pflId = '';
+  late String hldId = '';
+
 
   // ==========================================
   @override
   void initState() {
     super.initState();
+
+    pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
+    hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
   }
 
   // ==========================================
@@ -113,7 +123,9 @@ class JourneyRidingState extends State<JourneyRiding> {
                       }
 
                       return RefreshIndicator(
-                        onRefresh: bdJourneyRidingController.loadJourneyRiding,
+                        onRefresh: () async {
+                          await bdJourneyRidingController.loadJourneyRiding(hldId);
+                        },
                         color: Colors.green,
                         child: itens.isEmpty
                             ? _buildEmptyState()
@@ -165,7 +177,9 @@ class JourneyRidingState extends State<JourneyRiding> {
           ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
-            onPressed: bdJourneyRidingController.loadJourneyRiding,
+            onPressed: () async {
+              await bdJourneyRidingController.loadJourneyRiding(hldId);
+            },
             icon: const Icon(Icons.refresh),
             label: const Text('Tentar novamente'),
           ),

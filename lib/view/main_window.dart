@@ -70,7 +70,7 @@ class _MainWindow extends State<MainWindow> {
 
     bdProfileController.loadProfiles( hld_id );
     
-    bdJourneyRidingController.loadJourneyRiding();
+    bdJourneyRidingController.loadJourneyRiding( hld_id );
     
     bdMonthlyPaymentsController.loadCurrentMonthlyPayment();
 

@@ -286,7 +286,7 @@ class _ProfileState extends State<Profile> {
         return ProfileSanctions();
       
       case 'Journey of the Riding':
-        return ProfileJourneyRiding();
+        return ProfileJourneyRiding(pflId: idController.text, hldId: hld_id);
       
       case 'Associate Status':
         return ProfileAssociateStatus();

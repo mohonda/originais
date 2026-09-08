@@ -19,7 +19,6 @@ class BdJourneyRidingController extends ChangeNotifier {
   final ValueNotifier<List<JourneyRidingModel>> bdJourneyRidingNotifier =
     ValueNotifier<List<JourneyRidingModel>>([]);
 
-  
   final ValueNotifier<List<JourneyRidingModel>> vProfileJourneyridingDetaisNotifier =
     ValueNotifier<List<JourneyRidingModel>>([]);
 
@@ -32,15 +31,16 @@ class BdJourneyRidingController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadJourneyRiding() async {
+  Future<void> loadJourneyRiding( String hld_id ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
       final resposta = await mySupabaseClient.safePostgrestCall(()=>
         supabaseClient
-        .from('v_journey_riding')
+        .from( 'v_journey_riding' )
         .select()
+        .eq( 'jr_hld_id', hld_id )
     );
       
         bdJourneyRidingNotifier.value = resposta.map( ( item ) =>
@@ -166,72 +166,5 @@ class BdJourneyRidingController extends ChangeNotifier {
       loadJourneyRidingDetais(ujPflId, ujHldId);
     }
   }
-
-  // ==========================================
-  // Future<void> saveItem(String name) async {
-  //   try {
-  //     loadingNotifier.value = true;
-  //     errorNotifier.value = null;
-
-  //     final newItem = JourneyRidingModel( id: DateTime.now().toString(), nome: name );
-
-  //     await supabaseClient
-  //       .from('itens')
-  //       .update({ 'nome': newItem.nome })
-  //       .eq( 'id', newItem.id ); 
-
-  //     itensNotifier.value.add(newItem);
-
-  //   } catch (e, stackTrace) {
-  //     itensNotifier.value = [];
-  //     errorNotifier.value = ("BdItemController::loadItems: $e \n$stackTrace");
-  //   } finally {
-  //     loadingNotifier.value = false;
-  //   }
-  // }
-
-    // ==========================================
-  // Future<void> updateItem(String id, String name) async {
-  //   try {
-  //     loadingNotifier.value = true;
-  //     errorNotifier.value = null;
-
-  //     final index = itensNotifier.value.indexWhere( (item) => item.id == id );
-
-  //     if (index != -1) {
-  //       await supabaseClient
-  //         .from('itens')  
-  //         .update({ 'nome': name })
-  //         .eq( 'id', id ); 
-
-  //       itensNotifier.value[index].nome = name;
-  //     }
-  //   } catch (e, stackTrace) {
-  //     itensNotifier.value = [];
-  //     errorNotifier.value = ("BdItemController::updateItem: $e \n$stackTrace");
-  //   } finally {
-  //     loadingNotifier.value = false;
-  //   }
-  // }
-
-  // ==========================================
-  // Future<void> deleteItem(String id) async {
-  //   try {
-  //     loadingNotifier.value = true;
-  //     errorNotifier.value = null;
-
-  //     await supabaseClient.from( 'itens' )
-  //       .delete()
-  //       .eq( 'id', id );
-
-  //     itensNotifier.value.removeWhere( (item) => item.id == id );
-
-  //   } catch (e, stackTrace) {
-  //     itensNotifier.value = [];
-  //     errorNotifier.value = ("BdItemController::updateItem: $e \n$stackTrace");
-  //   } finally {
-  //     loadingNotifier.value = false;
-  //   }    
-  // }
 
 }

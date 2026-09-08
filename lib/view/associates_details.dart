@@ -1,32 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:originais/models/vprofile_model.dart';
-import 'package:originais/models/journeyriding_model.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/controllers/bd_journeyriding_controller.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/controllers/bd_vprofile_associatestatus_controller.dart';
 import 'package:originais/controllers/bd_vprofiles_sanctions_controller.dart';
+import 'package:originais/controllers/bd_vexecutive_committee_termofoffice_members_controller.dart';
 import 'package:originais/models/vprofile_associatestatus_model.dart';
 import 'package:originais/models/vprofiles_sanctions_model.dart';
 import 'package:originais/models/vexecutive_committee_termofoffice_members_model.dart';
-import 'package:originais/controllers/bd_vexecutive_committee_termofoffice_members_controller.dart';
-import 'package:originais/view/associates_profile_journeyriding.dart';
+
+// Importe o novo componente criado
+import 'package:originais/view/associatesJourneyRidingSection.dart';
 
 class AssociatesDetails extends StatefulWidget {
   final VProfileModel itemAtual;
 
   const AssociatesDetails({super.key, required this.itemAtual});
 
-  // ==========================================
   @override
   State<AssociatesDetails> createState() => AssociatesDetailsState();
 }
 
 class AssociatesDetailsState extends State<AssociatesDetails> {
-  final bdJourneyRidingController =
-      getItBdJourneyRidingController<BdJourneyRidingController>();
-
   final bdVProfileAssociateStatusController =
       getItBdVProfileAssociateStatusController<
         BdVProfileAssociateStatusController
@@ -51,13 +47,11 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
   final ValueNotifier<bool> isObscurePassword1 = ValueNotifier<bool>(true);
   final ValueNotifier<bool> isObscurePassword2 = ValueNotifier<bool>(true);
 
-  final ScrollController _journeyScrollController = ScrollController();
   final ScrollController _associateStatusScrollController = ScrollController();
   final ScrollController _sanctionScrollController = ScrollController();
   final ScrollController _executiveCommiteeScrollController =
       ScrollController();
 
-  // ==========================================
   @override
   void initState() {
     idController.text = widget.itemAtual.pfl_id.toString();
@@ -67,20 +61,15 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
     super.initState();
   }
 
-  // ==========================================
   @override
   void dispose() {
-    _journeyScrollController.dispose(); // Lembre-se de liberar o controller
-    _associateStatusScrollController
-        .dispose(); // Lembre-se de liberar o controller
-    _sanctionScrollController.dispose(); // Lembre-se de liberar o controller
-    _executiveCommiteeScrollController
-        .dispose(); // Lembre-se de liberar o controller
+    _associateStatusScrollController.dispose();
+    _sanctionScrollController.dispose();
+    _executiveCommiteeScrollController.dispose();
 
     super.dispose();
   }
 
-  // ==========================================
   @override
   Widget build(BuildContext context) {
     const double distance = 16.0;
@@ -143,7 +132,10 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           const SizedBox(height: distance),
-                          journeyRidingTable(),
+                          // Substituto isolado da tabela de jornada
+                          AssociatesJourneyRidingSection(
+                            itemAtual: widget.itemAtual,
+                          ),
                           const SizedBox(height: distance),
                           associateStatusTable(),
                           const SizedBox(height: distance),
@@ -177,241 +169,10 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
   }
 
   // ==========================================
-  Widget journeyRidingTable() {
-    return InputDecorator(
-      decoration: const InputDecoration(
-        labelText: 'Journey of the Riding',
-        // prefixIcon: Icon(Icons.stars),
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.all(12),
-      ),
-      child: ValueListenableBuilder<List<JourneyRidingModel>?>(
-        valueListenable:
-            bdJourneyRidingController.vProfileJourneyridingDetaisNotifier,
-        builder: (context, historyList, child) {
-          final bool temItens = historyList != null && historyList.isNotEmpty;
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 1. ÁREA DOS CARDS / LISTA
-              if (!temItens)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12.0),
-                  child: Text(
-                    'Nenhum registro encontrado.',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                )
-              else
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 280),
-                  child: Scrollbar(
-                    controller:
-                        _journeyScrollController, // <--- PASSE O CONTROLLER AQUI
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
-                      controller:
-                          _journeyScrollController, // <--- PASSE O CONTROLLER AQUI
-                      scrollDirection: Axis.vertical,
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: historyList.map((item) {
-                          final String nome = item.jr_nome.toString() ?? '-';
-                          final String nivel = item.jr_level.toString() ?? '-';
-                          final String data = generalService.formatarDataBr(
-                            item.uj_promotion_date.toString(),
-                          );
-
-                          return Card(
-                            elevation: 2,
-                            margin: const EdgeInsets.only(bottom: 8.0),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12.0,
-                                vertical: 8.0,
-                              ),
-                              child: Row(
-                                children: [
-                                  // Informações do Nível
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          nome,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Nível: $nivel - Data: $data',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white70,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // 2. BOTÃO DE EDITAR NO LADO DIREITO
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.edit,
-                                      color: Colors.orange,
-                                    ),
-                                    tooltip: 'Editar',
-                                    // onPressed: () {
-                                    //   _associatesProfileJourneyRiding(
-                                    //     item,
-                                    //     bdJourneyRidingController
-                                    //         .vProfileJourneyridingDetaisNotifier
-                                    //         .value
-                                    //         .last
-                                    //         .jr_level
-                                    //         .toString(),
-                                    //     context,
-                                    //     false,
-                                    //   );
-                                    // },
-                                    onPressed: () {
-                                      // 1. Obtém a lista atual
-                                      final listDetails = bdJourneyRidingController
-                                          .vProfileJourneyridingDetaisNotifier
-                                          .value;
-
-                                      // 2. Verifica se está vazia: se sim, usa '0'; se não, pega o jr_level do último item
-                                      final String level = listDetails.isEmpty
-                                          ? '0'
-                                          : (listDetails.last.jr_level.toString() ?? '0');
-
-                                      // 3. Executa a função passando o nível calculado
-                                      _associatesProfileJourneyRiding(
-                                        item,
-                                        level,
-                                        context,
-                                        false,
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-                ),
-
-              const SizedBox(height: 4),
-
-              // 3. BOTÃO DE ADICIONAR NO CANTO INFERIOR DIREITO
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () {
-                    // 1. Obtém a lista atual
-                    final listDetails = bdJourneyRidingController
-                        .vProfileJourneyridingDetaisNotifier
-                        .value;
-
-                    // 2. Verifica se está vazia: se sim, usa '0'; se não, pega o jr_level do último item
-                    final String level = listDetails.isEmpty
-                        ? '0'
-                        : (listDetails.last.jr_level.toString() ?? '0');
-
-                    // 3. Executa a função passando o nível calculado
-                    _associatesProfileJourneyRiding(
-                      newJourneyRidingModel(),
-                      level,
-                      context,
-                      true,
-                    );
-                  },
-                  icon: const Icon(Icons.add_circle_outline, size: 20),
-                  label: const Text('Add Journey...'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.indigo,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  // ==========================================
-  JourneyRidingModel newJourneyRidingModel() {
-    final JourneyRidingModel localJourneyRidingModel = JourneyRidingModel(
-      pfl_id: widget.itemAtual.pfl_id,
-      pfl_full_name: widget.itemAtual.pfl_full_name,
-      hld_id: widget.itemAtual.hld_id,
-      hld_name: widget.itemAtual.hld_name,
-      jr_id: '',
-      jr_desc: '',
-      jr_id_precursory: '',
-      jr_level: '',
-      jr_minimum_time_indays: '',
-      jr_nome: '',
-      uj_id: '',
-      uj_promotion_date: '',
-    );
-    return localJourneyRidingModel;
-  }
-
-  // ==========================================
-  Future<void> _associatesProfileJourneyRiding(
-    JourneyRidingModel journeyRidingModel,
-    String lastLevel,
-    BuildContext context,
-    bool isNew,
-  ) async {
-    try {
-      await bdJourneyRidingController.loadJourneyRiding();
-      
-      if ( !isNew ){
-        int tmp = int.parse(lastLevel.toString());
-        if (tmp>0) tmp--;
-        lastLevel = tmp.toString();
-      }
-
-      // Abre a tela somente após carregar os dados com sucesso
-      if (context.mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AssociatesProfileJourneyRiding(
-              itemAtual: journeyRidingModel,
-              lastLevel: lastLevel,
-              isNew: isNew,
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('monthlyPaymentsIndividual error: $e');
-    }
-  }
-
-  // ==========================================
   Widget associateStatusTable() {
     return InputDecorator(
       decoration: const InputDecoration(
         labelText: 'Associate Status',
-        // prefixIcon: Icon(Icons.stars),
         border: OutlineInputBorder(),
         contentPadding: EdgeInsets.all(12),
       ),
@@ -425,7 +186,6 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 1. ÁREA DOS CARDS / LISTA
               if (!temItens)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12.0),
@@ -438,20 +198,18 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 280),
                   child: Scrollbar(
-                    controller:
-                        _associateStatusScrollController, // <--- PASSE O CONTROLLER AQUI
+                    controller: _associateStatusScrollController,
                     thumbVisibility: true,
                     child: SingleChildScrollView(
-                      controller:
-                          _associateStatusScrollController, // <--- PASSE O CONTROLLER AQUI
+                      controller: _associateStatusScrollController,
                       scrollDirection: Axis.vertical,
                       padding: const EdgeInsets.only(right: 8.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: historyList.map((item) {
-                          final String status = item.as_desc.toString() ?? '-';
+                          final String status = item.as_desc.toString();
                           final String percent =
-                              item.pas_monthly_percent.toString() ?? '-';
+                              item.pas_monthly_percent.toString();
                           final String data = generalService.formatarDataBr(
                             item.pas_date.toString(),
                           );
@@ -465,7 +223,6 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                               ),
                               child: Row(
                                 children: [
-                                  // Informações do Nível
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -495,17 +252,13 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                                       ],
                                     ),
                                   ),
-
-                                  // 2. BOTÃO DE EDITAR NO LADO DIREITO
                                   IconButton(
                                     icon: const Icon(
                                       Icons.edit,
                                       color: Colors.orange,
                                     ),
                                     tooltip: 'Editar',
-                                    onPressed: () {
-                                      // Adicione a ação de editar este 'item'
-                                    },
+                                    onPressed: () {},
                                   ),
                                 ],
                               ),
@@ -519,13 +272,10 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
 
               const SizedBox(height: 4),
 
-              // 3. BOTÃO DE ADICIONAR NO CANTO INFERIOR DIREITO
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
-                  onPressed: () {
-                    // Adicione a ação de criar um novo nível
-                  },
+                  onPressed: () {},
                   icon: const Icon(Icons.add_circle_outline, size: 20),
                   label: const Text('Adicionar Nível'),
                   style: TextButton.styleFrom(
@@ -550,7 +300,6 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
     return InputDecorator(
       decoration: const InputDecoration(
         labelText: 'Sanctions',
-        // prefixIcon: Icon(Icons.stars),
         border: OutlineInputBorder(),
         contentPadding: EdgeInsets.all(12),
       ),
@@ -564,7 +313,6 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 1. ÁREA DOS CARDS / LISTA
               if (!temItens)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12.0),
@@ -577,21 +325,17 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 280),
                   child: Scrollbar(
-                    controller:
-                        _sanctionScrollController, // <--- PASSE O CONTROLLER AQUI
+                    controller: _sanctionScrollController,
                     thumbVisibility: true,
                     child: SingleChildScrollView(
-                      controller:
-                          _sanctionScrollController, // <--- PASSE O CONTROLLER AQUI
+                      controller: _sanctionScrollController,
                       scrollDirection: Axis.vertical,
                       padding: const EdgeInsets.only(right: 8.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: historyList.map((item) {
-                          final String sanName =
-                              item.san_name.toString() ?? '-';
-                          final String psanDesc =
-                              item.psan_desc.toString() ?? '-';
+                          final String sanName = item.san_name.toString();
+                          final String psanDesc = item.psan_desc.toString();
 
                           final String psanValue = generalService
                               .currencyMoneyBr(item.psan_valor);
@@ -623,7 +367,6 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                               ),
                               child: Row(
                                 children: [
-                                  // Informações do Nível
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -647,17 +390,13 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                                       ],
                                     ),
                                   ),
-
-                                  // 2. BOTÃO DE EDITAR NO LADO DIREITO
                                   IconButton(
                                     icon: const Icon(
                                       Icons.edit,
                                       color: Colors.orange,
                                     ),
                                     tooltip: 'Editar',
-                                    onPressed: () {
-                                      // Adicione a ação de editar este 'item'
-                                    },
+                                    onPressed: () {},
                                   ),
                                 ],
                               ),
@@ -671,13 +410,10 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
 
               const SizedBox(height: 4),
 
-              // 3. BOTÃO DE ADICIONAR NO CANTO INFERIOR DIREITO
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
-                  onPressed: () {
-                    // Adicione a ação de criar um novo nível
-                  },
+                  onPressed: () {},
                   icon: const Icon(Icons.add_circle_outline, size: 20),
                   label: const Text('Adicionar Nível'),
                   style: TextButton.styleFrom(
@@ -701,11 +437,11 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
     return InputDecorator(
       decoration: const InputDecoration(
         labelText: 'Executive Committee',
-        // prefixIcon: Icon(Icons.stars),
         border: OutlineInputBorder(),
         contentPadding: EdgeInsets.all(12),
       ),
-      child: ValueListenableBuilder<List<VExecutiveCommitteeTermOfOfficeMembersModel>?>(
+      child: ValueListenableBuilder<
+          List<VExecutiveCommitteeTermOfOfficeMembersModel>?>(
         valueListenable: bdVExecutiveCommitteeTermOfOfficeMembersController
             .vExecutiveCommitteeTermOfOfficeMembersNotifier,
         builder: (context, historyList, child) {
@@ -715,7 +451,6 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 1. ÁREA DOS CARDS / LISTA
               if (!temItens)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12.0),
@@ -728,22 +463,18 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 280),
                   child: Scrollbar(
-                    controller:
-                        _executiveCommiteeScrollController, // <--- PASSE O CONTROLLER AQUI
+                    controller: _executiveCommiteeScrollController,
                     thumbVisibility: true,
                     child: SingleChildScrollView(
-                      controller:
-                          _executiveCommiteeScrollController, // <--- PASSE O CONTROLLER AQUI
+                      controller: _executiveCommiteeScrollController,
                       scrollDirection: Axis.vertical,
                       padding: const EdgeInsets.only(right: 8.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: historyList.map((item) {
-                          final String diretoria =
-                              item.ect_name.toString() ?? '-';
-                          final String cargo = item.ecm_name.toString() ?? '-';
-                          final String motivo = item.ectm_motivo_saida
-                              .toString();
+                          final String diretoria = item.ect_name.toString();
+                          final String cargo = item.ecm_name.toString();
+                          final String motivo = item.ectm_motivo_saida.toString();
                           final String dataStart = generalService
                               .formatarDataBr(item.ectm_date_start.toString());
                           final String dataEnd = generalService.formatarDataBr(
@@ -760,7 +491,6 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                               ),
                               child: Row(
                                 children: [
-                                  // Informações do Nível
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -775,7 +505,7 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          motivo.toString().isNotEmpty
+                                          motivo.isNotEmpty
                                               ? 'Diretoria: $diretoria - Data: $dataStart até $dataEnd \nDescrição: $motivo'
                                               : 'Diretoria: $diretoria - Data: $dataStart até $dataEnd',
                                           style: TextStyle(
@@ -788,18 +518,6 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                                       ],
                                     ),
                                   ),
-
-                                  // 2. BOTÃO DE EDITAR NO LADO DIREITO
-                                  // IconButton(
-                                  //   icon: const Icon(
-                                  //     Icons.edit,
-                                  //     color: Colors.orange,
-                                  //   ),
-                                  //   tooltip: 'Editar',
-                                  //   onPressed: () {
-                                  //     // Adicione a ação de editar este 'item'
-                                  //   },
-                                  // ),
                                 ],
                               ),
                             ),
@@ -809,27 +527,6 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                     ),
                   ),
                 ),
-
-              // const SizedBox(height: 4),
-
-              // // 3. BOTÃO DE ADICIONAR NO CANTO INFERIOR DIREITO
-              // Align(
-              //   alignment: Alignment.centerRight,
-              //   child: TextButton.icon(
-              //     onPressed: () {
-              //       // Adicione a ação de criar um novo nível
-              //     },
-              //     icon: const Icon(Icons.add_circle_outline, size: 20),
-              //     label: const Text('Adicionar Nível'),
-              //     style: TextButton.styleFrom(
-              //       foregroundColor: Colors.indigo,
-              //       padding: const EdgeInsets.symmetric(
-              //         horizontal: 12,
-              //         vertical: 8,
-              //       ),
-              //     ),
-              //   ),
-              // ),
             ],
           );
         },
