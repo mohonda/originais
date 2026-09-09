@@ -1,10 +1,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:originais/models/vprofiles_sanctions_model.dart';
+import 'package:originais/models/profiles_sanctions_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
-import 'package:originais/models/sanctionModel.dart';
+import 'package:originais/models/sanction_model.dart';
 
 final getItBdVProfilesSanctionsController = GetIt.instance;
 

@@ -3,13 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/models/custom_app_bar.dart';
-import 'package:originais/controllers/bd_vprofile_associatestatus_controller.dart';
-import 'package:originais/controllers/bd_vprofiles_sanctions_controller.dart';
-import 'package:originais/controllers/bd_vexecutive_committee_termofoffice_members_controller.dart';
-import 'package:originais/view/associatesExecutiveCommitteeSection.dart';
-import 'package:originais/view/associatesAssociateStatusSection.dart';
-import 'package:originais/view/associatesSanctionsSection.dart';
-import 'package:originais/view/associatesJourneyRidingSection.dart';
+import 'package:originais/controllers/profile_associate_status_controller.dart';
+import 'package:originais/controllers/profiles_sanctions_controller.dart';
+import 'package:originais/controllers/executive_committee_termofoffice_members_controller.dart';
+import 'package:originais/view/associates_executive_committee_section.dart';
+import 'package:originais/view/associates_associate_status_section.dart';
+import 'package:originais/view/associates_sanctions_section.dart';
+import 'package:originais/view/associates_journey_riding_section.dart';
 
 class AssociatesDetails extends StatefulWidget {
   final VProfileModel itemAtual;

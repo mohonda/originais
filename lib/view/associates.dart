@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:originais/controllers/bd_journeyriding_controller.dart';
-import 'package:originais/controllers/bd_vprofile_associatestatus_controller.dart';
-import 'package:originais/controllers/bd_vprofiles_sanctions_controller.dart';
+import 'package:originais/controllers/journey_riding_controller.dart';
+import 'package:originais/controllers/profile_associate_status_controller.dart';
+import 'package:originais/controllers/profiles_sanctions_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/view/associates_details.dart';
-import 'package:originais/controllers/bd_vexecutive_committee_termofoffice_members_controller.dart';
+import 'package:originais/controllers/executive_committee_termofoffice_members_controller.dart';
 
 
 class Associates extends StatefulWidget {

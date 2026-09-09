@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:originais/models/vmensalidades_distinct_model.dart';
+import 'package:originais/models/mensalidades_distinct_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
 

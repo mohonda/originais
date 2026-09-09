@@ -1,14 +1,14 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import 'package:originais/controllers/bd_headquartersbar_controller.dart';
+import 'package:originais/controllers/headquarters_bar_controller.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/view/custom_month_calendar.dart';
 import 'package:originais/view/headquartersbar_opened.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/controllers/products_controller.dart';
-import 'package:originais/controllers/ticketController.dart';
+import 'package:originais/controllers/ticket_controller.dart';
 
 class HeadquartersBar extends StatefulWidget {
   const HeadquartersBar({super.key});

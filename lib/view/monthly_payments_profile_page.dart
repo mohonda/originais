@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:originais/view/monthly_payments_form_layout.dart';
-import 'package:originais/controllers/MonthlyPaymentsImageService.dart';
+import 'package:originais/controllers/monthly_payments_image_service.dart';
 
 class MonthlyPaymentsProfilePage extends StatefulWidget {
   const MonthlyPaymentsProfilePage({super.key});

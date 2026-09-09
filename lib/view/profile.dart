@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/view/profile_update_password.dart';
-import 'package:originais/controllers/ProfileImageService.dart';
-import 'package:originais/view/ProfileMonthlyPayment.dart';
-import 'package:originais/view/ProfileHeadquartersBar.dart'; 
-import 'package:originais/view/profileExecutiveCommittee.dart'; 
-import 'package:originais/view/profileSanctions.dart'; 
-import 'package:originais/view/profileJourneyRiding.dart'; 
-import 'package:originais/view/profileAssociateStatus.dart'; 
+import 'package:originais/controllers/profile_image_service.dart';
+import 'package:originais/view/profile_monthly_payment.dart';
+import 'package:originais/view/profile_headquarters_bar.dart'; 
+import 'package:originais/view/profile_executive_committee.dart'; 
+import 'package:originais/view/profile_sanctions.dart'; 
+import 'package:originais/view/profile_journey_riding.dart'; 
+import 'package:originais/view/profile_associate_status.dart'; 
 
 class Profile extends StatefulWidget {
   const Profile({super.key});

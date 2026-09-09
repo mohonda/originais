@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
-import 'package:originais/controllers/bd_vprofiles_sanctions_controller.dart';
-import 'package:originais/models/vprofiles_sanctions_model.dart';
+import 'package:originais/controllers/profile_controller.dart';
+import 'package:originais/controllers/profiles_sanctions_controller.dart';
+import 'package:originais/models/profiles_sanctions_model.dart';
 import 'package:originais/services/general_service.dart';
 
 class ProfileSanctions extends StatefulWidget {

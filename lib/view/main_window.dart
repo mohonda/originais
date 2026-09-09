@@ -6,12 +6,12 @@ import 'package:sidebarx/sidebarx.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
 import 'package:originais/controllers/auth_controller.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
-import 'package:originais/controllers/bd_journeyriding_controller.dart';
-import 'package:originais/controllers/bd_monthlypayments_controller.dart';
-import 'package:originais/controllers/bd_vprofile_associatestatus_controller.dart';
-import 'package:originais/controllers/bd_vmensalidades_distinct_controller.dart';
-import 'package:originais/controllers/ProfileImageService.dart';
+import 'package:originais/controllers/profile_controller.dart';
+import 'package:originais/controllers/journey_riding_controller.dart';
+import 'package:originais/controllers/monthly_payments_controller.dart';
+import 'package:originais/controllers/profile_associate_status_controller.dart';
+import 'package:originais/controllers/monthly_distinct_controller.dart';
+import 'package:originais/controllers/profile_image_service.dart';
 
 class MainWindow extends StatefulWidget {
   final StatefulNavigationShell navigationShell;

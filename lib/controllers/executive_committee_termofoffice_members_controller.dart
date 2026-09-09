@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
-import 'package:originais/models/vexecutive_committee_termofoffice_members_model.dart';
+import 'package:originais/models/executive_committee_termofoffice_members_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:originais/models/executiveCommitteeVacancyModel.dart';
+import 'package:originais/models/executive_committee_vacancy_model.dart';
 
 final getItBdVExecutiveCommitteeTermOfOfficeMembersController = GetIt.instance;
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:originais/controllers/bd_journeyriding_controller.dart';
+import 'package:originais/controllers/journey_riding_controller.dart';
 import 'package:originais/models/journeyriding_model.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/view/profileJourneyRiding.dart';
+import 'package:originais/view/profile_journey_riding.dart';
 
 class AssociatesJourneyRidingSection extends StatefulWidget {
   final VProfileModel itemAtual;

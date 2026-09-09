@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
-import 'package:originais/controllers/bd_vexecutive_committee_termofoffice_members_controller.dart';
-import 'package:originais/models/vexecutive_committee_termofoffice_members_model.dart';
+import 'package:originais/controllers/profile_controller.dart';
+import 'package:originais/controllers/executive_committee_termofoffice_members_controller.dart';
+import 'package:originais/models/executive_committee_termofoffice_members_model.dart';
 import 'package:originais/services/general_service.dart';
 
 class ProfileExecutiveCommittee extends StatefulWidget {

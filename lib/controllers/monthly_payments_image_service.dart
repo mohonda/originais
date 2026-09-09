@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:originais/services/BaseImageUploadService.dart';
+import 'package:originais/services/base_image_upload_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
-import 'package:originais/controllers/bd_monthlypayments_controller.dart';
+import 'package:originais/controllers/monthly_payments_controller.dart';
 
 class MonthlyPaymentsImageService extends BaseImageUploadService {
   final SupabaseClient supabaseClient = 

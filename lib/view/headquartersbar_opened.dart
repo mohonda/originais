@@ -7,7 +7,7 @@ import 'package:foundation/core.dart';
 import 'package:originais/models/profile_model.dart';
 
 import 'package:image_picker/image_picker.dart';
-import 'package:originais/services/BaseImageUploadService.dart';
+import 'package:originais/services/base_image_upload_service.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:path_provider/path_provider.dart';
@@ -19,14 +19,14 @@ import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/controllers/products_controller.dart';
 import 'package:originais/models/products_model.dart';
 
-import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 
-import 'package:originais/controllers/ticketController.dart';
-import 'package:originais/models/ticketModel.dart';
+import 'package:originais/controllers/ticket_controller.dart';
+import 'package:originais/models/ticket_model.dart';
 
 import 'package:originais/services/general_service.dart';
-import 'package:originais/controllers/TicketReceiptImageService.dart';
+import 'package:originais/controllers/ticket_receipt_image_service.dart';
 
 class HeadquartersBarOpened extends StatefulWidget {
   final String openDate;

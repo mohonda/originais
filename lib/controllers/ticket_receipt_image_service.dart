@@ -1,7 +1,7 @@
-import 'package:originais/services/BaseImageUploadService.dart';
+import 'package:originais/services/base_image_upload_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
-import 'package:originais/controllers/ticketController.dart';
+import 'package:originais/controllers/ticket_controller.dart';
 
 class TicketReceiptImageService extends BaseImageUploadService {
   final SupabaseClient supabaseClient = 

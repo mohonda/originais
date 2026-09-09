@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
-import 'package:originais/controllers/ticketController.dart';
-import 'package:originais/models/ticketModel.dart';
+import 'package:originais/controllers/profile_controller.dart';
+import 'package:originais/controllers/ticket_controller.dart';
+import 'package:originais/models/ticket_model.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/view/headquartersbar_opened.dart';
 

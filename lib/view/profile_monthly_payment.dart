@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:originais/controllers/bd_monthlypayments_controller.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/controllers/monthly_payments_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/mensalidades_model.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/view/monthly_payments_profile_page.dart';

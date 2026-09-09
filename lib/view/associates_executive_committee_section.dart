@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:originais/controllers/bd_vexecutive_committee_termofoffice_members_controller.dart';
+import 'package:originais/controllers/executive_committee_termofoffice_members_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
-import 'package:originais/models/vexecutive_committee_termofoffice_members_model.dart';
+import 'package:originais/models/executive_committee_termofoffice_members_model.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/view/profileExecutiveCommittee.dart';
-import 'package:originais/models/executiveCommitteeVacancyModel.dart';
+import 'package:originais/view/profile_executive_committee.dart';
+import 'package:originais/models/executive_committee_vacancy_model.dart';
 
 class AssociatesExecutiveCommitteeSection extends StatefulWidget {
   final VProfileModel itemAtual;

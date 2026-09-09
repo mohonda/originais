@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:originais/controllers/bd_vprofiles_sanctions_controller.dart';
+import 'package:originais/controllers/profiles_sanctions_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
-import 'package:originais/models/vprofiles_sanctions_model.dart';
+import 'package:originais/models/profiles_sanctions_model.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/view/profileSanctions.dart';
+import 'package:originais/view/profile_sanctions.dart';
 
 class AssociatesSanctionsSection extends StatefulWidget {
   final VProfileModel itemAtual;

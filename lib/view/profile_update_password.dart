@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/controllers/auth_controller.dart';
 

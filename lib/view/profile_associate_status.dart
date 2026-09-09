@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
-import 'package:originais/controllers/bd_vprofile_associatestatus_controller.dart';
-import 'package:originais/models/vprofile_associatestatus_model.dart';
+import 'package:originais/controllers/profile_controller.dart';
+import 'package:originais/controllers/profile_associate_status_controller.dart';
+import 'package:originais/models/profile_associate_status_model.dart';
 import 'package:originais/services/general_service.dart';
 
 class ProfileAssociateStatus extends StatefulWidget {
@@ -49,7 +49,10 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
         profileController.pessoaSelecionadaNotifier.value?.hld_id ??
         '';
 
-    _carregarStatusAssociado();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carregarStatusAssociado();
+    });
+    
   }
 
   @override

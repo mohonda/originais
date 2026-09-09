@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
 
 class DashboardWidgetUsers extends StatefulWidget {
   const DashboardWidgetUsers({super.key});

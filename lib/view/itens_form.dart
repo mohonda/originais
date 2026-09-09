@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../controllers/bd_journeyriding_controller.dart';
+import '../controllers/journey_riding_controller.dart';
 import '../models/journeyriding_model.dart';
 import 'package:go_router/go_router.dart';
 import 'package:originais/models/custom_app_bar.dart';

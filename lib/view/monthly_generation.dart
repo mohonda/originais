@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/controllers/bd_vmensalidades_distinct_controller.dart';
+import 'package:originais/controllers/monthly_distinct_controller.dart';
 import 'package:originais/view/monthly_generation_details.dart';
-import 'package:originais/controllers/bd_payment_value_controller.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
-import 'package:originais/controllers/bd_monthlypayments_controller.dart';
+import 'package:originais/controllers/payment_value_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
+import 'package:originais/controllers/monthly_payments_controller.dart';
 
 class MonthlyGeneration extends StatefulWidget {
   const MonthlyGeneration({super.key});

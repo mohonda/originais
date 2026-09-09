@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:originais/controllers/bd_journeyriding_controller.dart';
+import 'package:originais/controllers/journey_riding_controller.dart';
 
 class DashboardWidgetItens extends StatefulWidget {
   const DashboardWidgetItens({super.key});

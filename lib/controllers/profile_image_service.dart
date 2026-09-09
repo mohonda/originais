@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:originais/services/BaseImageUploadService.dart';
+import 'package:originais/services/base_image_upload_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
 
 class ProfileImageService extends BaseImageUploadService {
   final SupabaseClient supabaseClient =

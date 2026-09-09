@@ -6,12 +6,12 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/controllers/bd_payment_value_controller.dart';
+import 'package:originais/controllers/payment_value_controller.dart';
 import 'package:originais/models/payment_value.dart';
-import 'package:originais/controllers/bd_profile_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
-import 'package:originais/controllers/bd_monthlypayments_controller.dart';
-import 'package:originais/controllers/bd_vmensalidades_distinct_controller.dart';
+import 'package:originais/controllers/monthly_payments_controller.dart';
+import 'package:originais/controllers/monthly_distinct_controller.dart';
 
 class MonthlyGenerationDetails extends StatefulWidget {
   const MonthlyGenerationDetails({super.key});

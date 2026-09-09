@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:originais/controllers/bd_vprofile_associatestatus_controller.dart';
+import 'package:originais/controllers/profile_associate_status_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
-import 'package:originais/models/vprofile_associatestatus_model.dart';
+import 'package:originais/models/profile_associate_status_model.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/view/profileAssociateStatus.dart';
+import 'package:originais/view/profile_associate_status.dart';
 
 class AssociatesAssociateStatusSection extends StatefulWidget {
   final VProfileModel itemAtual;
@@ -28,6 +28,31 @@ class _AssociatesAssociateStatusSectionState
     super.initState();
     controller = getItBdVProfileAssociateStatusController
         .get<BdVProfileAssociateStatusController>();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carregarDados();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant AssociatesAssociateStatusSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 🟢 Se o item mudar, recarrega os dados com segurança fora do ciclo de build
+    if (oldWidget.itemAtual.pfl_id != widget.itemAtual.pfl_id ||
+        oldWidget.itemAtual.hld_id != widget.itemAtual.hld_id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _carregarDados();
+      });
+    }
+  }
+
+  void _carregarDados() {
+    final pflId = widget.itemAtual.pfl_id?.toString() ?? '';
+    final hldId = widget.itemAtual.hld_id?.toString() ?? '';
+
+    if (pflId.isNotEmpty && hldId.isNotEmpty) {
+      controller.loadProfileAssociateStatus(pflId, hldId);
+    }
   }
 
   // ==========================================
