@@ -40,9 +40,8 @@ class CustomFloatingAppBar extends StatelessWidget implements PreferredSizeWidge
         ),
         child: Text(
           title, 
-          style: const TextStyle(
-            fontSize: 20, 
-            fontWeight: FontWeight.bold,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontSize: 14.0,
           ),
         ),
       ),
@@ -52,5 +51,5 @@ class CustomFloatingAppBar extends StatelessWidget implements PreferredSizeWidge
   // ==========================================
   @override
   Size get preferredSize =>
-    const Size.fromHeight(80.0);
+    const Size.fromHeight(60.0);
 }

@@ -72,9 +72,6 @@ class LoginState extends State with SingleTickerProviderStateMixin {
   // ==========================================
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
     return Scaffold(
       body: Center(
         child: SizedBox(
@@ -99,32 +96,31 @@ class LoginState extends State with SingleTickerProviderStateMixin {
                 const SizedBox(height: 40),
                 Text(
                   'Welcome',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Sign in to continue to your account',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
 
                 const SizedBox(height: 24),
                 TextField(
                   controller: loginController.emailController,
+                  
                   focusNode: _emailFocusNode, 
                   autofocus: 
                     loginController.emailController
                       .text.trim().isNotEmpty,
                   onSubmitted: (_) => _senhaFocusNode
                       .requestFocus(),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Email',
                     prefixIcon: Icon(Icons.mail_outline),
                     border: OutlineInputBorder(),
+                    labelStyle: Theme.of(context).textTheme.bodyMedium
                   ),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
 
                 const SizedBox(height: 16),
@@ -143,6 +139,7 @@ class LoginState extends State with SingleTickerProviderStateMixin {
                           loginController.submeter(false, context),
                       decoration: InputDecoration(
                         labelText: 'Password',
+                        labelStyle: Theme.of(context).textTheme.bodyMedium,
                         prefixIcon: const Icon(Icons.lock_outline),
                         border: const OutlineInputBorder(),
                         suffixIcon: IconButton(
@@ -176,12 +173,23 @@ class LoginState extends State with SingleTickerProviderStateMixin {
                             );
                           },
                         ),
-                        const Text('Remember me'),
+                        Text(
+                          'Remember me',
+                          // tex labelStyle: Theme.of(context).textTheme.bodyMedium
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       ],
                     ),
                     TextButton(
                       onPressed: () {},
-                      child: const Text('Forgot password?'),
+                      child: Text(
+                        'Forgot password?',
+                        // style: Theme.of(context).textTheme.bodySmall,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.blueAccent,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                      ),
                     ),
                   ],
                 ),
@@ -211,7 +219,13 @@ class LoginState extends State with SingleTickerProviderStateMixin {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Text('Sign in'),
+                                : Text(
+                                    'Sign in',
+                                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      color: Colors.black87,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -220,17 +234,24 @@ class LoginState extends State with SingleTickerProviderStateMixin {
                           children: [
                             Text(
                               "Don't have an account?",
-                              style: TextStyle(
-                                color: scheme.onSurfaceVariant
-                              ),
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontSize: 14.0,
+                              )
                             ),
                             TextButton(
-                              onPressed: isLoading
-                                  ? null
-                                  : () =>
-                                        loginController
-                                          .submeter(true, context),
-                              child: const Text('Sign up'),
+                              onPressed: (){},
+                              // onPressed: isLoading
+                              //     ? null
+                              //     : () =>
+                              //           loginController
+                              //             .submeter(true, context),
+                              child: Text(
+                                'Sign up',
+                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                 fontSize: 14.0,
+                                 color: Colors.blueAccent,
+                                ),
+                              ),
                             ),
                           ],
                         ),

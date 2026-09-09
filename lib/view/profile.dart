@@ -198,8 +198,16 @@ class _ProfileState extends State<Profile> {
     return DefaultTabController(
       length: 7,
       child: Scaffold(
-        appBar: CustomFloatingAppBar(
-          title: 'Profile - ${fullNameController.text}',
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(kToolbarHeight),
+          child: ValueListenableBuilder<VProfileModel?>(
+            valueListenable: bdProfileController.pessoaSelecionadaNotifier,
+            builder: (context, value, child) {
+              return CustomFloatingAppBar(
+                title: 'Profile - ${value?.pfl_full_name}',
+              );
+            },
+          ),
         ),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
@@ -228,11 +236,11 @@ class _ProfileState extends State<Profile> {
                     unselectedLabelColor: Colors.grey,
                     labelStyle: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.normal,
+                      fontWeight: FontWeight.w100,
                     ),
                     unselectedLabelStyle: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.normal
+                      fontWeight: FontWeight.w100
                     ),
                     tabs: [
                       Tab(

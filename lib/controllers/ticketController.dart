@@ -8,6 +8,7 @@ final getItTicketController = GetIt.instance;
 
 void setupGetItTicketController() {
   getItTicketController.registerLazySingleton<TicketController>(
+  // getItTicketController.registerFactory<TicketController>(
     () => TicketController(),
   );
 }

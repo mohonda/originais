@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:originais/controllers/bd_profile_controller.dart';
 import 'package:originais/controllers/ticketController.dart';
 import 'package:originais/models/ticketModel.dart';
 import 'package:originais/services/general_service.dart';
@@ -24,28 +25,96 @@ class ProfileHeadquartersBar extends StatefulWidget {
 class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
   late final TicketController ticketController;
   late final GeneralService generalService;
+  late final BdProfileController profileController;
+
+  bool _isLoading = true;
+  String _pflIdResolvido = '';
+  String _hldIdResolvido = '';
 
   @override
   void initState() {
     super.initState();
     ticketController = getItTicketController<TicketController>();
     generalService = getItGeneralService<GeneralService>();
+    profileController = getItBdProfileController<BdProfileController>();
 
-    // 1. Carrega os tickets do perfil
-    ticketController.loadTicketsByProfileWithItems(widget.pflId, widget.hldId);
+    // 🟢 Escuta mudanças caso o perfil demore para carregar no controller global
+    profileController.pessoaSelecionadaNotifier.addListener(_onPessoaChanged);
 
-    // 2. Ativa escuta Realtime
-    ticketController.initRealtimeProfile(widget.pflId, widget.hldId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carregarDados();
+    });
   }
 
   @override
   void dispose() {
+    profileController.pessoaSelecionadaNotifier.removeListener(_onPessoaChanged);
     ticketController.disposeRealtimeProfile();
     super.dispose();
   }
 
+  void _onPessoaChanged() {
+    if (_pflIdResolvido.isEmpty) {
+      _carregarDados();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileHeadquartersBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pflId != widget.pflId || oldWidget.hldId != widget.hldId) {
+      _carregarDados();
+    }
+  }
+
+  Future<void> _carregarDados() async {
+    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
+
+    // 🟢 Resolve dinamicamente os IDs (prioriza o Widget, senão busca do Perfil Logado)
+    final String idResolvido = widget.pflId.isNotEmpty 
+        ? widget.pflId 
+        : (pessoaLogada?.pfl_id?.toString() ?? '');
+
+    final String hldResolvido = widget.hldId.isNotEmpty 
+        ? widget.hldId 
+        : (pessoaLogada?.hld_id?.toString() ?? '');
+
+    if (idResolvido.isEmpty) {
+      debugPrint('⚠️ ProfileHeadquartersBar: pflId ainda não está disponível.');
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    _pflIdResolvido = idResolvido;
+    _hldIdResolvido = hldResolvido;
+
+    if (mounted) setState(() => _isLoading = true);
+
+    try {
+      // debugPrint('🔍 Buscando tickets no banco para pflId: $_pflIdResolvido, hldId: $_hldIdResolvido');
+      
+      await ticketController.loadTicketsByProfileWithItems(_pflIdResolvido, _hldIdResolvido);
+      ticketController.initRealtimeProfile(_pflIdResolvido, _hldIdResolvido);
+      
+      debugPrint('✅ Tickets retornados: ${ticketController.profileTicketsWithItemsNotifier.value.length}');
+    } catch (e) {
+      debugPrint('❌ Erro ao buscar tickets: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(24.0),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return ValueListenableBuilder<List<TicketsModel>>(
       valueListenable: ticketController.profileTicketsWithItemsNotifier,
       builder: (context, tickets, child) {
@@ -66,12 +135,8 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 📊 Resumo do Usuário
               _buildResumoUsuario(tickets),
-
               const SizedBox(height: 12),
-
-              // 📋 Lista de Tickets
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -87,7 +152,6 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     );
   }
 
-  // 📊 Card de Resumo
   Widget _buildResumoUsuario(List<TicketsModel> lista) {
     final int total = lista.length;
 
@@ -143,7 +207,6 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     );
   }
 
-  // 📋 Card Individual do Ticket
   Widget _buildTicketCard(BuildContext context, TicketsModel ticket) {
     final bool temItens = ticket.ticketsItems.isNotEmpty;
     final bool temComprovante = ticket.tkt_paiment_path != null && ticket.tkt_paiment_path!.trim().isNotEmpty;
@@ -235,8 +298,6 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                     },
                   ),
                 const Divider(height: 16),
-
-                // 🔘 Botões de Ação (Comprovante / Ir para Pagamento)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -252,8 +313,6 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                       )
                     else
                       const SizedBox.shrink(),
-
-                    // 🟢 Botão de Pagamento para tickets pendentes
                     if (!isPago && !isCancelado)
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -275,11 +334,9 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     );
   }
 
-  // 🟢 FLUXO DE NAVEGAÇÃO E VALIDAÇÃO DE DATAS
   void _irParaPagamento(BuildContext context, TicketsModel ticket) async {
     final String barOpenDate = widget.currentOpenDate ?? ticket.tkt_bar_open_date;
 
-    // Se a data da comanda for diferente da data atual do bar aberto, solicita confirmação
     if (widget.currentOpenDate != null && ticket.tkt_bar_open_date != widget.currentOpenDate) {
       final bool? confirmar = await showDialog<bool>(
         context: context,
@@ -309,7 +366,6 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
 
     if (!context.mounted) return;
 
-    // Redireciona para o HeadquartersBarOpened com a comanda selecionada
     Navigator.push(
       context,
       MaterialPageRoute(

@@ -16,8 +16,30 @@ class RouterApp extends StatelessWidget {
         brightness: Brightness.light,
         
         // Define a fonte padrão para todo o aplicativo
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(
-          ThemeData.light().textTheme,
+      textTheme: GoogleFonts.plusJakartaSansTextTheme(
+        ThemeData.light().textTheme,
+        ).copyWith(
+          headlineSmall: TextStyle(
+            fontFamily: 'Roboto',
+            fontSize: 14.0,
+            fontWeight: FontWeight.w500,
+            color: Colors.indigo,
+            letterSpacing: 0.15,
+          ),
+          bodyMedium: TextStyle(
+            fontFamily: 'Roboto',
+            fontSize: 10.0,
+            fontWeight: FontWeight.w100,
+            color: Colors.indigo,
+            letterSpacing: 0.15,
+          ),
+          bodySmall:  TextStyle(
+            fontFamily: 'Roboto',
+            fontSize: 8.0,
+            fontWeight: FontWeight.w100,
+            color: Colors.indigo,
+            letterSpacing: 0.15,
+          ),
         ),
       ),
 
@@ -28,6 +50,7 @@ class RouterApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
       ),
+      
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,
       routerConfig: RouterSettings.router,

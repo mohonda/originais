@@ -358,9 +358,9 @@ class _MainWindow extends State<MainWindow> {
                         Icons.info_outline,
                         color: Colors.white70,
                       ),
-                      label: const Text(
+                      label: Text(
                         'Sobre o App',
-                        style: TextStyle(color: Colors.white70),
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     )
                   : IconButton(
@@ -380,12 +380,12 @@ class _MainWindow extends State<MainWindow> {
                   ? TextButton.icon(
                       onPressed: () => confirmLogout(),
                       icon: const Icon(Icons.logout, color: Colors.redAccent),
-                      label: const Text(
+                      label: Text(
                         'Sair do App',
-                        style: TextStyle(
-                          color: Colors.redAccent,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.redAccent,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                       ),
                     )
                   : IconButton(
@@ -418,10 +418,8 @@ class _MainWindow extends State<MainWindow> {
           onTap: () => context.go('/profile_screen'),
           child: Text(
             nome,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500
             ),
           ),
         ),
@@ -430,11 +428,7 @@ class _MainWindow extends State<MainWindow> {
           onTap: () => context.go('/profile_screen'),
           child: Text(
             email,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-            ),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ),
       ],

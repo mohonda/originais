@@ -21,28 +21,40 @@ class ProfileJourneyRiding extends StatefulWidget {
 }
 
 class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
-  final GeneralService generalService = GeneralService();
+  late final GeneralService generalService;
   late final BdJourneyRidingController controller;
   late final BdProfileController profileController;
 
-  late String pflId = '';
-  late String hldId = '';
+  String _pflIdResolvido = '';
+  String _hldIdResolvido = '';
 
   @override
   void initState() {
     super.initState();
+    generalService = GeneralService();
     controller =
         getItBdJourneyRidingController.get<BdJourneyRidingController>();
     profileController = getItBdProfileController<BdProfileController>();
 
-    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
-    
-    pflId = widget.pflId ?? pessoaLogada?.pfl_id?.toString() ?? '';
-    hldId = widget.hldId ?? pessoaLogada?.hld_id?.toString() ?? '';
+    // 🟢 Escuta alterações no perfil global
+    profileController.pessoaSelecionadaNotifier.addListener(_onPessoaChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarJornada();
     });
+  }
+
+  @override
+  void dispose() {
+    profileController.pessoaSelecionadaNotifier.removeListener(_onPessoaChanged);
+    super.dispose();
+  }
+
+  void _onPessoaChanged() {
+    // 🟢 CORREÇÃO: Tenta carregar se QUALQUER um dos dois IDs ainda estiver vazio
+    if (_pflIdResolvido.isEmpty || _hldIdResolvido.isEmpty) {
+      _carregarJornada();
+    }
   }
 
   @override
@@ -52,30 +64,45 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
       _atualizarECarregarJornada();
     }
   }
+
   void _atualizarECarregarJornada() {
-    // ATENÇÃO: Garanta que aqui você pega o perfil logado se widget.pflId for nulo.
-    // Se pessoaSelecionadaNotifier muda ao entrar no Associate Details, use a propriedade correta do usuario LOGADO.
-    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
-
-    pflId = widget.pflId ?? pessoaLogada?.pfl_id?.toString() ?? '';
-    hldId = widget.hldId ?? pessoaLogada?.hld_id?.toString() ?? '';
-
-    // 2. Limpa a lista antiga do Controller imediatamente para evitar "flash" de dados do outro usuário
     controller.vProfileJourneyridingDetaisNotifier.value = [];
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarJornada();
     });
   }
-  
 
   Future<void> _carregarJornada() async {
-    if (pflId.isEmpty) return;
+    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
 
-    await Future.wait([
-      controller.loadJourneyRidingDetais(pflId, hldId),
-      controller.loadJourneyRidingOrderByLevel( hldId ),
-    ]);
+    // 🟢 Resolve dinamicamente os IDs (do Widget ou da Pessoa Logada)
+    final String idResolvido = (widget.pflId != null && widget.pflId!.isNotEmpty)
+        ? widget.pflId!
+        : (pessoaLogada?.pfl_id?.toString() ?? '');
+
+    final String hldResolvido = (widget.hldId != null && widget.hldId!.isNotEmpty)
+        ? widget.hldId!
+        : (pessoaLogada?.hld_id?.toString() ?? '');
+
+    // 🟢 Valida AMBOS os IDs antes de chamar o banco
+    if (idResolvido.isEmpty || hldResolvido.isEmpty) {
+      debugPrint('⚠️ ProfileJourneyRiding: pflId ou hldId ainda não disponíveis.');
+      return;
+    }
+
+    _pflIdResolvido = idResolvido;
+    _hldIdResolvido = hldResolvido;
+
+    try {
+      debugPrint('🔍 Buscando jornada para pflId: $_pflIdResolvido, hldId: $_hldIdResolvido');
+      await Future.wait([
+        controller.loadJourneyRidingDetais(_pflIdResolvido, _hldIdResolvido),
+        controller.loadJourneyRidingOrderByLevel(_hldIdResolvido),
+      ]);
+      debugPrint('✅ Etapas retornadas: ${controller.vProfileJourneyridingDetaisNotifier.value.length}');
+    } catch (e) {
+      debugPrint('❌ Erro ao buscar jornada: $e');
+    }
   }
 
   int _parseLevel(dynamic levelValue) {
@@ -126,7 +153,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                 final graduacaoAtual = listaJornadaPerfil.first;
                 final int currentLevel = _parseLevel(graduacaoAtual.jr_level);
 
-                // 4. Busca o IMEDIATO PRÓXIMO NÍVEL
                 JourneyRidingModel? proximoNivel;
                 for (var etapa in todasEtapas) {
                   final lvl = _parseLevel(etapa.jr_level);
@@ -136,14 +162,12 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                   }
                 }
 
-                // SingleChildScrollView adicionado para evitar overflow com muitas promoções
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 📊 Resumo do Usuário
                       _buildResumoJornada(
                         lista: listaJornadaPerfil,
                         proximoNivel: proximoNivel,
@@ -153,7 +177,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
 
                       const SizedBox(height: 12),
 
-                      // 🎯 Card de Destaque: Próximo Level
                       if (proximoNivel != null) ...[
                         _buildProximoNivelCard(
                           proximo: proximoNivel,
@@ -172,13 +195,14 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                       ),
                       const SizedBox(height: 8),
 
-                      // 📋 Lista de Etapas Concluídas
                       ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: listaJornadaPerfil.length,
                         itemBuilder: (context, index) {
-                          final bool isAtual = listaJornadaPerfil[index].jr_id == graduacaoAtual.jr_id;
+                          final bool isAtual =
+                              listaJornadaPerfil[index].jr_id ==
+                              graduacaoAtual.jr_id;
                           return _buildJornadaCard(
                             listaJornadaPerfil[index],
                             isAtual,
@@ -196,7 +220,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
-  // 📊 Card de Resumo da Jornada
   Widget _buildResumoJornada({
     required List<JourneyRidingModel> lista,
     required JourneyRidingModel? proximoNivel,
@@ -209,11 +232,15 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
 
     final String nomeGraduacaoAtual =
         graduacaoAtual?.jr_nome ??
-        (graduacaoAtual?.jr_level != null ? 'Lvl ${graduacaoAtual!.jr_level}' : 'N/A');
+        (graduacaoAtual?.jr_level != null
+            ? 'Lvl ${graduacaoAtual!.jr_level}'
+            : 'N/A');
 
     final String nomeProximaGraduacao;
     if (proximoNivel != null) {
-      nomeProximaGraduacao = proximoNivel.jr_nome ?? 'Lvl ${_parseLevel(proximoNivel.jr_level)}';
+      nomeProximaGraduacao =
+          proximoNivel.jr_nome ??
+          'Lvl ${_parseLevel(proximoNivel.jr_level)}';
     } else if (isLoading || (!catalogoCarregado && totalEtapas > 0)) {
       nomeProximaGraduacao = 'Carregando...';
     } else {
@@ -231,7 +258,11 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           Expanded(
-            child: _buildResumoColumn('Total Etapas', '$totalEtapas', Colors.white70),
+            child: _buildResumoColumn(
+              'Total Etapas',
+              '$totalEtapas',
+              Colors.white70,
+            ),
           ),
           Container(height: 24, width: 1, color: Colors.white24),
           Expanded(
@@ -280,7 +311,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
-  // 🎯 Card de Próximo Nível
   Widget _buildProximoNivelCard({
     required JourneyRidingModel proximo,
     required JourneyRidingModel? graduacaoAtual,
@@ -349,13 +379,17 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                   children: [
                     Row(
                       children: [
-                        const Text(
-                          'PRÓXIMO OBJETIVO',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.amberAccent,
-                            letterSpacing: 0.8,
+                        Flexible(
+                          child: Text(
+                            'PRÓXIMO OBJETIVO',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amberAccent,
+                              letterSpacing: 0.8,
+                            ),
                           ),
                         ),
                         if (nivel.isNotEmpty) ...[
@@ -384,6 +418,8 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                     const SizedBox(height: 2),
                     Text(
                       nome,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
@@ -393,6 +429,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               _buildBadgeContagemRegressiva(diasRestantes),
             ],
           ),
@@ -465,10 +502,15 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          rotulo,
-          style: const TextStyle(fontSize: 11, color: Colors.white54),
+        Flexible(
+          child: Text(
+            rotulo,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, color: Colors.white54),
+          ),
         ),
+        const SizedBox(width: 8),
         Text(
           valor,
           style: const TextStyle(
@@ -615,5 +657,4 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
       ),
     );
   }
-
 }

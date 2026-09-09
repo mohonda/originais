@@ -38,10 +38,18 @@ class _AssociatesJourneyRidingSectionState
 
   /// Busca a lista de opções válidas para o próximo registro
   List<JourneyRidingModel> _obterOpcoesProximoNivel() {
+     bdJourneyRidingController.loadJourneyRidingDetais(
+                        widget.itemAtual.pfl_id.toString(),
+                        widget.itemAtual.hld_id.toString(),
+                      );
+    bdJourneyRidingController.loadJourneyRidingOrderByLevel(
+      widget.itemAtual.hld_id.toString()
+    );
+
     final history =
         bdJourneyRidingController.vProfileJourneyridingDetaisNotifier.value ?? [];
     final catalog =
-        bdJourneyRidingController.bdJourneyRidingNotifier.value ?? [];
+        bdJourneyRidingController.journeyRidingOrderByLevelNotifier.value ?? [];
 
     if (catalog.isEmpty) return [];
 
@@ -58,11 +66,11 @@ class _AssociatesJourneyRidingSectionState
       if (lvl > currentLevel) currentLevel = lvl;
     }
 
-    final catalogOrdenado = List<JourneyRidingModel>.from(catalog)
-      ..sort((a, b) => _parseLevel(a.jr_level).compareTo(_parseLevel(b.jr_level)));
+    // final catalogOrdenado = List<JourneyRidingModel>.from(catalog)
+    //   ..sort((a, b) => _parseLevel(a.jr_level).compareTo(_parseLevel(b.jr_level)));
 
     int? proximoLevelNum;
-    for (var stage in catalogOrdenado) {
+    for (var stage in catalog) {
       int lvl = _parseLevel(stage.jr_level);
       if (lvl > currentLevel) {
         proximoLevelNum = lvl;
@@ -72,7 +80,7 @@ class _AssociatesJourneyRidingSectionState
 
     if (proximoLevelNum == null) return [];
 
-    return catalogOrdenado
+    return catalog
         .where((stage) => _parseLevel(stage.jr_level) == proximoLevelNum)
         .toList();
   }
@@ -413,7 +421,7 @@ class _AssociatesJourneyRidingSectionState
             builder: (context, history, child) {
               return ValueListenableBuilder<List<JourneyRidingModel>>(
                 valueListenable:
-                    bdJourneyRidingController.bdJourneyRidingNotifier,
+                    bdJourneyRidingController.journeyRidingOrderByLevelNotifier,
                 builder: (context, catalog, child) {
                   if (!_temProximoNivel()) {
                     return const SizedBox.shrink();

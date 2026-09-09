@@ -23,16 +23,18 @@ class ProfileSanctions extends StatefulWidget {
 }
 
 class _ProfileSanctionsState extends State<ProfileSanctions> {
-  final GeneralService generalService = GeneralService();
+  late final GeneralService generalService;
   late final BdVProfilesSanctionsController controller;
   late final BdProfileController profileController;
 
-  late String pflId = '';
-  late String hldId = '';
+  String _pflIdResolvido = '';
+  String _hldIdResolvido = '';
 
   @override
   void initState() {
     super.initState();
+    generalService = GeneralService();
+    
     // Instância compartilhada do pai ou resolvida via GetIt
     controller =
         widget.controller ??
@@ -40,31 +42,58 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
             .get<BdVProfilesSanctionsController>();
     profileController = getItBdProfileController<BdProfileController>();
 
-    pflId =
-        widget.pflId ??
-        profileController.pessoaSelecionadaNotifier.value?.pfl_id ??
-        '';
-    hldId =
-        widget.hldId ??
-        profileController.pessoaSelecionadaNotifier.value?.hld_id ??
-        '';
+    // 🟢 1. Escuta mudanças caso o perfil global demore a carregar
+    profileController.pessoaSelecionadaNotifier.addListener(_onPerfilAtualizado);
 
-    _carregarSancoes();
+    // 🟢 2. Garante o carregamento após a renderização do primeiro frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carregarSancoes();
+    });
+  }
+
+  @override
+  void dispose() {
+    profileController.pessoaSelecionadaNotifier.removeListener(_onPerfilAtualizado);
+    super.dispose();
+  }
+
+  void _onPerfilAtualizado() {
+    // Tenta carregar novamente se os IDs ainda não foram resolvidos
+    if (_pflIdResolvido.isEmpty || _hldIdResolvido.isEmpty) {
+      _carregarSancoes();
+    }
   }
 
   @override
   void didUpdateWidget(covariant ProfileSanctions oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.pflId != widget.pflId || oldWidget.hldId != widget.hldId) {
-      pflId = widget.pflId ?? '';
-      hldId = widget.hldId ?? '';
       _carregarSancoes();
     }
   }
 
   Future<void> _carregarSancoes() async {
-    if (pflId.isNotEmpty && hldId.isNotEmpty) {
-      await controller.loadProfileSanctionsStatus(pflId, hldId);
+    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
+
+    // 🟢 3. Resolve dinamicamente os IDs
+    _pflIdResolvido = (widget.pflId != null && widget.pflId!.isNotEmpty)
+        ? widget.pflId!
+        : (pessoaLogada?.pfl_id?.toString() ?? '');
+
+    _hldIdResolvido = (widget.hldId != null && widget.hldId!.isNotEmpty)
+        ? widget.hldId!
+        : (pessoaLogada?.hld_id?.toString() ?? '');
+
+    if (_pflIdResolvido.isEmpty || _hldIdResolvido.isEmpty) {
+      debugPrint('⚠️ ProfileSanctions: pflId ou hldId ainda indisponíveis.');
+      return;
+    }
+
+    try {
+      debugPrint('🔍 Buscando sanções para pflId: $_pflIdResolvido, hldId: $_hldIdResolvido');
+      await controller.loadProfileSanctionsStatus(_pflIdResolvido, _hldIdResolvido);
+    } catch (e) {
+      debugPrint('❌ Erro ao buscar sanções: $e');
     }
   }
 
@@ -106,9 +135,9 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
                       DateTime(1970);
                   return dateB.compareTo(dateA);
                 });
+
             return Padding(
               padding: const EdgeInsets.only(top: 8.0),
-
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
