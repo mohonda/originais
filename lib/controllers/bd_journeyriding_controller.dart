@@ -7,7 +7,8 @@ import 'package:originais/models/journeyriding_model.dart';
 final getItBdJourneyRidingController = GetIt.instance;
 
 void setupGetItBdJourneyRidingController() {
-  getItBdJourneyRidingController.registerLazySingleton<BdJourneyRidingController>(
+  // getItBdJourneyRidingController.registerLazySingleton<BdJourneyRidingController>(
+  getItBdJourneyRidingController.registerFactory<BdJourneyRidingController>(
     () => BdJourneyRidingController(),
   );
 }
@@ -18,7 +19,11 @@ class BdJourneyRidingController extends ChangeNotifier {
 
   final ValueNotifier<List<JourneyRidingModel>> bdJourneyRidingNotifier =
     ValueNotifier<List<JourneyRidingModel>>([]);
-
+    
+  
+  final ValueNotifier<List<JourneyRidingModel>> journeyRidingOrderByLevelNotifier =
+    ValueNotifier<List<JourneyRidingModel>>([]);
+  
   final ValueNotifier<List<JourneyRidingModel>> vProfileJourneyridingDetaisNotifier =
     ValueNotifier<List<JourneyRidingModel>>([]);
 
@@ -54,6 +59,32 @@ class BdJourneyRidingController extends ChangeNotifier {
     }
   }
 
+
+  // ==========================================
+  Future<void> loadJourneyRidingOrderByLevel( String hld_id ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+        supabaseClient
+        .from( 'v_journey_riding' )
+        .select()
+        .eq( 'jr_hld_id', hld_id )
+        .order( 'jr_level', ascending: true )
+    );
+      
+        journeyRidingOrderByLevelNotifier.value = resposta.map( ( item ) =>
+          JourneyRidingModel.fromJson( item ) ).toList();
+      
+    } catch (e, stackTrace) {
+      journeyRidingOrderByLevelNotifier.value = [];
+      errorNotifier.value = ("BdItemController::loadItems: $e \n$stackTrace");
+    } finally {
+      loadingNotifier.value = false;
+    }
+  }
+
   // ==========================================
     Future<void> loadJourneyRidingDetais( String id, String hld ) async {
       
@@ -67,8 +98,8 @@ class BdJourneyRidingController extends ChangeNotifier {
         .select()
         .eq('pfl_id', id)
         .eq('hld_id', hld)
+        .order( 'uj_promotion_date', ascending: false )
         .order( 'pfl_full_name',ascending: true) 
-        .order( 'uj_promotion_date', ascending: true )
       );
       
         vProfileJourneyridingDetaisNotifier.value = resposta.map( ( item ) =>

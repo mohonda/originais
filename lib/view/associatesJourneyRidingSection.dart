@@ -396,13 +396,7 @@ class _AssociatesJourneyRidingSectionState
 
   @override
   Widget build(BuildContext context) {
-    return InputDecorator(
-      decoration: const InputDecoration(
-        labelText: 'Journey of the Riding',
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.all(12),
-      ),
-      child: Column(
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -445,7 +439,6 @@ class _AssociatesJourneyRidingSectionState
             },
           ),
         ],
-      ),
     );
   }
 }

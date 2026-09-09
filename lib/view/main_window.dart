@@ -150,10 +150,17 @@ class _MainWindow extends State<MainWindow> {
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
         ),
-        textStyle: const TextStyle(color: Colors.white70),
+        textStyle: TextStyle(
+          fontFamily: 'Roboto',
+          color: Colors.white70,
+          fontWeight: FontWeight.w100,
+          fontSize: 12
+        ),
         selectedTextStyle: const TextStyle(
+          fontFamily: 'Roboto',
           color: Colors.white,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w500,
+          fontSize: 12
         ),
         // 🟢 ADICIONE ESTAS 4 LINHAS PARA CORRIGIR O ALINHAMENTO DO ÍCONE E TEXTO
         itemPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

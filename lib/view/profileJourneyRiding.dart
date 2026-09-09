@@ -45,12 +45,36 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     });
   }
 
+  @override
+  void didUpdateWidget(covariant ProfileJourneyRiding oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pflId != widget.pflId || oldWidget.hldId != widget.hldId) {
+      _atualizarECarregarJornada();
+    }
+  }
+  void _atualizarECarregarJornada() {
+    // ATENÇÃO: Garanta que aqui você pega o perfil logado se widget.pflId for nulo.
+    // Se pessoaSelecionadaNotifier muda ao entrar no Associate Details, use a propriedade correta do usuario LOGADO.
+    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
+
+    pflId = widget.pflId ?? pessoaLogada?.pfl_id?.toString() ?? '';
+    hldId = widget.hldId ?? pessoaLogada?.hld_id?.toString() ?? '';
+
+    // 2. Limpa a lista antiga do Controller imediatamente para evitar "flash" de dados do outro usuário
+    controller.vProfileJourneyridingDetaisNotifier.value = [];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carregarJornada();
+    });
+  }
+  
+
   Future<void> _carregarJornada() async {
     if (pflId.isEmpty) return;
 
     await Future.wait([
       controller.loadJourneyRidingDetais(pflId, hldId),
-      controller.loadJourneyRiding(hldId),
+      controller.loadJourneyRidingOrderByLevel( hldId ),
     ]);
   }
 
@@ -85,7 +109,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
           valueListenable: controller.vProfileJourneyridingDetaisNotifier,
           builder: (context, listaJornadaPerfil, child) {
             return ValueListenableBuilder<List<JourneyRidingModel>>(
-              valueListenable: controller.bdJourneyRidingNotifier,
+              valueListenable: controller.journeyRidingOrderByLevelNotifier,
               builder: (context, todasEtapas, child) {
                 if (listaJornadaPerfil.isEmpty) {
                   return const Padding(
@@ -99,30 +123,12 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                   );
                 }
 
-                // 1. Identifica a graduação ATUAL pela data mais recente
-                final historicoPorData = List<JourneyRidingModel>.from(listaJornadaPerfil)
-                  ..sort((a, b) {
-                    final dateA = DateTime.tryParse(a.uj_promotion_date ?? '') ?? DateTime(1900);
-                    final dateB = DateTime.tryParse(b.uj_promotion_date ?? '') ?? DateTime(1900);
-                    final dateComp = dateB.compareTo(dateA);
-                    if (dateComp != 0) return dateComp;
-                    return _parseLevel(b.jr_level).compareTo(_parseLevel(a.jr_level));
-                  });
-
-                final graduacaoAtual = historicoPorData.first;
+                final graduacaoAtual = listaJornadaPerfil.first;
                 final int currentLevel = _parseLevel(graduacaoAtual.jr_level);
-
-                // 2. Ordena histórico do perfil por Nível (Decrescente)
-                final historicoOrdenado = List<JourneyRidingModel>.from(listaJornadaPerfil)
-                  ..sort((a, b) => _parseLevel(b.jr_level).compareTo(_parseLevel(a.jr_level)));
-
-                // 3. Ordena o catálogo global por Nível (Crescente)
-                final catalogoOrdenado = List<JourneyRidingModel>.from(todasEtapas)
-                  ..sort((a, b) => _parseLevel(a.jr_level).compareTo(_parseLevel(b.jr_level)));
 
                 // 4. Busca o IMEDIATO PRÓXIMO NÍVEL
                 JourneyRidingModel? proximoNivel;
-                for (var etapa in catalogoOrdenado) {
+                for (var etapa in todasEtapas) {
                   final lvl = _parseLevel(etapa.jr_level);
                   if (lvl > currentLevel) {
                     proximoNivel = etapa;
@@ -139,7 +145,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                     children: [
                       // 📊 Resumo do Usuário
                       _buildResumoJornada(
-                        lista: historicoOrdenado,
+                        lista: listaJornadaPerfil,
                         proximoNivel: proximoNivel,
                         catalogoCarregado: todasEtapas.isNotEmpty,
                         isLoading: isLoading,
@@ -170,11 +176,11 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                       ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: historicoOrdenado.length,
+                        itemCount: listaJornadaPerfil.length,
                         itemBuilder: (context, index) {
-                          final bool isAtual = historicoOrdenado[index].jr_id == graduacaoAtual.jr_id;
+                          final bool isAtual = listaJornadaPerfil[index].jr_id == graduacaoAtual.jr_id;
                           return _buildJornadaCard(
-                            historicoOrdenado[index],
+                            listaJornadaPerfil[index],
                             isAtual,
                           );
                         },

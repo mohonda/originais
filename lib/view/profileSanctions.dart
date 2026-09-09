@@ -5,7 +5,18 @@ import 'package:originais/models/vprofiles_sanctions_model.dart';
 import 'package:originais/services/general_service.dart';
 
 class ProfileSanctions extends StatefulWidget {
-  const ProfileSanctions({super.key});
+  final String? pflId;
+  final String? hldId;
+  final BdVProfilesSanctionsController? controller;
+  final void Function(VProfilesSanctionsModel)? onEdit;
+
+  const ProfileSanctions({
+    super.key,
+    this.pflId,
+    this.hldId,
+    this.controller,
+    this.onEdit,
+  });
 
   @override
   State<ProfileSanctions> createState() => _ProfileSanctionsState();
@@ -22,19 +33,39 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
   @override
   void initState() {
     super.initState();
+    // Instância compartilhada do pai ou resolvida via GetIt
     controller =
+        widget.controller ??
         getItBdVProfilesSanctionsController
             .get<BdVProfilesSanctionsController>();
     profileController = getItBdProfileController<BdProfileController>();
 
-    pflId = profileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
-    hldId = profileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
+    pflId =
+        widget.pflId ??
+        profileController.pessoaSelecionadaNotifier.value?.pfl_id ??
+        '';
+    hldId =
+        widget.hldId ??
+        profileController.pessoaSelecionadaNotifier.value?.hld_id ??
+        '';
 
     _carregarSancoes();
   }
 
+  @override
+  void didUpdateWidget(covariant ProfileSanctions oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pflId != widget.pflId || oldWidget.hldId != widget.hldId) {
+      pflId = widget.pflId ?? '';
+      hldId = widget.hldId ?? '';
+      _carregarSancoes();
+    }
+  }
+
   Future<void> _carregarSancoes() async {
-    await controller.loadProfileSanctionsStatus(pflId, hldId);
+    if (pflId.isNotEmpty && hldId.isNotEmpty) {
+      await controller.loadProfileSanctionsStatus(pflId, hldId);
+    }
   }
 
   @override
@@ -54,10 +85,10 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
           builder: (context, listaSancoes, child) {
             if (listaSancoes.isEmpty) {
               return const Padding(
-                padding: EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(16.0),
                 child: Center(
                   child: Text(
-                    'Nenhuma sanção disciplinar registrada para este perfil.',
+                    'Nenhuma sanção disciplinar registrada.',
                     style: TextStyle(color: Colors.white54, fontSize: 13),
                   ),
                 ),
@@ -65,24 +96,24 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
             }
 
             // Ordena as sanções por data de início (Mais recente primeiro)
-            final listaOrdenada = List<VProfilesSanctionsModel>.from(listaSancoes)
-              ..sort((a, b) {
-                final dateA = DateTime.tryParse(a.psan_date_start ?? '') ?? DateTime(1970);
-                final dateB = DateTime.tryParse(b.psan_date_end ?? '') ?? DateTime(1970);
-                return dateB.compareTo(dateA);
-              });
-
+            final listaOrdenada =
+                List<VProfilesSanctionsModel>.from(listaSancoes)..sort((a, b) {
+                  final dateA =
+                      DateTime.tryParse(a.psan_date_start ?? '') ??
+                      DateTime(1970);
+                  final dateB =
+                      DateTime.tryParse(b.psan_date_start ?? '') ??
+                      DateTime(1970);
+                  return dateB.compareTo(dateA);
+                });
             return Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.only(top: 8.0),
+
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 📊 Resumo do Usuário
                   _buildResumoSancoes(listaOrdenada),
-
                   const SizedBox(height: 12),
-
-                  // 📋 Lista de Sanções
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -105,10 +136,10 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     final int total = lista.length;
 
     final int ativas = lista.where((s) {
-      final bool isAtivaFlag = s.psan_date_end.isEmpty;
-      final DateTime? endDate = DateTime.tryParse(s.psan_date_end ?? '');
-      final bool dataValida = endDate == null || endDate.isAfter(DateTime.now());
-      return isAtivaFlag && dataValida;
+      final String dateEndStr = s.psan_date_end ?? '';
+      if (dateEndStr.isEmpty) return true; // Sem data de término = Ativa
+      final DateTime? endDate = DateTime.tryParse(dateEndStr);
+      return endDate == null || endDate.isAfter(DateTime.now());
     }).length;
 
     final int cumpridas = total - ativas;
@@ -127,7 +158,11 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
           Container(height: 24, width: 1, color: Colors.white24),
           _buildResumoColumn('Em Cumpirmento', '$ativas', Colors.redAccent),
           Container(height: 24, width: 1, color: Colors.white24),
-          _buildResumoColumn('Cumpridas/Encerradas', '$cumpridas', Colors.greenAccent),
+          _buildResumoColumn(
+            'Cumpridas/Encerradas',
+            '$cumpridas',
+            Colors.greenAccent,
+          ),
         ],
       ),
     );
@@ -155,25 +190,27 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
 
   // 📋 Card Individual da Sanção
   Widget _buildSancaoCard(VProfilesSanctionsModel sancao) {
-    final bool isAtivaFlag = sancao.psan_date_end.isEmpty ?? false;
-    final DateTime? endDate = DateTime.tryParse(sancao.psan_date_end);
-    final bool isAtiva = isAtivaFlag && (endDate == null || endDate.isAfter(DateTime.now()));
+    final String dateEndStr = sancao.psan_date_end ?? '';
+    final DateTime? endDate = DateTime.tryParse(dateEndStr);
+    final bool isAtiva =
+        dateEndStr.isEmpty ||
+        (endDate != null && endDate.isAfter(DateTime.now()));
 
-    final String sancaoNome = sancao.psan_desc ?? sancao.san_name ?? 'Sanção Disciplinar';
-    final String inicioData = generalService.formatarDataBr(sancao.psan_date_start ?? '');
-    final String fimData = sancao.psan_date_end != null && sancao.psan_date_end!.isNotEmpty
-        ? generalService.formatarDataBr(sancao.psan_date_end!)
-        : 'Indefinido';
+    final String sancaoNome =
+        sancao.san_name ?? sancao.psan_desc ?? 'Sanção Disciplinar';
+    final String inicioData = generalService.formatarDataBr(
+      sancao.psan_date_start ?? '',
+    );
+    final String fimData = dateEndStr.isNotEmpty
+        ? generalService.formatarDataBr(dateEndStr)
+        : 'Em aberto';
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6.0),
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: Colors.indigo.withValues(alpha: 0.3),
-          width: 1,
-        ),
+        side: BorderSide(color: Colors.indigo.withValues(alpha: 0.3), width: 1),
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -204,6 +241,12 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
             style: const TextStyle(fontSize: 12, color: Colors.white70),
           ),
         ),
+        trailing: widget.onEdit != null
+            ? IconButton(
+                icon: const Icon(Icons.edit, size: 20, color: Colors.orange),
+                onPressed: () => widget.onEdit!(sancao),
+              )
+            : null,
         children: [
           const Divider(height: 1),
           Container(
@@ -216,14 +259,11 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
                 const SizedBox(height: 6),
                 _buildInfoRow('Início da Sanção:', inicioData),
                 const SizedBox(height: 6),
-                _buildInfoRow('Término Previsto:', fimData),
-                if (sancao. san_name != null && sancao.san_name!.isNotEmpty) ...[
+                _buildInfoRow('Término Previsto/Real:', fimData),
+                if (sancao.psan_desc != null &&
+                    sancao.psan_desc!.isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  _buildInfoRow('Motivo:', sancao.san_name!),
-                ],
-                if (sancao.psan_desc != null && sancao.psan_desc!.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  _buildInfoRow('Observações:', sancao.psan_desc!),
+                  _buildInfoRow('Observações / Motivo:', sancao.psan_desc!),
                 ],
               ],
             ),
@@ -258,7 +298,6 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     );
   }
 
-  // 🏷️ Badge de Status
   Widget _buildStatusBadge(bool isAtiva) {
     final String label = isAtiva ? 'ATIVA' : 'CUMPRIDA';
     final Color color = isAtiva ? Colors.redAccent : Colors.greenAccent;

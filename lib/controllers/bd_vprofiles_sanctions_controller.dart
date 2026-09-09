@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:originais/models/vprofiles_sanctions_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
+import 'package:originais/models/sanctionModel.dart';
 
 final getItBdVProfilesSanctionsController = GetIt.instance;
 
@@ -19,6 +20,9 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
  
   final ValueNotifier<List<VProfilesSanctionsModel>> vProfilesSanctionsNotifier =
     ValueNotifier<List<VProfilesSanctionsModel>>([]);
+  
+  final ValueNotifier<List<SanctionModel>> sanctionsNotifier =
+    ValueNotifier<List<SanctionModel>>([]);
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
@@ -54,4 +58,30 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
     }
   }
 
+  // ==========================================
+  Future<List<SanctionModel>> loadAvailableSanctions( String hld ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+        supabaseClient
+        .from('sanctions')
+        .select()
+        .eq('san_hld_id', hld)
+      );
+    
+      sanctionsNotifier.value = resposta.map(
+        ( item ) => SanctionModel.fromMap( item )
+      ).toList();
+
+      return sanctionsNotifier.value;
+      
+    } catch (e, stackTrace) {
+      errorNotifier.value = ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
+      return sanctionsNotifier.value = [];
+    } finally {
+      loadingNotifier.value = false;
+    }
+  }
 }

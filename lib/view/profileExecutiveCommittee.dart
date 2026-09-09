@@ -5,7 +5,18 @@ import 'package:originais/models/vexecutive_committee_termofoffice_members_model
 import 'package:originais/services/general_service.dart';
 
 class ProfileExecutiveCommittee extends StatefulWidget {
-  const ProfileExecutiveCommittee({super.key});
+  final String? pflId;
+  final String? hldId;
+  final BdVExecutiveCommitteeTermOfOfficeMembersController? controller;
+  final void Function(VExecutiveCommitteeTermOfOfficeMembersModel)? onEdit;
+
+  const ProfileExecutiveCommittee({
+    super.key,
+    this.pflId,
+    this.hldId,
+    this.controller,
+    this.onEdit,
+  });
 
   @override
   State<ProfileExecutiveCommittee> createState() =>
@@ -24,19 +35,38 @@ class _ProfileExecutiveCommitteeState
   @override
   void initState() {
     super.initState();
-    controller =
+    
+    controller = widget.controller ??
         getItBdVExecutiveCommitteeTermOfOfficeMembersController
             .get<BdVExecutiveCommitteeTermOfOfficeMembersController>();
+    
     profileController = getItBdProfileController<BdProfileController>();
 
-    pflId = profileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
-    hldId = profileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
+    _atualizarECarregarCargos();
+  }
 
-    _carregarCargosExecutivos();
+  @override
+  void didUpdateWidget(covariant ProfileExecutiveCommittee oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pflId != widget.pflId || oldWidget.hldId != widget.hldId) {
+      _atualizarECarregarCargos();
+    }
+  }
+
+  void _atualizarECarregarCargos() {
+    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
+
+    pflId = widget.pflId ?? pessoaLogada?.pfl_id?.toString() ?? '';
+    hldId = widget.hldId ?? pessoaLogada?.hld_id?.toString() ?? '';
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carregarCargosExecutivos();
+    });
   }
 
   Future<void> _carregarCargosExecutivos() async {
-    await controller.loadExecutiveCommitteeTermOfOfficeMembers(pflId, hldId);
+    if (pflId.isEmpty) return;
+    await controller.loadExecutiveOrderByDateStart(pflId, hldId);
   }
 
   @override
@@ -53,8 +83,7 @@ class _ProfileExecutiveCommitteeState
 
         return ValueListenableBuilder<
             List<VExecutiveCommitteeTermOfOfficeMembersModel>>(
-          valueListenable:
-              controller.vExecutiveCommitteeTermOfOfficeMembersNotifier,
+          valueListenable: controller.executiveOrderByDateStart,
           builder: (context, listaCargos, child) {
             if (listaCargos.isEmpty) {
               return const Padding(
@@ -68,27 +97,14 @@ class _ProfileExecutiveCommitteeState
               );
             }
 
-            // Ordena os cargos por data de início do mandato (Mais recente primeiro)
-            final listaOrdenada =
-                List<VExecutiveCommitteeTermOfOfficeMembersModel>.from(
-                  listaCargos,
-                )..sort((a, b) {
-                  final dateA =
-                      DateTime.tryParse(a.ect_date_start ?? '') ??
-                      DateTime(1970);
-                  final dateB =
-                      DateTime.tryParse(b.ectm_date_start ?? '') ??
-                      DateTime(1970);
-                  return dateB.compareTo(dateA);
-                });
-
-            return Padding(
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // 📊 Resumo do Usuário
-                  _buildResumoCargos(listaOrdenada),
+                  _buildResumoCargos(listaCargos),
 
                   const SizedBox(height: 12),
 
@@ -96,9 +112,9 @@ class _ProfileExecutiveCommitteeState
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: listaOrdenada.length,
+                    itemCount: listaCargos.length,
                     itemBuilder: (context, index) {
-                      return _buildCargoCard(listaOrdenada[index]);
+                      return _buildCargoCard(listaCargos[index]);
                     },
                   ),
                 ],
@@ -135,11 +151,17 @@ class _ProfileExecutiveCommitteeState
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildResumoColumn('Total Mandatos', '$total', Colors.white70),
+          Expanded(
+            child: _buildResumoColumn('Total Mandatos', '$total', Colors.white70),
+          ),
           Container(height: 24, width: 1, color: Colors.white24),
-          _buildResumoColumn('Mandato Ativo', '$ativos', Colors.greenAccent),
+          Expanded(
+            child: _buildResumoColumn('Mandato Ativo', '$ativos', Colors.greenAccent),
+          ),
           Container(height: 24, width: 1, color: Colors.white24),
-          _buildResumoColumn('Anteriores', '$encerrados', Colors.white38),
+          Expanded(
+            child: _buildResumoColumn('Anteriores', '$encerrados', Colors.white38),
+          ),
         ],
       ),
     );
@@ -150,11 +172,17 @@ class _ProfileExecutiveCommitteeState
       children: [
         Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 11, color: Colors.white54),
         ),
         const SizedBox(height: 2),
         Text(
           value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 14,
@@ -170,17 +198,17 @@ class _ProfileExecutiveCommitteeState
     bool isAtivo = false;
 
     final bool isAtivoFlag = cargo.ectm_date_end.isEmpty;
-    if ( !isAtivoFlag ) {
-      final DateTime? endDate = DateTime.tryParse( cargo.ect_date_end );
+    if (!isAtivoFlag) {
+      final DateTime? endDate = DateTime.tryParse(cargo.ect_date_end ?? '');
       isAtivo = isAtivoFlag && (endDate == null || endDate.isAfter(DateTime.now()));
     } else {
       isAtivo = isAtivoFlag;
     }
 
-    final String cargoNome = cargo.ecm_name ?? cargo.ecm_name ?? 'Cargo Executivo';
+    final String cargoNome = cargo.ecm_name ?? cargo.ect_name ?? 'Cargo Executivo';
     final String inicioData = generalService.formatarDataBr(cargo.ect_date_start ?? '');
-    final String fimData = cargo.ect_date_end != null && cargo.ectm_date_end!.isNotEmpty
-        ? generalService.formatarDataBr(cargo.ectm_date_end!)
+    final String fimData = cargo.ect_date_end != null && cargo.ectm_date_end.isNotEmpty
+        ? generalService.formatarDataBr(cargo.ectm_date_end)
         : 'Atual';
 
     return Card(
@@ -213,6 +241,12 @@ class _ProfileExecutiveCommitteeState
             ),
             const SizedBox(width: 8),
             _buildStatusBadge(isAtivo),
+            if (widget.onEdit != null)
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.orange, size: 20),
+                tooltip: 'Editar Mandato',
+                onPressed: () => widget.onEdit!(cargo),
+              ),
           ],
         ),
         subtitle: Padding(
@@ -273,7 +307,6 @@ class _ProfileExecutiveCommitteeState
     );
   }
 
-  // 🏷️ Badge de Status
   Widget _buildStatusBadge(bool isAtivo) {
     final String label = isAtivo ? 'EM EXERCÍCIO' : 'ENCERRADO';
     final Color color = isAtivo ? Colors.greenAccent : Colors.white38;
