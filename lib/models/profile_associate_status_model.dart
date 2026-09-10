@@ -1,4 +1,5 @@
 class VProfileAssociateStatusModel {
+  String pas_id;
   String pas_pfl_id;
   String pas_hld_id;
   String pas_date;
@@ -12,6 +13,7 @@ class VProfileAssociateStatusModel {
 
   // ==========================================
   VProfileAssociateStatusModel({
+    required this.pas_id,
     required this.pas_pfl_id,
     required this.pas_hld_id,
     required this.pas_date,
@@ -27,6 +29,7 @@ class VProfileAssociateStatusModel {
   // ==========================================
   factory VProfileAssociateStatusModel.fromJson(Map<String, dynamic> json) {
     return VProfileAssociateStatusModel(
+      pas_id: json['pas_id']?.toString() ?? '',
       pas_pfl_id: json['pas_pfl_id']?.toString() ?? '',
       pas_hld_id: json['pas_hld_id']?.toString() ?? '',
       pas_date: json['pas_date']?.toString() ?? '',
@@ -43,6 +46,7 @@ class VProfileAssociateStatusModel {
   // ==========================================
   Map<String, dynamic> toJson() {
     return {
+      'pas_id': pas_id,
       'pas_pfl_id': pas_pfl_id,
       'pas_hld_id': pas_hld_id,
       'pas_date': pas_date,

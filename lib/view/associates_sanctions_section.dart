@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:originais/controllers/sanctions_controller.dart';
 import 'package:originais/controllers/profiles_sanctions_controller.dart';
+import 'package:originais/models/sanctions_model.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/models/profiles_sanctions_model.dart';
 import 'package:originais/services/general_service.dart';
@@ -21,6 +24,7 @@ class AssociatesSanctionsSection extends StatefulWidget {
 class _AssociatesSanctionsSectionState
     extends State<AssociatesSanctionsSection> {
   late final BdVProfilesSanctionsController controller;
+  late final SanctionsController sanctionsController;
   final GeneralService generalService = GeneralService();
 
   @override
@@ -28,29 +32,42 @@ class _AssociatesSanctionsSectionState
     super.initState();
     controller = getItBdVProfilesSanctionsController
         .get<BdVProfilesSanctionsController>();
+
+    // Controller responsável por buscar a lista de sanções da Holding
+    sanctionsController = SanctionsController();
+  }
+
+  @override
+  void dispose() {
+    sanctionsController.dispose();
+    super.dispose();
   }
 
   // ==========================================
   // DIÁLOGO DE ADIÇÃO (CADASTRO DE SANÇÃO)
   // ==========================================
   void _showAddSanctionDialog() async {
-    final listOpcoesSancoes = await controller.loadAvailableSanctions(
+    // 🟢 Busca as sanções cadastradas via Controller da Tabela de Sanções
+    await sanctionsController.loadSanctions(
       widget.itemAtual.hld_id.toString(),
     );
+
+    final listOpcoesSancoes = sanctionsController.sanctionsNotifier.value;
 
     if (!mounted) return;
 
     if (listOpcoesSancoes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Nenhum tipo de sanção disponível no sistema.'),
+          content: Text('Nenhum tipo de sanção cadastrado para esta Holding.'),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    dynamic sancaoSelecionada = listOpcoesSancoes.first;
+    final formKey = GlobalKey<FormState>();
+    SanctionsModel? sancaoSelecionada = listOpcoesSancoes.first;
     DateTime dataInicio = DateTime.now();
     DateTime? dataFim;
 
@@ -58,6 +75,7 @@ class _AssociatesSanctionsSectionState
       text: generalService.formatarDataBr(dataInicio.toIso8601String()),
     );
     final TextEditingController endDateController = TextEditingController();
+    final TextEditingController valueController = TextEditingController();
     final TextEditingController obsController = TextEditingController();
 
     showDialog(
@@ -77,116 +95,174 @@ class _AssociatesSanctionsSectionState
                   Text('Aplicar Sanção Disciplinar', style: TextStyle(fontSize: 17)),
                 ],
               ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // 📋 Seleção do Tipo de Sanção
-                    DropdownButtonFormField<dynamic>(
-                      initialValue: sancaoSelecionada,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Tipo de Sanção',
-                        prefixIcon: Icon(Icons.gavel_outlined),
-                        border: OutlineInputBorder(),
-                      ),
-                      items: listOpcoesSancoes.map((sn) {
-                        return DropdownMenuItem<dynamic>(
-                          value: sn,
-                          child: Text(
-                            sn.san_name ?? 'Sem Nome',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (novaSancao) {
-                        setStateDialog(() {
-                          sancaoSelecionada = novaSancao;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // 📅 Data de Início
-                    TextFormField(
-                      controller: startDateController,
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Data de Início *',
-                        prefixIcon: Icon(Icons.calendar_today),
-                        border: OutlineInputBorder(),
-                      ),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: dataInicio,
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                        );
-                        if (picked != null) {
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // 📋 COMBOBOX DE TIPO DE SANÇÃO
+                      DropdownButtonFormField<SanctionsModel>(
+                        value: sancaoSelecionada,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Tipo de Sanção *',
+                          prefixIcon: Icon(Icons.gavel_outlined),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: listOpcoesSancoes.map((SanctionsModel itemSan) {
+                          return DropdownMenuItem<SanctionsModel>(
+                            value: itemSan,
+                            child: Text(
+                              itemSan.sanName,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        validator: (value) {
+                          if (value == null) return 'Selecione o tipo de sanção';
+                          return null;
+                        },
+                        onChanged: (SanctionsModel? novaSancao) {
                           setStateDialog(() {
-                            dataInicio = picked;
-                            startDateController.text =
-                                generalService.formatarDataBr(picked.toIso8601String());
+                            sancaoSelecionada = novaSancao;
                           });
-                        }
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // 📅 Data de Término (Opcional)
-                    TextFormField(
-                      controller: endDateController,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        labelText: 'Término Previsto (Opcional)',
-                        prefixIcon: const Icon(Icons.event_busy),
-                        border: const OutlineInputBorder(),
-                        suffixIcon: endDateController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  setStateDialog(() {
-                                    dataFim = null;
-                                    endDateController.clear();
-                                  });
-                                },
-                              )
-                            : null,
+                        },
                       ),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: dataFim ?? DateTime.now(),
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                        );
-                        if (picked != null) {
-                          setStateDialog(() {
-                            dataFim = picked;
-                            endDateController.text =
-                                generalService.formatarDataBr(picked.toIso8601String());
-                          });
-                        }
-                      },
-                    ),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // 📝 Observações / Detalhes
-                    TextFormField(
-                      controller: obsController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Observações / Motivos',
-                        prefixIcon: Icon(Icons.notes),
-                        border: OutlineInputBorder(),
+                      // 📅 Data de Início
+                      TextFormField(
+                        controller: startDateController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Data de Início *',
+                          prefixIcon: Icon(Icons.calendar_today),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Informe a data de início';
+                          }
+                          return null;
+                        },
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: dataInicio,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setStateDialog(() {
+                              dataInicio = picked;
+                              startDateController.text = generalService
+                                  .formatarDataBr(picked.toIso8601String());
+                            });
+                          }
+                        },
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 16),
+
+                      // 📅 Data de Término
+                      TextFormField(
+                        controller: endDateController,
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          labelText: 'Término Previsto *',
+                          prefixIcon: const Icon(Icons.event_busy),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: endDateController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    setStateDialog(() {
+                                      dataFim = null;
+                                      endDateController.clear();
+                                    });
+                                  },
+                                )
+                              : null,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Informe a data de término';
+                          }
+                          if (dataFim != null && !dataFim!.isAfter(dataInicio)) {
+                            return 'A data de término deve ser posterior à data de início';
+                          }
+                          return null;
+                        },
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: (dataFim != null && dataFim!.isAfter(dataInicio))
+                                ? dataFim!
+                                : dataInicio.add(const Duration(days: 1)),
+                            firstDate: dataInicio.add(const Duration(days: 1)),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setStateDialog(() {
+                              dataFim = picked;
+                              endDateController.text = generalService
+                                  .formatarDataBr(picked.toIso8601String());
+                            });
+                          }
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // 💵 Valor
+                      TextFormField(
+                        controller: valueController,
+                        maxLines: 1,
+                        keyboardType:
+                            const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Valor *',
+                          prefixIcon: Icon(Icons.attach_money),
+                          prefixText: 'R\$ ',
+                          border: OutlineInputBorder(),
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+[\,\.]?\d{0,2}')),
+                        ],
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Informe o valor';
+                          }
+                          final parsedValue =
+                              double.tryParse(value.replaceAll(',', '.'));
+                          if (parsedValue == null) {
+                            return 'Digite um valor válido';
+                          }
+                          if (parsedValue <= 0) {
+                            return 'O valor deve ser maior que zero';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // 📝 Observações / Motivo
+                      TextFormField(
+                        controller: obsController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Observações / Motivos',
+                          prefixIcon: Icon(Icons.notes),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -202,16 +278,19 @@ class _AssociatesSanctionsSectionState
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () async {
+                    // 🟢 SUBMISSÃO COM VALIDAÇÃO
+                    if (!formKey.currentState!.validate()) return;
                     if (sancaoSelecionada == null) return;
 
-                    // await controller.insertProfileSanction(
-                    //   pflId: widget.itemAtual.pfl_id.toString(),
-                    //   hldId: widget.itemAtual.hld_id.toString(),
-                    //   sanId: sancaoSelecionada.san_id.toString(),
-                    //   dateStart: dataInicio.toIso8601String(),
-                    //   dateEnd: dataFim?.toIso8601String(),
-                    //   desc: obsController.text,
-                    // );
+                    await controller.insertProfileSanction(
+                      widget.itemAtual.pfl_id.toString(),
+                      widget.itemAtual.hld_id.toString(),
+                      sancaoSelecionada!.sanId.toString(),
+                      valueController.text,
+                      dataInicio.toIso8601String(),
+                      dataFim?.toIso8601String() ?? '',
+                      obsController.text,
+                    );
 
                     if (mounted) {
                       Navigator.of(dialogContext).pop();
@@ -233,7 +312,26 @@ class _AssociatesSanctionsSectionState
   // ==========================================
   // DIÁLOGO DE EDIÇÃO / EXCLUSÃO DE SANÇÃO
   // ==========================================
-  void _showEditSanctionDialog(VProfilesSanctionsModel item) {
+  void _showEditSanctionDialog(VProfilesSanctionsModel item) async {
+    await sanctionsController.loadSanctions(
+      widget.itemAtual.hld_id.toString(),
+    );
+    final listOpcoesSancoes = sanctionsController.sanctionsNotifier.value;
+
+    if (!mounted) return;
+
+    final formKey = GlobalKey<FormState>();
+
+    SanctionsModel? sancaoSelecionada;
+    try {
+      sancaoSelecionada = listOpcoesSancoes.firstWhere(
+        (element) => element.sanId.toString() == item.psan_san_id.toString(),
+      );
+    } catch (_) {
+      sancaoSelecionada =
+          listOpcoesSancoes.isNotEmpty ? listOpcoesSancoes.first : null;
+    }
+
     DateTime dataInicio =
         DateTime.tryParse(item.psan_date_start ?? '') ?? DateTime.now();
     DateTime? dataFim = DateTime.tryParse(item.psan_date_end ?? '');
@@ -242,7 +340,12 @@ class _AssociatesSanctionsSectionState
       text: generalService.formatarDataBr(dataInicio.toIso8601String()),
     );
     final TextEditingController endDateController = TextEditingController(
-      text: dataFim != null ? generalService.formatarDataBr(dataFim.toIso8601String()) : '',
+      text: dataFim != null
+          ? generalService.formatarDataBr(dataFim.toIso8601String())
+          : '',
+    );
+    final TextEditingController valueController = TextEditingController(
+      text: item.psan_valor?.toString() ?? '',
     );
     final TextEditingController obsController = TextEditingController(
       text: item.psan_desc ?? '',
@@ -267,92 +370,174 @@ class _AssociatesSanctionsSectionState
                   Text('Editar Sanção Disciplinar', style: TextStyle(fontSize: 17)),
                 ],
               ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextFormField(
-                      initialValue: sancaoNome,
-                      enabled: false,
-                      decoration: const InputDecoration(
-                        labelText: 'Sanção',
-                        prefixIcon: Icon(Icons.gavel),
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: startDateController,
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Data de Início',
-                        prefixIcon: Icon(Icons.calendar_today),
-                        border: OutlineInputBorder(),
-                      ),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: dataInicio,
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                        );
-                        if (picked != null) {
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // 📋 COMBOBOX DE SANÇÃO
+                      DropdownButtonFormField<SanctionsModel>(
+                        value: sancaoSelecionada,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Sanção Disciplinar *',
+                          prefixIcon: Icon(Icons.gavel),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: listOpcoesSancoes.map((SanctionsModel itemSan) {
+                          return DropdownMenuItem<SanctionsModel>(
+                            value: itemSan,
+                            child: Text(
+                              itemSan.sanName,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        validator: (value) {
+                          if (value == null) return 'Selecione o tipo de sanção';
+                          return null;
+                        },
+                        onChanged: (SanctionsModel? novaSancao) {
                           setStateDialog(() {
-                            dataInicio = picked;
-                            startDateController.text =
-                                generalService.formatarDataBr(picked.toIso8601String());
+                            sancaoSelecionada = novaSancao;
                           });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: endDateController,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        labelText: 'Término Previsto / Conclusão',
-                        prefixIcon: const Icon(Icons.event_busy),
-                        border: const OutlineInputBorder(),
-                        suffixIcon: endDateController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  setStateDialog(() {
-                                    dataFim = null;
-                                    endDateController.clear();
-                                  });
-                                },
-                              )
-                            : null,
+                        },
                       ),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: dataFim ?? DateTime.now(),
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                        );
-                        if (picked != null) {
-                          setStateDialog(() {
-                            dataFim = picked;
-                            endDateController.text =
-                                generalService.formatarDataBr(picked.toIso8601String());
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: obsController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Observações / Motivo',
-                        prefixIcon: Icon(Icons.notes),
-                        border: OutlineInputBorder(),
+
+                      const SizedBox(height: 16),
+
+                      // 📅 Data de Início
+                      TextFormField(
+                        controller: startDateController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Data de Início *',
+                          prefixIcon: Icon(Icons.calendar_today),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Informe a data de início';
+                          }
+                          return null;
+                        },
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: dataInicio,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setStateDialog(() {
+                              dataInicio = picked;
+                              startDateController.text = generalService
+                                  .formatarDataBr(picked.toIso8601String());
+                            });
+                          }
+                        },
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 16),
+
+                      // 📅 Data de Término
+                      TextFormField(
+                        controller: endDateController,
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          labelText: 'Término Previsto *',
+                          prefixIcon: const Icon(Icons.event_busy),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: endDateController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    setStateDialog(() {
+                                      dataFim = null;
+                                      endDateController.clear();
+                                    });
+                                  },
+                                )
+                              : null,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Informe a data de término';
+                          }
+                          if (dataFim != null && !dataFim!.isAfter(dataInicio)) {
+                            return 'A data de término deve ser posterior à data de início';
+                          }
+                          return null;
+                        },
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: (dataFim != null && dataFim!.isAfter(dataInicio))
+                                ? dataFim!
+                                : dataInicio.add(const Duration(days: 1)),
+                            firstDate: dataInicio.add(const Duration(days: 1)),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setStateDialog(() {
+                              dataFim = picked;
+                              endDateController.text = generalService
+                                  .formatarDataBr(picked.toIso8601String());
+                            });
+                          }
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // 💵 Valor
+                      TextFormField(
+                        controller: valueController,
+                        maxLines: 1,
+                        keyboardType:
+                            const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Valor *',
+                          prefixIcon: Icon(Icons.attach_money),
+                          prefixText: 'R\$ ',
+                          border: OutlineInputBorder(),
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+[\,\.]?\d{0,2}')),
+                        ],
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Informe o valor';
+                          }
+                          final parsedValue =
+                              double.tryParse(value.replaceAll(',', '.'));
+                          if (parsedValue == null) {
+                            return 'Digite um valor válido';
+                          }
+                          if (parsedValue <= 0) {
+                            return 'O valor deve ser maior que zero';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // 📝 Observações / Motivo
+                      TextFormField(
+                        controller: obsController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Observações / Motivo',
+                          prefixIcon: Icon(Icons.notes),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actionsAlignment: MainAxisAlignment.spaceBetween,
@@ -385,7 +570,11 @@ class _AssociatesSanctionsSectionState
                     );
 
                     if (confirmar == true) {
-                      // await controller.deleteProfileSanction(item.psan_id);
+                      await controller.deleteProfileSanction(
+                        item.psan_id,
+                        item.psan_pfl_id,
+                        item.psan_hld_id
+                      );
 
                       if (mounted) {
                         Navigator.of(dialogContext).pop();
@@ -404,7 +593,8 @@ class _AssociatesSanctionsSectionState
                   children: [
                     TextButton(
                       onPressed: () => Navigator.of(dialogContext).pop(),
-                      child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                      child:
+                          const Text('Cancelar', style: TextStyle(color: Colors.grey)),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
@@ -415,12 +605,20 @@ class _AssociatesSanctionsSectionState
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () async {
-                        // await controller.updateProfileSanction(
-                        //   psanId: item.psan_id,
-                        //   dateStart: dataInicio.toIso8601String(),
-                        //   dateEnd: dataFim?.toIso8601String(),
-                        //   desc: obsController.text,
-                        // );
+                        // 🟢 SUBMISSÃO COM VALIDAÇÃO
+                        if (!formKey.currentState!.validate()) return;
+                        if (sancaoSelecionada == null) return;
+
+                        await controller.updateProfileSanction(
+                          item.psan_id,
+                          item.psan_pfl_id,
+                          item.psan_hld_id,
+                          sancaoSelecionada!.sanId.toString(),
+                          valueController.text,
+                          dataInicio.toIso8601String(),
+                          dataFim?.toIso8601String() ?? '',
+                          obsController.text,
+                        );
 
                         if (mounted) {
                           Navigator.of(dialogContext).pop();
@@ -444,32 +642,32 @@ class _AssociatesSanctionsSectionState
   @override
   Widget build(BuildContext context) {
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ProfileSanctions(
-            controller: controller,
-            pflId: widget.itemAtual.pfl_id.toString(),
-            hldId: widget.itemAtual.hld_id.toString(),
-            onEdit: _showEditSanctionDialog,
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: _showAddSanctionDialog,
-              icon: const Icon(Icons.add_circle_outline, size: 20),
-              label: const Text('Add Sanction...'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.redAccent,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ProfileSanctions(
+          controller: controller,
+          pflId: widget.itemAtual.pfl_id.toString(),
+          hldId: widget.itemAtual.hld_id.toString(),
+          onEdit: _showEditSanctionDialog,
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: _showAddSanctionDialog,
+            icon: const Icon(Icons.add_circle_outline, size: 20),
+            label: const Text('Add Sanction...'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
               ),
             ),
           ),
-        ],
+        ),
+      ],
     );
   }
 }

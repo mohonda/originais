@@ -45,7 +45,6 @@ class BdProfileController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      // final resposta = await supabaseClient
       final resposta = await mySupabaseClient.safePostgrestCall(()=>
         supabaseClient
         .from('vprofile')

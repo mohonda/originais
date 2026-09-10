@@ -13,6 +13,9 @@ class VProfilesSanctionsModel {
   String psan_date_end;
   String psan_desc;
 
+  String psan_pg_url;
+  String psan_pg_date;
+
   // ==========================================
   VProfilesSanctionsModel ( {
     required this.psan_id,
@@ -27,7 +30,10 @@ class VProfilesSanctionsModel {
     required this.psan_valor,
     required this.psan_date_start,
     required this.psan_date_end,
-    required this.psan_desc
+    required this.psan_desc,
+
+    required this.psan_pg_url,
+    required this.psan_pg_date
   } );
 
   // ==========================================
@@ -48,6 +54,9 @@ class VProfilesSanctionsModel {
       psan_date_start: json['psan_date_start']?.toString() ?? '',
       psan_date_end: json['psan_date_end']?.toString() ?? '',
       psan_desc: json['psan_desc']?.toString() ?? '',
+
+      psan_pg_url: json['psan_pg_url']?.toString() ?? '',
+      psan_pg_date: json['psan_pg_date']?.toString() ?? '',
     );
   }
 
@@ -68,6 +77,9 @@ class VProfilesSanctionsModel {
       'psan_date_start': psan_date_start,
       'psan_date_end': psan_date_end,
       'psan_desc': psan_desc,
+
+      'psan_pg_url': psan_pg_url,
+      'psan_pg_date': psan_pg_date,
     };
   }
 
