@@ -3,7 +3,7 @@ import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/controllers/ticket_controller.dart';
 import 'package:originais/models/ticket_model.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/view/headquartersbar_opened.dart';
+import 'package:originais/controllers/ticket_receipt_image_service.dart'; // 🟢 Serviço de upload adicionado
 
 class ProfileHeadquartersBar extends StatefulWidget {
   final String pflId;
@@ -27,6 +27,11 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
   late final GeneralService generalService;
   late final BdProfileController profileController;
 
+  // 🟢 Controladores de estado do serviço de imagem
+  final loadingNotifier = ValueNotifier<bool>(false);
+  final errorNotifier = ValueNotifier<String?>(null);
+  late final TicketReceiptImageService paymentService;
+
   bool _isLoading = true;
   String _pflIdResolvido = '';
   String _hldIdResolvido = '';
@@ -37,6 +42,12 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     ticketController = getItTicketController<TicketController>();
     generalService = getItGeneralService<GeneralService>();
     profileController = getItBdProfileController<BdProfileController>();
+
+    // 🟢 Inicializa o serviço de upload de imagens
+    paymentService = TicketReceiptImageService(
+      loadingNotifier: loadingNotifier,
+      errorNotifier: errorNotifier,
+    );
 
     // 🟢 Escuta mudanças caso o perfil demore para carregar no controller global
     profileController.pessoaSelecionadaNotifier.addListener(_onPessoaChanged);
@@ -50,6 +61,8 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
   void dispose() {
     profileController.pessoaSelecionadaNotifier.removeListener(_onPessoaChanged);
     ticketController.disposeRealtimeProfile();
+    loadingNotifier.dispose();
+    errorNotifier.dispose();
     super.dispose();
   }
 
@@ -70,7 +83,6 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
   Future<void> _carregarDados() async {
     final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
 
-    // 🟢 Resolve dinamicamente os IDs (prioriza o Widget, senão busca do Perfil Logado)
     final String idResolvido = widget.pflId.isNotEmpty 
         ? widget.pflId 
         : (pessoaLogada?.pfl_id?.toString() ?? '');
@@ -91,12 +103,8 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     if (mounted) setState(() => _isLoading = true);
 
     try {
-      // debugPrint('🔍 Buscando tickets no banco para pflId: $_pflIdResolvido, hldId: $_hldIdResolvido');
-      
       await ticketController.loadTicketsByProfileWithItems(_pflIdResolvido, _hldIdResolvido);
       ticketController.initRealtimeProfile(_pflIdResolvido, _hldIdResolvido);
-      
-      debugPrint('✅ Tickets retornados: ${ticketController.profileTicketsWithItemsNotifier.value.length}');
     } catch (e) {
       debugPrint('❌ Erro ao buscar tickets: $e');
     } finally {
@@ -106,49 +114,224 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.all(24.0),
-        child: Center(child: CircularProgressIndicator()),
-      );
+  // 🟢 Função para recuperar o ID do status "Pago"
+  String id_ticketStatusList(String name) {
+    try {
+      final tmp = ticketController.ticketStatusNotifier.value
+          .where((c) => c.tst_name == name)
+          .firstOrNull
+          ?.tst_id;
+      return tmp.toString();
+    } catch (e) {
+      return '';
     }
+  }
 
-    return ValueListenableBuilder<List<TicketsModel>>(
-      valueListenable: ticketController.profileTicketsWithItemsNotifier,
-      builder: (context, tickets, child) {
-        if (tickets.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(24.0),
-            child: Center(
-              child: Text(
-                'Nenhum ticket encontrado para este perfil.',
-                style: TextStyle(color: Colors.white54, fontSize: 13),
-              ),
-            ),
-          );
-        }
+  // 🟢 Novo fluxo de Pagamento via Modal de Upload
+  void _irParaPagamento(BuildContext context, TicketsModel ticket) async {
+  //   showDialog(
+  //     context: context,
+  //     builder: (dialogContext) {
+  //       return AlertDialog(
+  //         shape: RoundedRectangleBorder(
+  //           borderRadius: BorderRadius.circular(16),
+  //         ),
+  //         title: Text('Pagamento: ${ticket.tkt_table_number.isNotEmpty ? ticket.tkt_table_number : 'Ticket #${ticket.tkt_id}'}'),
+  //         content: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             Text(
+  //               'Total a pagar: ${generalService.currencyMoneyBr(ticket.totalConsumo.toString())}\n\n'
+  //               'Comprovante/Foto confirma seu pagamento!!!',
+  //             ),
+  //             const SizedBox(height: 16),
 
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildResumoUsuario(tickets),
-              const SizedBox(height: 12),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: tickets.length,
-                itemBuilder: (context, index) {
-                  return _buildTicketCard(context, tickets[index]);
-                },
+  //             // 📸 Botão para capturar ou escolher a foto do comprovante
+  //             SizedBox(
+  //               width: double.infinity,
+  //               child: OutlinedButton.icon(
+  //                 onPressed: () async {
+  //                   final tstId = id_ticketStatusList('Ticket closed (Paid)');
+                    
+  //                   await paymentService.selecionarAnexoEEnviar(
+  //                     context: context,
+  //                     payload: {
+  //                       'tkt_id': ticket.tkt_id,
+  //                       'pfl_id': ticket.tkt_pfl_id,
+  //                       'tkt_tst_id': tstId,
+  //                       'barId': ticket.tkt_bar_id,
+  //                       'openDate': ticket.tkt_bar_open_date,
+  //                       'hld_id': widget.hldId,
+  //                     },
+  //                   );
+                    
+  //                   if (context.mounted && errorNotifier.value == null) {
+  //                     Navigator.of(dialogContext).pop(); 
+  //                     _carregarDados(); // Recarrega os dados após envio
+  //                   }
+  //                 },
+  //                 icon: const Icon(Icons.add_a_photo, color: Colors.orangeAccent),
+  //                 label: const Text(
+  //                   'Anexar Comprovante / Foto',
+  //                   style: TextStyle(
+  //                     color: Colors.orangeAccent,
+  //                     fontWeight: FontWeight.bold,
+  //                   ),
+  //                 ),
+  //                 style: OutlinedButton.styleFrom(
+  //                   side: const BorderSide(color: Colors.indigoAccent),
+  //                   padding: const EdgeInsets.symmetric(vertical: 12),
+  //                 ),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () => Navigator.pop(dialogContext),
+  //             child: const Text('Cancelar'),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
+ showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final bool temFoto = ticket.tkt_paiment_path != null;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-            ],
-          ),
+              title: Text('Pagamento: ${ticket.tkt_table_number}'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Total a pagar: ${generalService.currencyMoneyBr(ticket.totalConsumo.toString())}\n\n'
+                    'Comprovante/Foto confirma seu pagamento!!!',
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 📸 Botão para capturar ou escolher a foto do comprovante
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final tst_id = id_ticketStatusList(
+                          'Ticket closed (Paid)',
+                        );
+                        await paymentService.selecionarAnexoEEnviar(
+                          context: context,
+                          payload: {
+                            'tkt_id': ticket.tkt_id,
+                            'pfl_id': ticket.tkt_pfl_id,
+                            'tkt_tst_id': tst_id,
+                            'barId': ticket.tkt_bar_id,
+                            'openDate': ticket.tkt_bar_open_date,
+                            'hld_id': widget.hldId,
+                          },
+                        );
+                        if (context.mounted && errorNotifier.value == null) {
+                          Navigator.of(context).pop(); // Fecha o Dialog da comanda
+                        }
+                      },
+                      icon: const Icon(Icons.add_a_photo, color: Colors.orangeAccent),
+                      label: const Text(
+                        'Anexar Comprovante / Foto',
+                        style: TextStyle(
+                          color: Colors.orangeAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.indigoAccent),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar'),
+                ),
+              ],
+            );
+          },
         );
       },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        // 🟢 Conteúdo Principal da Tela
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else
+          ValueListenableBuilder<List<TicketsModel>>(
+            valueListenable: ticketController.profileTicketsWithItemsNotifier,
+            builder: (context, tickets, child) {
+              if (tickets.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Center(
+                    child: Text(
+                      'Nenhum ticket encontrado para este perfil.',
+                      style: TextStyle(color: Colors.white54, fontSize: 13),
+                    ),
+                  ),
+                );
+              }
+
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildResumoUsuario(tickets),
+                    const SizedBox(height: 12),
+                    ListView.builder(
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  itemCount: tickets.length,
+  itemBuilder: (context, index) {
+    return _buildTicketCard(context, tickets[index]);
+  },
+),
+                  ],
+                ),
+              );
+            },
+          ),
+
+        // 🟢 Overlay de Carregamento para o Upload
+        ValueListenableBuilder<bool>(
+          valueListenable: loadingNotifier,
+          builder: (context, isLoading, child) {
+            if (!isLoading) return const SizedBox.shrink();
+            return Container(
+              color: Colors.black54, // Fundo escuro semi-transparente
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -330,51 +513,6 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  void _irParaPagamento(BuildContext context, TicketsModel ticket) async {
-    final String barOpenDate = widget.currentOpenDate ?? ticket.tkt_bar_open_date;
-
-    if (widget.currentOpenDate != null && ticket.tkt_bar_open_date != widget.currentOpenDate) {
-      final bool? confirmar = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Comanda de Data Anterior', style: TextStyle(fontSize: 16)),
-          content: Text(
-            'Esta comanda é do dia ${generalService.formatarDataBr(ticket.tkt_bar_open_date)}.\n\n'
-            'Deseja realizar o pagamento no caixa ativo do dia ${generalService.formatarDataBr(widget.currentOpenDate!)}?',
-            style: const TextStyle(fontSize: 13),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Prosseguir'),
-            ),
-          ],
-        ),
-      );
-
-      if (confirmar != true) return;
-    }
-
-    if (!context.mounted) return;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HeadquartersBarOpened(
-          ticketSelecionado: ticket,
-          barId: ticket.tkt_bar_id,
-          openDate: barOpenDate,
-          hld_id: widget.hldId,
-        ),
       ),
     );
   }
