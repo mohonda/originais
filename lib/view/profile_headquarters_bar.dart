@@ -371,6 +371,7 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
       MaterialPageRoute(
         builder: (context) => HeadquartersBarOpened(
           ticketSelecionado: ticket,
+          barId: ticket.tkt_bar_id,
           openDate: barOpenDate,
           hld_id: widget.hldId,
         ),

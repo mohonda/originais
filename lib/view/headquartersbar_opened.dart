@@ -29,6 +29,7 @@ import 'package:originais/services/general_service.dart';
 import 'package:originais/controllers/ticket_receipt_image_service.dart';
 
 class HeadquartersBarOpened extends StatefulWidget {
+  final String barId;
   final String openDate;
   final String hld_id;
   final bool isReadOnly;
@@ -37,6 +38,7 @@ class HeadquartersBarOpened extends StatefulWidget {
 
   const HeadquartersBarOpened({
     super.key,
+    required this.barId,
     required this.openDate,
     required this.hld_id,
     this.isReadOnly = false,
@@ -82,14 +84,18 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
 
     ticketStatusList = ticketController.ticketStatusNotifier.value;
 
-    ticketController.loadTickets(widget.openDate, widget.hld_id);
+    ticketController.loadTickets(widget.barId, widget.openDate, widget.hld_id);
 
     paymentService = TicketReceiptImageService(
       loadingNotifier: loadingNotifier,
       errorNotifier: errorNotifier,
     );
 
-    ticketController.initRealtime(widget.openDate, widget.hld_id);
+    ticketController.initRealtime(
+      widget.barId,
+      widget.openDate, 
+      widget.hld_id
+    );
 
     // 🟢 2. Se um ticket foi repassado, abre automaticamente o resumo/pagamento ao carregar a tela
     if (widget.ticketSelecionado != null) {
@@ -154,6 +160,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                             'tkt_id': mesa.tkt_id,
                             'pfl_id': mesa.tkt_pfl_id,
                             'tkt_tst_id': tst_id,
+                            'barId': widget.barId,
                             'openDate': widget.openDate,
                             'hld_id': widget.hld_id,
                           },
@@ -361,6 +368,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   ticketController.closeTicketsWithoutPayment(
                     mesa.tkt_id.toString(),
                     tktTstId,
+                    widget.barId,
                     widget.openDate,
                     widget.hld_id,
                   );
@@ -390,6 +398,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   ticketController.closeTicketsWithoutPayment(
                     mesa.tkt_id.toString(),
                     tktTstId,
+                    widget.barId,
                     widget.openDate,
                     widget.hld_id,
                   );
@@ -628,6 +637,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                         .ticketsItems[indexExistente]
                                         .tit_quantities +
                                     quantidade,
+                                widget.barId,
                                 widget.openDate,
                                 widget.hld_id,
                               );
@@ -643,6 +653,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
 
                               await ticketController.insertTicketsItems(
                                 ticketsItems2Controller,
+                                widget.barId,
                                 widget.openDate,
                                 widget.hld_id,
                               );
@@ -895,12 +906,14 @@ Future<void> _mostrarResumoMesa(TicketsModel mesa) async {
                                                           await ticketController.updateTicketsItems(
                                                             item.tit_id.toString(),
                                                             item.tit_quantities - 1,
+                                                            widget.barId,
                                                             widget.openDate,
                                                             widget.hld_id,
                                                           );
                                                         } else {
                                                           await ticketController.deleteTicketsItems(
                                                             item.tit_id.toString(),
+                                                            widget.barId,
                                                             widget.openDate,
                                                             widget.hld_id,
                                                           );
@@ -931,6 +944,7 @@ Future<void> _mostrarResumoMesa(TicketsModel mesa) async {
                                                         await ticketController.updateTicketsItems(
                                                           item.tit_id.toString(),
                                                           item.tit_quantities + 1,
+                                                          widget.barId,
                                                           widget.openDate,
                                                           widget.hld_id,
                                                         );
@@ -1241,6 +1255,7 @@ Future<void> _mostrarResumoMesa(TicketsModel mesa) async {
 
                                 final tickets = TicketsModel(
                                   tkt_hld_id: widget.hld_id,
+                                  tkt_bar_id: widget.barId,
                                   tkt_bar_open_date: widget.openDate,
                                   tkt_table_number: '',
                                   tkt_client_name: nomeFinal,
@@ -1253,6 +1268,7 @@ Future<void> _mostrarResumoMesa(TicketsModel mesa) async {
 
                                 await ticketController.openTicketsFunction(
                                   tickets,
+                                  widget.barId,
                                   widget.openDate,
                                   widget.hld_id,
                                 );

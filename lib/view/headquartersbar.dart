@@ -182,7 +182,7 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     );
   }
 
-  void openHeadquartersBar() async {
+void openHeadquartersBar() async {
     String openDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
     final now = DateTime.now();
@@ -204,31 +204,60 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
     final bool isReadOnly = dataSelecionada.isBefore(hojeOperacional);
 
-    bool isJaAberto = _openDays.any(
-      (d) =>
-          d.year == _selectedDate.year &&
-          d.month == _selectedDate.month &&
-          d.day == _selectedDate.day,
+    // 🟢 1. Busca se a data selecionada já existe na lista do notifier
+    final barrasAbertas = bdHeadquartersBarController.headquartersBarNotifier.value;
+
+    dynamic barExistente = barrasAbertas.cast<dynamic>().firstWhere(
+      (b) {
+        final bDate = DateTime.parse(b.bar_open_date.toString());
+        return bDate.year == _selectedDate.year &&
+               bDate.month == _selectedDate.month &&
+               bDate.day == _selectedDate.day;
+      },
+      orElse: () => null,
     );
 
-    if (!isJaAberto && !isReadOnly) {
+    // Captura o bar_id se já existir
+    dynamic barId = barExistente?.bar_id ?? barExistente?.barId;
+
+    // 🟢 2. Se NÃO for dia aberto e NÃO for leitura, abre o novo bar
+    if (barExistente == null && !isReadOnly) {
       await bdHeadquartersBarController.openHeadquartersBar(
         pflId,
         hldId,
         openDate,
         bar_desc.text,
       );
-    }
 
+      // Recarrega os dados do controller para obter o bar_id recém-gerado no banco
+      await bdHeadquartersBarController.loadHeadquartersBar(hldId);
+
+      // Busca novamente o bar recém-criado para obter o ID
+      final barrasAtualizadas = bdHeadquartersBarController.headquartersBarNotifier.value;
+      barExistente = barrasAtualizadas.cast<dynamic>().firstWhere(
+        (b) {
+          final bDate = DateTime.parse(b.bar_open_date.toString());
+          return bDate.year == _selectedDate.year &&
+                 bDate.month == _selectedDate.month &&
+                 bDate.day == _selectedDate.day;
+        },
+        orElse: () => null,
+      );
+
+      barId = barExistente?.bar_id ?? barExistente?.barId;
+    }
+    
+    debugPrint('aqui -----> $barId');
     await productsController.loadProdutos(hldId);
     await ticketController.loadTicketStatus(hldId);
-    await ticketController.loadTickets(openDate, hldId);
+    await ticketController.loadTickets(barId, openDate, hldId);
 
     if (context.mounted) {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => HeadquartersBarOpened(
+            barId: barId, // 🟢 Passa o bar_id encontrado ou criado
             openDate: openDate,
             hld_id: hldId,
             isReadOnly: isReadOnly,
@@ -242,4 +271,5 @@ class HeadquartersBarState extends State<HeadquartersBar> {
       }
     }
   }
+
 }

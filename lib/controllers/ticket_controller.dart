@@ -46,7 +46,7 @@ class TicketController extends ChangeNotifier {
   // ==========================================
   // 🟢 REALTIME DO BAR (VENDA DIÁRIA)
   // ==========================================
-  void initRealtime(String openDate, String hldId) {
+  void initRealtime(String barId, String openDate, String hldId) {
     disposeRealtime();
 
     _realtimeChannel = supabaseClient
@@ -61,7 +61,7 @@ class TicketController extends ChangeNotifier {
             value: hldId,
           ),
           callback: (payload) {
-            loadTickets(openDate, hldId, showLoading: false);
+            loadTickets(barId, openDate, hldId, showLoading: false);
           },
         )
         .onPostgresChanges(
@@ -69,7 +69,7 @@ class TicketController extends ChangeNotifier {
           schema: 'public',
           table: 'tickets_items',
           callback: (payload) {
-            loadTickets(openDate, hldId, showLoading: false);
+            loadTickets(barId, openDate, hldId, showLoading: false);
           },
         )
         .subscribe();
@@ -150,7 +150,11 @@ class TicketController extends ChangeNotifier {
     }
   }
 
-  Future<void> loadTickets(String openDate, String hldId, {bool showLoading = true}) async {
+  Future<void> loadTickets(
+    String barId,
+    String openDate,
+    String hldId,
+    {bool showLoading = true}) async {
     try {
       if (showLoading) loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -159,9 +163,10 @@ class TicketController extends ChangeNotifier {
         () => supabaseClient
             .from('vtickets')
             .select('''*, vtickets_items(*)''')
-            .eq('tkt_bar_open_date', openDate)
+            .eq('tkt_bar_id', barId)
             .eq('tkt_hld_id', hldId),
       );
+      debugPrint('-----> $barId');
 
       ticketNotifier.value = resposta
           .map((item) => TicketsModel.fromJson(item))
@@ -190,7 +195,8 @@ class TicketController extends ChangeNotifier {
             .from('vtickets')
             .select('''*, vtickets_items(*)''')
             .eq('tkt_pfl_id', pfl_id)
-            .eq('tkt_hld_id', hldId),
+            .eq('tkt_hld_id', hldId)
+            .order('tkt_bar_open_date', ascending: false)
       );
 
       profileTicketsWithItemsNotifier.value = resposta
@@ -233,6 +239,7 @@ class TicketController extends ChangeNotifier {
   // ==========================================
   Future<void> openTicketsFunction(
     TicketsModel openTickets,
+    String barId,
     String openDate,
     String hldId
     ) async {
@@ -240,11 +247,14 @@ class TicketController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
+      debugPrint(openTickets.tkt_bar_id.toString());
+
       await mySupabaseClient.safePostgrestCall(
         () => supabaseClient.rpc(
           'insert_ticket_with_table_number',
           params: {
             'p_hld_id': openTickets.tkt_hld_id.toString(),
+            'p_bar_id': openTickets.tkt_bar_id.toString(),
             'p_bar_open_date': openTickets.tkt_bar_open_date.toString(),
             'p_client_name': openTickets.tkt_client_name.toString(),
             'p_pfl_id': openTickets.tkt_pfl_id,
@@ -253,18 +263,21 @@ class TicketController extends ChangeNotifier {
           },
         ),
       );
+      await loadTickets( barId, openDate, hldId );
+
     } catch (e, stackTrace) {
       errorNotifier.value =
           ("TicketController::openTicketsFunction: $e \n$stackTrace");
+          debugPrint( "$e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
-      loadTickets( openDate, hldId );
     }
   }
 
   Future<void> closeTicketsWithoutPayment(
     String tktId,
     String tktTstId,
+    String barId,
     String openDate,
     String hldId
   ) async {
@@ -278,18 +291,19 @@ class TicketController extends ChangeNotifier {
           .update({'tkt_tst_id': tktTstId})
           .eq('tkt_id', tktId)          
       );
+      await loadTickets( barId, openDate, hldId );
 
     } catch (e, stackTrace) {
       errorNotifier.value =
           ("TicketController::closeTicketsWithoutPayment: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
-      loadTickets( openDate, hldId );
     }
   }
 
   Future<void> insertTicketsItems(
     TicketsItemsModel ticketsItems,
+    String barId,
     String openDate,
     String hldId)
   async {
@@ -302,18 +316,19 @@ class TicketController extends ChangeNotifier {
           .from( 'tickets_items' )
           .insert( ticketsItems.toJson() )
       );
+      await loadTickets( barId, openDate, hldId );
     } catch (e, stackTrace) {
       errorNotifier.value =
           ("TicketController::insertTicketsItems: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
-      loadTickets( openDate, hldId );
     }
   }
 
   Future<void> updateTicketsItems(
     String tit_id,
     int tit_quantities,
+    String barId,
     String openDate,
     String hldId
   ) async {
@@ -327,18 +342,19 @@ class TicketController extends ChangeNotifier {
           .update({'tit_quantities': tit_quantities })
           .eq( 'tit_id', tit_id )
       );
+      await loadTickets( barId, openDate, hldId );
 
     } catch (e, stackTrace) {
       errorNotifier.value =
           ("TicketController::updateTicketsItems: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
-      loadTickets( openDate, hldId );
     }
   }
 
   Future<void> deleteTicketsItems(
     String tit_id,
+    String barId,
     String openDate,
     String hldId
   ) async {
@@ -352,13 +368,13 @@ class TicketController extends ChangeNotifier {
           .delete()
           .eq( 'tit_id', tit_id )
       );
+      await loadTickets( barId, openDate, hldId );
 
     } catch (e, stackTrace) {
       errorNotifier.value =
           ("TicketController::deleteTicketsItems: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
-      loadTickets( openDate, hldId );
     }
   }
 }

@@ -110,6 +110,7 @@ abstract class BaseImageUploadService {
         await atualizarBancoDados(imageUrl, payload);
       } catch (e, stackTrace) {
         errorNotifier.value = "${runtimeType}::selecionarAnexoEEnviar: $e \n$stackTrace";
+        debugPrint(" $e \n$stackTrace");
       } finally {
         loadingNotifier.value = false;
       }

@@ -85,6 +85,7 @@ class TicketsModel {
   String? tkt_id;
   String tkt_hld_id;
   String? hld_name;
+  String tkt_bar_id;
   String tkt_bar_open_date;
   String tkt_table_number;
   String? tkt_client_name;
@@ -103,6 +104,7 @@ class TicketsModel {
     this.tkt_id,
     required this.tkt_hld_id,
     this.hld_name,
+    required this.tkt_bar_id,
     required this.tkt_bar_open_date,
     required this.tkt_table_number,
     this.tkt_client_name,
@@ -133,6 +135,7 @@ class TicketsModel {
       tkt_id: json['tkt_id']?.toString() ?? '',
       tkt_hld_id: json['tkt_hld_id']?.toString() ?? '',
       hld_name: json['hld_name']?.toString() ?? '',
+      tkt_bar_id: json['tkt_bar_id']?.toString() ?? '',
       tkt_bar_open_date: json['tkt_bar_open_date']?.toString() ?? '',
       tkt_table_number: json['tkt_table_number']?.toString() ?? '',
       tkt_client_name: json['tkt_client_name']?.toString() ?? '',
@@ -152,6 +155,7 @@ class TicketsModel {
   Map<String, dynamic> toJson() {
     return {
       'tkt_hld_id': tkt_hld_id,
+      'tkt_bar_id': tkt_bar_id,
       'tkt_bar_open_date': tkt_bar_open_date,
       'tkt_table_number': tkt_table_number,
       'tkt_client_name': tkt_client_name,

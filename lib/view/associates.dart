@@ -178,7 +178,9 @@ class AssociatesState extends State<Associates> {
                           size: 14,
                           color: profile.as_id.toString() == '1' 
                             ? Colors.greenAccent 
-                            : Colors.red,
+                            : ((profile.as_ismonthlypayment == 'true')
+                              ? Colors.orange
+                              : Colors.red),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -187,7 +189,9 @@ class AssociatesState extends State<Associates> {
                             fontSize: 13,
                             color: profile.as_id.toString() == '1' 
                               ? Colors.greenAccent 
-                              : Colors.red,
+                              : ((profile.as_ismonthlypayment == 'true')
+                              ? Colors.orange
+                              : Colors.red),
                           ),
                         ),
                       ],
@@ -198,13 +202,16 @@ class AssociatesState extends State<Associates> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
+                          
                           profile.as_id.toString() == '1' 
                             ? Icons.check_circle 
                             : Icons.error,
                           size: 14,
                           color: profile.as_id.toString() == '1' 
                             ? Colors.greenAccent 
-                            : Colors.red,
+                            : ((profile.as_ismonthlypayment == 'true')
+                              ? Colors.orange
+                              : Colors.red),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -213,7 +220,9 @@ class AssociatesState extends State<Associates> {
                             fontSize: 13,
                             color: profile.as_id.toString() == '1' 
                               ? Colors.greenAccent 
-                              : Colors.red,
+                              : ((profile.as_ismonthlypayment == 'true')
+                                ? Colors.orange
+                                : Colors.red),
                           ),
                         ),
                       ],
@@ -228,7 +237,9 @@ class AssociatesState extends State<Associates> {
                           size: 14,
                           color: profile.as_id.toString() == '1'
                             ? Colors.greenAccent
-                            : Colors.red,
+                            : ((profile.as_ismonthlypayment == 'true')
+                              ? Colors.orange
+                              : Colors.red),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -237,7 +248,9 @@ class AssociatesState extends State<Associates> {
                             fontSize: 13,
                             color: profile.as_id.toString() == '1'
                               ? Colors.greenAccent 
-                              : Colors.red,
+                              : ((profile.as_ismonthlypayment == 'true')
+                              ? Colors.orange
+                              : Colors.red),
                           ),
                         ),
                       ],

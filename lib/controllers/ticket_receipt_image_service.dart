@@ -23,6 +23,7 @@ class TicketReceiptImageService extends BaseImageUploadService {
     final String tkt_id = payload?['tkt_id'];
     final String pfl_id = payload?['pfl_id'];
     final String tkt_tst_id = payload?['tkt_tst_id'];
+    final String barId = payload?['barId'];
     final String openDate = payload?['openDate'];
     final String hld_id = payload?['hld_id'];
 
@@ -49,6 +50,7 @@ class TicketReceiptImageService extends BaseImageUploadService {
     final String tkt_id = payload?['tkt_id'];
     final String pfl_id = payload?['pfl_id'];
     final String tkt_tst_id = payload?['tkt_tst_id'];
+    final String barId = payload?['barId'];
     final String openDate = payload?['openDate'];
     final String hld_id = payload?['hld_id'];
 
@@ -60,7 +62,7 @@ class TicketReceiptImageService extends BaseImageUploadService {
         })
         .eq('tkt_id', tkt_id);
     
-    await ticketController.loadTickets( openDate, hld_id );
+    await ticketController.loadTickets( barId, openDate, hld_id );
   }
 
 }
