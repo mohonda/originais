@@ -236,6 +236,45 @@ class TicketController extends ChangeNotifier {
   }
 
   // ==========================================
+  Future<String> insertTickets(
+    String hldId,
+    String openDate,
+    String nTable,
+    String clienteName,
+    String pflId,
+    String barId
+    ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      final resposta = await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from('tickets')
+          .insert({
+            'tkt_hld_id': hldId,
+            'tkt_bar_open_date': openDate,
+            'tkt_table_number': nTable,
+            'tkt_client_name': clienteName,
+            'tkt_pfl_id' : pflId,
+            'tkt_bar_id': barId,
+          })
+          .select('tkt_id') // 🟢 Solicita o retorno da coluna bar_id
+          .single(),
+      );
+      return resposta['tkt_id'].toString();
+
+    } catch (e, stackTrace) {
+      errorNotifier.value =
+          ("TicketController::openTicketsFunction: $e \n$stackTrace");
+      debugPrint( '$e \n$stackTrace');
+      return '-1';
+    } finally {
+      loadingNotifier.value = false;
+    }
+  }
+
+  // ==========================================
   // AÇÕES DO TICKET (INSERT, UPDATE, DELETE)
   // ==========================================
   Future<void> openTicketsFunction(

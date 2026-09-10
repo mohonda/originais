@@ -5,6 +5,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
 import 'package:originais/models/sanction_model.dart';
 
+import 'package:originais/controllers/headquarters_bar_controller.dart';
+import 'package:originais/controllers/ticket_controller.dart';
+import 'package:originais/models/ticket_model.dart';
+
 final getItBdVProfilesSanctionsController = GetIt.instance;
 
 void setupGetItBdVProfilesSanctionsController() {
@@ -83,8 +87,9 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<List<SanctionModel>> insertProfileSanction(
+  Future<void> insertProfileSanction(
     String psanPflIid,
+    String pflName,
     String psanHldIid,
 
     String psanSanId,
@@ -99,7 +104,9 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
       errorNotifier.value = null;
 
       final resposta = await mySupabaseClient.safePostgrestCall(
-        () => supabaseClient.from('profiles_sanctions').insert({
+        () => supabaseClient
+        .from('profiles_sanctions')
+        .insert({
           'psan_pfl_id': psanPflIid,
           'psan_hld_id': psanHldIid,
 
@@ -110,17 +117,55 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
           'psan_date_end': psanDateEnd,
           'psan_desc': psanDesc,
         })
+        .select()
       );
 
       sanctionsNotifier.value = resposta
           .map((item) => SanctionModel.fromMap(item))
           .toList();
+      
+      final bar = BdHeadquartersBarController();
 
-      return sanctionsNotifier.value;
+      final String barId = await bar.openHeadquartersBar(
+        psanPflIid,
+        psanHldIid,
+        psanDateStart,
+        psanDesc,
+        '3'
+      );
+      debugPrint('---->${barId.toString()}');
+
+      final tkt = TicketController();
+      final tktId = await tkt.insertTickets(
+        psanHldIid,
+        psanDateStart,
+        '-1',
+        pflName,
+        psanPflIid,
+        barId
+      );
+
+      final ticketsItems2Controller = TicketsItemsModel(
+        tit_hld_id: psanHldIid,
+        tit_tkt_id: tktId,
+        tit_pdt_id: '32',
+        tit_quantities: 1,
+        tit_unit_value: double.parse(psanValor),
+        tit_value: double.parse(psanValor),
+      );
+      await tkt.insertTicketsItems(
+        ticketsItems2Controller,
+        barId,
+        psanDateStart,
+        psanHldIid,
+      );
+
+      // return sanctionsNotifier.value;
     } catch (e, stackTrace) {
       errorNotifier.value =
           ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
-      return sanctionsNotifier.value = [];
+      // return sanctionsNotifier.value = [];
+      debugPrint( '$e \n$stackTrace');
     } finally {
       loadingNotifier.value = false;
     }

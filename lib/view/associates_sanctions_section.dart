@@ -284,6 +284,7 @@ class _AssociatesSanctionsSectionState
 
                     await controller.insertProfileSanction(
                       widget.itemAtual.pfl_id.toString(),
+                      widget.itemAtual.pfl_full_name,
                       widget.itemAtual.hld_id.toString(),
                       sancaoSelecionada!.sanId.toString(),
                       valueController.text,

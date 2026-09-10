@@ -93,7 +93,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> openHeadquartersBar(
+  Future<String> openHeadquartersBar(
     String pflId,
     String hldId,
     String openDate,
@@ -104,7 +104,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      await mySupabaseClient.safePostgrestCall(
+      final resposta = await mySupabaseClient.safePostgrestCall(
         () => supabaseClient
         .from('headquarters_bar')
         .insert({
@@ -113,12 +113,17 @@ class BdHeadquartersBarController extends ChangeNotifier {
           'bar_open_date': openDate,
           'bar_desc': barDesc,
           'bar_tss_id': tssId,
-        }),
+        })
+        .select('bar_id') // 🟢 Solicita o retorno da coluna bar_id
+        .single(),
       );
+
+      return resposta['bar_id'].toString();
     } catch (e, stackTrace) {
       headquartersBarNotifier.value = [];
       errorNotifier.value =
           ("BdHeadquartersBarController::openHeadquartersBar: $e \n$stackTrace");
+      return '-1';
     } finally {
       loadingNotifier.value = false;
     }
