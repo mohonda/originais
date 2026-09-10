@@ -257,8 +257,8 @@ class _ProfileState extends State<Profile> {
                       ),
                       Tab(
                         height: 38,
-                        icon: Icon(Icons.sports_bar, size: 16),
-                        text: 'Bar',
+                        icon: Icon(Icons.currency_exchange, size: 16),
+                        text: 'Financial',
                         iconMargin: EdgeInsets.only(bottom: 2),
                       ),
                       Tab(
