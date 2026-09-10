@@ -11,6 +11,9 @@ class HeadquartersBarModel {
   String close_profile_name;
   
   String bar_desc;
+  
+  String bar_tss_id;
+  String tss_desc;
  
   // ==========================================
   HeadquartersBarModel ( {
@@ -26,6 +29,9 @@ class HeadquartersBarModel {
     required this.close_profile_name,
     
     required this.bar_desc,
+
+    required this.bar_tss_id,
+    required this.tss_desc,
   } );
 
   // ==========================================
@@ -44,6 +50,9 @@ class HeadquartersBarModel {
         close_profile_name: json['close_profile_name']?.toString() ?? '',
 
         bar_desc: json['bar_desc']?.toString() ?? '',
+
+        bar_tss_id: json['bar_tss_id']?.toString() ?? '',
+        tss_desc: json['tss_desc']?.toString() ?? '',
     );
   }
 }

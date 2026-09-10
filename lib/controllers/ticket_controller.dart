@@ -150,6 +150,7 @@ class TicketController extends ChangeNotifier {
     }
   }
 
+  // ==========================================
   Future<void> loadTickets(
     String barId,
     String openDate,

@@ -97,6 +97,8 @@ class TicketsModel {
   String? tst_name;
   String? tkt_paiment_path;
   String? created_at;
+  String? bar_tss_id;
+  String? tss_desc;
 
   List<TicketsItemsModel> ticketsItems;
 
@@ -115,6 +117,8 @@ class TicketsModel {
     this.tst_name,
     this.tkt_paiment_path,
     this.created_at,
+    this.bar_tss_id,
+    this.tss_desc,
     List<TicketsItemsModel>? ticketsItems,
   }) : ticketsItems = ticketsItems ?? [];
 
@@ -147,6 +151,8 @@ class TicketsModel {
       tst_name: json['tst_name']?.toString() ?? '',
       tkt_paiment_path: json['tkt_paiment_path']?.toString() ?? '',
       created_at: json['created_at']?.toString() ?? '',
+      bar_tss_id: json['bar_tss_id']?.toString() ?? '',
+      tss_desc: json['tss_desc']?.toString() ?? '',
       ticketsItems: itens,
     );
   }
@@ -162,6 +168,8 @@ class TicketsModel {
       'tkt_pfl_id': tkt_pfl_id,
       'tkt_has_discount': tkt_has_discount,
       'tkt_tst_id': tkt_tst_id,
+      'bar_tss_id': bar_tss_id,
+      'tss_desc': tss_desc,
     };
   }
 }

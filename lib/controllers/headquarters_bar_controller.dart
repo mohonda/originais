@@ -32,7 +32,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
   }
 
   // 🟢 INICIA A ESCUTA EM TEMPO REAL
-  void initRealtime(String hldId) {
+  void initRealtime( String hldId, String tssId ) {
     disposeRealtime();
 
     _realtimeChannel = supabaseClient
@@ -48,7 +48,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
           ),
           callback: (payload) {
             // 🟢 Recarrega em segundo plano sem travar a interface
-            loadHeadquartersBar(hldId, showLoading: false);
+            loadHeadquartersBar(hldId, tssId, showLoading: false);
           },
         )
         .subscribe();
@@ -65,9 +65,9 @@ class BdHeadquartersBarController extends ChangeNotifier {
   // ==========================================
   // 2. Adicione o parâmetro opcional 'showLoading' no seu método
   Future<void> loadHeadquartersBar(
-    String hldId, {
-    bool showLoading = true,
-  }) async {
+    String hldId,
+    String tssId,
+    { bool showLoading = true,}) async {
     try {
       if (showLoading) loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -76,7 +76,8 @@ class BdHeadquartersBarController extends ChangeNotifier {
         () => supabaseClient
             .from('vheadquarters_bar')
             .select()
-            .eq('bar_hld_id', hldId),
+            .eq('bar_hld_id', hldId)
+            .eq('bar_tss_id', tssId),
       );
 
       headquartersBarNotifier.value = resposta
@@ -97,17 +98,21 @@ class BdHeadquartersBarController extends ChangeNotifier {
     String hldId,
     String openDate,
     String barDesc,
+    String tssId,
   ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
       await mySupabaseClient.safePostgrestCall(
-        () => supabaseClient.from('headquarters_bar').insert({
+        () => supabaseClient
+        .from('headquarters_bar')
+        .insert({
           'bar_open_pfl_id': pflId,
           'bar_hld_id': hldId,
           'bar_open_date': openDate,
           'bar_desc': barDesc,
+          'bar_tss_id': tssId,
         }),
       );
     } catch (e, stackTrace) {

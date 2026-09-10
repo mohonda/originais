@@ -37,6 +37,9 @@ class HeadquartersBarState extends State<HeadquartersBar> {
   late String pflId = '';
   late String hldId = '';
 
+  final String typeSales = '1';
+
+
   @override
   void initState() {
     super.initState();
@@ -73,8 +76,8 @@ class HeadquartersBarState extends State<HeadquartersBar> {
   }
 
   Future<void> _carregarDadosIniciais() async {
-    await bdHeadquartersBarController.loadHeadquartersBar(hldId);
-    bdHeadquartersBarController.initRealtime(hldId);
+    await bdHeadquartersBarController.loadHeadquartersBar( hldId, typeSales );
+    bdHeadquartersBarController.initRealtime( hldId, typeSales );
   }
 
   // 🟢 3. Atualiza os dias abertos do calendário sempre que o controller mudar
@@ -227,10 +230,11 @@ void openHeadquartersBar() async {
         hldId,
         openDate,
         bar_desc.text,
+        typeSales,
       );
 
       // Recarrega os dados do controller para obter o bar_id recém-gerado no banco
-      await bdHeadquartersBarController.loadHeadquartersBar(hldId);
+      await bdHeadquartersBarController.loadHeadquartersBar( hldId, typeSales );
 
       // Busca novamente o bar recém-criado para obter o ID
       final barrasAtualizadas = bdHeadquartersBarController.headquartersBarNotifier.value;
