@@ -11,6 +11,8 @@ import 'package:originais/services/general_service.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'dart:io';
+import 'package:originais/controllers/open_bar_ticket_ticketitem_controller.dart';
+
 
 final getItbdMonthlyPaymentsController = GetIt.instance;
 
@@ -30,10 +32,10 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
 
   final ValueNotifier<MensalidadesModel?> monthlyPaymentsIndividual =
       ValueNotifier<MensalidadesModel?>(null);
-  
+
   // 🟢 Notifier específico para o histórico do perfil selecionado
   final ValueNotifier<List<MensalidadesModel>> monthlyPaymentsProfileNotifier =
-    ValueNotifier<List<MensalidadesModel>>([]);
+      ValueNotifier<List<MensalidadesModel>>([]);
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
@@ -51,7 +53,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
   BdMonthlyPaymentsController() {
     supabaseClient = mySupabaseClient.getSupabaseClient();
     idConfirmacao = mySupabaseClient.getUserId();
-    loadCashierName( idConfirmacao );
+    loadCashierName(idConfirmacao);
   }
 
   // 🟢 INICIA A ESCUTA EM TEMPO REAL
@@ -92,20 +94,21 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       if (showLoading) loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await mySupabaseClient.safePostgrestCall(()=>
-        supabaseClient
-        .from('vmensalidades')
-        .select()
-        .eq('mes_hld_id', hld_id)
+      final resposta = await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+            .from('vmensalidades')
+            .select()
+            .eq('mes_hld_id', hld_id),
       );
 
-      monthlyPaymentsNotifier.value = 
-          resposta.map((item) =>
-          MensalidadesModel.fromJson(item)).toList();
-
+      monthlyPaymentsNotifier.value = resposta
+          .map((item) => MensalidadesModel.fromJson(item))
+          .toList();
     } catch (e, stackTrace) {
       monthlyPaymentsNotifier.value = [];
-      debugPrint("BdMonthlyPaymentsController::loadCurrentMonthlyPayment: $e\n$stackTrace");
+      debugPrint(
+        "BdMonthlyPaymentsController::loadCurrentMonthlyPayment: $e\n$stackTrace",
+      );
     } finally {
       if (showLoading) loadingNotifier.value = false;
     }
@@ -120,24 +123,23 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
-    
-      final resposta = await mySupabaseClient.safePostgrestCall(()=>
-        supabaseClient
-          .from('vmensalidades')
-          .select()
-          .eq('mes_pfl_id', id)
-          .eq('mes_hld_id', '1')
-          .eq('mes_mes_referencia', month)
-          .eq('mes_ano_referencia', year)
-          .single()
-        );
 
-      monthlyPaymentsIndividual.value =
-        MensalidadesModel.fromJson(resposta);
+      final resposta = await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+            .from('vmensalidades')
+            .select()
+            .eq('mes_pfl_id', id)
+            .eq('mes_hld_id', '1')
+            .eq('mes_mes_referencia', month)
+            .eq('mes_ano_referencia', year)
+            .single(),
+      );
 
+      monthlyPaymentsIndividual.value = MensalidadesModel.fromJson(resposta);
     } catch (e, stackTrace) {
       monthlyPaymentsIndividual.value = null;
-      errorNotifier.value = 'BdMonthlyPaymentsController::loadMonthlyPaymentsIndividual:  $e\n$stackTrace';
+      errorNotifier.value =
+          'BdMonthlyPaymentsController::loadMonthlyPaymentsIndividual:  $e\n$stackTrace';
     } finally {
       loadingNotifier.value = false;
     }
@@ -156,19 +158,20 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       errorNotifier.value = null;
 
       final resposta = await supabaseClient
-        .from('mensalidades')
-        .update({'mes_comprovante_pag': comprovantePag})
-        .eq('mes_mes_referencia', mesReferencia)
-        .eq('mes_ano_referencia', anoReferencia)
-        .eq('mes_pfl_id', pfl_id)
-        .eq('mes_hld_id', hld_id)
-        .select()
-        .single();
-        
-        monthlyPaymentsIndividual.value = MensalidadesModel.fromJson( resposta );
+          .from('mensalidades')
+          .update({'mes_comprovante_pag': comprovantePag})
+          .eq('mes_mes_referencia', mesReferencia)
+          .eq('mes_ano_referencia', anoReferencia)
+          .eq('mes_pfl_id', pfl_id)
+          .eq('mes_hld_id', hld_id)
+          .select()
+          .single();
+
+      monthlyPaymentsIndividual.value = MensalidadesModel.fromJson(resposta);
     } catch (e, stackTrace) {
       monthlyPaymentsIndividual.value = null;
-      errorNotifier.value = 'BdMonthlyPaymentsController::updateCheckingCopy:  $e\n$stackTrace';
+      errorNotifier.value =
+          'BdMonthlyPaymentsController::updateCheckingCopy:  $e\n$stackTrace';
     } finally {
       loadingNotifier.value = false;
     }
@@ -187,33 +190,35 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      String dataSupabase = generalService.date2Supabase( datapagamento.toString() );
-      String valorSupabase = generalService.value2Supabase( valor.toString() );
+      String dataSupabase = generalService.date2Supabase(
+        datapagamento.toString(),
+      );
+      String valorSupabase = generalService.value2Supabase(valor.toString());
 
       final resposta = await supabaseClient
-        .from('mensalidades')
-        .update({
-          'mes_valor': valorSupabase,
-          'mes_data_pagamento': dataSupabase,
-          'mes_fpg_id': formapagamento,
-          'mes_fpg_hld_id': '1',
+          .from('mensalidades')
+          .update({
+            'mes_valor': valorSupabase,
+            'mes_data_pagamento': dataSupabase,
+            'mes_fpg_id': formapagamento,
+            'mes_fpg_hld_id': '1',
 
-          'mes_pfl_id_confirmacao': null,
-          'mes_hld_id_confirmacao': null,
-          'mes_data_confirmacao': null,
-        })
-        .eq('mes_mes_referencia', mes)
-        .eq('mes_ano_referencia', ano)
-        .eq('mes_pfl_id', id )
-        .eq('mes_hld_id', '1' )
-        .select()
-        .single();
+            'mes_pfl_id_confirmacao': null,
+            'mes_hld_id_confirmacao': null,
+            'mes_data_confirmacao': null,
+          })
+          .eq('mes_mes_referencia', mes)
+          .eq('mes_ano_referencia', ano)
+          .eq('mes_pfl_id', id)
+          .eq('mes_hld_id', '1')
+          .select()
+          .single();
 
-      monthlyPaymentsIndividual.value = MensalidadesModel.fromJson( resposta );
-
+      monthlyPaymentsIndividual.value = MensalidadesModel.fromJson(resposta);
     } catch (e, stackTrace) {
       monthlyPaymentsIndividual.value = null;
-      errorNotifier.value = 'BdMonthlyPaymentsController::updatePaymentsProfile:  $e\n$stackTrace';
+      errorNotifier.value =
+          'BdMonthlyPaymentsController::updatePaymentsProfile:  $e\n$stackTrace';
     } finally {
       loadCurrentMonthlyPayment();
       loadingNotifier.value = false;
@@ -235,35 +240,41 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      String dataSupabase = generalService.date2Supabase( datapagamento.toString() );
-      String valorSupabase = generalService.value2Supabase( valor.toString() );
-      String dataCashierSupabase = generalService.date2Supabase( dateCashier.toString() );
+      String dataSupabase = generalService.date2Supabase(
+        datapagamento.toString(),
+      );
+      String valorSupabase = generalService.value2Supabase(valor.toString());
+      String dataCashierSupabase = generalService.date2Supabase(
+        dateCashier.toString(),
+      );
 
       final resposta = await supabaseClient
-        .from('mensalidades')
-        .update({
-          'mes_valor': valorSupabase,
-          'mes_data_pagamento': dataSupabase,
-          'mes_fpg_id': formapagamento,
-          'mes_fpg_hld_id': '1',
+          .from('mensalidades')
+          .update({
+            'mes_valor': valorSupabase,
+            'mes_data_pagamento': dataSupabase,
+            'mes_fpg_id': formapagamento,
+            'mes_fpg_hld_id': '1',
 
-          'mes_pfl_id_confirmacao': idCashier,
-          'mes_hld_id_confirmacao': '1',
-          'mes_data_confirmacao': dataCashierSupabase,
-        })
-        .eq('mes_mes_referencia', mes)
-        .eq('mes_ano_referencia', ano)
-        .eq('mes_pfl_id', id )
-        .eq('mes_hld_id', '1' )
-        .select()
-        .single();
+            'mes_pfl_id_confirmacao': idCashier,
+            'mes_hld_id_confirmacao': '1',
+            'mes_data_confirmacao': dataCashierSupabase,
+          })
+          .eq('mes_mes_referencia', mes)
+          .eq('mes_ano_referencia', ano)
+          .eq('mes_pfl_id', id)
+          .eq('mes_hld_id', '1')
+          .select()
+          .single();
 
-      monthlyPaymentsIndividual.value = MensalidadesModel.fromJson( resposta );
-
+      monthlyPaymentsIndividual.value = MensalidadesModel.fromJson(resposta);
     } catch (e, stackTrace) {
       monthlyPaymentsIndividual.value = null;
-      debugPrint('BdMonthlyPaymentsController::updatePaymentsCashier:  $e\n$stackTrace');
-      errorNotifier.value = 'BdMonthlyPaymentsController::updatePaymentsCashier:  $e\n$stackTrace';
+      debugPrint(
+        'BdMonthlyPaymentsController::updatePaymentsCashier:  $e\n$stackTrace',
+      );
+      errorNotifier.value =
+          'BdMonthlyPaymentsController::updatePaymentsCashier:  $e\n$stackTrace';
     } finally {
       loadCurrentMonthlyPayment();
       loadingNotifier.value = false;
@@ -282,34 +293,38 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      String dataCashierSupabase = generalService.date2Supabase( dateCashier.toString() );
+      String dataCashierSupabase = generalService.date2Supabase(
+        dateCashier.toString(),
+      );
 
       final resposta = await supabaseClient
-        .from('mensalidades')
-        .update({
-          'mes_valor': null,
-          'mes_data_pagamento': null,
-          'mes_fpg_id': null,
-          'mes_fpg_hld_id': null,
-          
-          'mes_comprovante_pag': null,
-          'mes_pfl_id_confirmacao': idCashier,
-          'mes_hld_id_confirmacao': '1',
-          'mes_data_confirmacao': dataCashierSupabase,
-        })
-        .eq('mes_mes_referencia', mes)
-        .eq('mes_ano_referencia', ano)
-        .eq('mes_pfl_id', id )
-        .eq('mes_hld_id', '1' )
-        .select()
-        .single();
+          .from('mensalidades')
+          .update({
+            'mes_valor': null,
+            'mes_data_pagamento': null,
+            'mes_fpg_id': null,
+            'mes_fpg_hld_id': null,
 
-      monthlyPaymentsIndividual.value = MensalidadesModel.fromJson( resposta );
+            'mes_comprovante_pag': null,
+            'mes_pfl_id_confirmacao': idCashier,
+            'mes_hld_id_confirmacao': '1',
+            'mes_data_confirmacao': dataCashierSupabase,
+          })
+          .eq('mes_mes_referencia', mes)
+          .eq('mes_ano_referencia', ano)
+          .eq('mes_pfl_id', id)
+          .eq('mes_hld_id', '1')
+          .select()
+          .single();
 
+      monthlyPaymentsIndividual.value = MensalidadesModel.fromJson(resposta);
     } catch (e, stackTrace) {
       monthlyPaymentsIndividual.value = null;
-      debugPrint('BdMonthlyPaymentsController::cancelPaymentsCashier:  $e\n$stackTrace');
-      errorNotifier.value = 'BdMonthlyPaymentsController::cancelPaymentsCashier:  $e\n$stackTrace';
+      debugPrint(
+        'BdMonthlyPaymentsController::cancelPaymentsCashier:  $e\n$stackTrace',
+      );
+      errorNotifier.value =
+          'BdMonthlyPaymentsController::cancelPaymentsCashier:  $e\n$stackTrace';
     } finally {
       loadCurrentMonthlyPayment();
       loadingNotifier.value = false;
@@ -317,75 +332,121 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadCashierName( String id ) async {
+  Future<void> loadCashierName(String id) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await mySupabaseClient.safePostgrestCall(()=>
-        supabaseClient
-        .from( 'profiles' )
-        .select('pfl_full_name')
-        .eq( 'pfl_id', id )
-        .eq( 'hld_id', '1' )
-        .maybeSingle()
+      final resposta = await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+            .from('profiles')
+            .select('pfl_full_name')
+            .eq('pfl_id', id)
+            .eq('hld_id', '1')
+            .maybeSingle(),
       );
 
-      if ( resposta != null ) {
+      if (resposta != null) {
         nameConfirmacao = resposta['pfl_full_name'] as String? ?? '';
       }
-
-    } catch ( e, stackTrace ) {
+    } catch (e, stackTrace) {
       nameConfirmacao = '';
-      errorNotifier.value = "BdMonthlyPaymentsController::loadCashierName: $e \n$stackTrace";
+      errorNotifier.value =
+          "BdMonthlyPaymentsController::loadCashierName: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
   }
 
   // ==========================================
-  Future<void> insertMonthlyGeneration(
-    List<Map<String, dynamic>> filteredList
+  // Future<void> insertMonthlyGeneration(
+  //   List<Map<String, dynamic>> filteredList,
+  // ) async {
+  //   try {
+  //     loadingNotifier.value = true;
+  //     errorNotifier.value = null;
+
+  //     await supabaseClient.from('mensalidades').insert(filteredList);
+  //   } catch (e, stackTrace) {
+  //     monthlyPaymentsIndividual.value = null;
+  //     errorNotifier.value =
+  //         'BdMonthlyPaymentsController::insertMonthlyGeneration:  $e\n$stackTrace';
+  //   } finally {
+  //     loadingNotifier.value = false;
+  //     loadCurrentMonthlyPayment();
+  //   }
+  // }
+
+    Future<void> insertMonthlyGeneration(
+    List<Map<String, dynamic>> filteredList,
   ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
+      
+      final openTicket = OpenBarTicketTicketitemController();
 
-      await supabaseClient
-      .from('mensalidades')
-      .insert(filteredList);
-
+      // await supabaseClient.from('mensalidades').insert(filteredList);
+      try {
+        await Future.wait(
+          filteredList.map((item) {
+            return openTicket.openBarTicketTicketitem(
+              p_hld_id: item['p_hld_id'].toString(),
+              p_pfl_id: item['p_pfl_id'],
+              p_pfl_name: item['p_pfl_name'],
+              p_date_start: item['p_date_start'].toString(),
+              p_desc: item['p_desc'],
+              p_tss_id: item['p_tss_id'].toString(),
+              p_table_number: item['p_table_number'].toString(),
+              p_pdt_id: item['p_pdt_id'].toString(),
+              p_pdt_quant: item['p_pdt_quant'].toString(),
+              p_valor: item['p_valor'].toString(),
+            );
+          }),
+        );
+        debugPrint('Todos os tickets foram inseridos com sucesso!');
+      } catch (e) {
+        debugPrint('Ocorreu um erro durante a inserção em lote: $e');
+      }
     } catch (e, stackTrace) {
       monthlyPaymentsIndividual.value = null;
-      errorNotifier.value = 'BdMonthlyPaymentsController::insertMonthlyGeneration:  $e\n$stackTrace';
+      errorNotifier.value =
+          'BdMonthlyPaymentsController::insertMonthlyGeneration:  $e\n$stackTrace';
     } finally {
       loadingNotifier.value = false;
       loadCurrentMonthlyPayment();
     }
   }
-// 🟢 Consulta no banco filtrando diretamente pelo mes_pfl_id
-Future<void> loadMonthlyPaymentsByProfile(String pflId, String hldId) async {
-  try {
-    loadingNotifier.value = true;
-    errorNotifier.value = null;
 
-    final resposta = await mySupabaseClient.safePostgrestCall(() =>
-      supabaseClient
-        .from('vmensalidades')
-        .select()
-        .eq('mes_hld_id', hldId)
-        .eq('mes_pfl_id', pflId)
-    );
 
-    monthlyPaymentsProfileNotifier.value = 
-        resposta.map((item) => MensalidadesModel.fromJson(item)).toList();
 
-  } catch (e, stackTrace) {
-    monthlyPaymentsProfileNotifier.value = [];
-    debugPrint("BdMonthlyPaymentsController::loadMonthlyPaymentsByProfile: $e\n$stackTrace");
-  } finally {
-    loadingNotifier.value = false;
+
+
+  // ==========================================
+  // 🟢 Consulta no banco filtrando diretamente pelo mes_pfl_id
+  Future<void> loadMonthlyPaymentsByProfile(String pflId, String hldId) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      final resposta = await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+            .from('vmensalidades')
+            .select()
+            .eq('mes_hld_id', hldId)
+            .eq('mes_pfl_id', pflId),
+      );
+
+      monthlyPaymentsProfileNotifier.value = resposta
+          .map((item) => MensalidadesModel.fromJson(item))
+          .toList();
+    } catch (e, stackTrace) {
+      monthlyPaymentsProfileNotifier.value = [];
+      debugPrint(
+        "BdMonthlyPaymentsController::loadMonthlyPaymentsByProfile: $e\n$stackTrace",
+      );
+    } finally {
+      loadingNotifier.value = false;
+    }
   }
-}
-
 }

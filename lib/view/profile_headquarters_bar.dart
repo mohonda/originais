@@ -8,6 +8,7 @@ import 'package:originais/controllers/ticket_receipt_image_service.dart'; // �
 class ProfileHeadquartersBar extends StatefulWidget {
   final String pflId;
   final String hldId;
+
   /// Data atual do caixa/bar aberto (Ex: "YYYY-MM-DD").
   final String? currentOpenDate;
 
@@ -59,7 +60,9 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
 
   @override
   void dispose() {
-    profileController.pessoaSelecionadaNotifier.removeListener(_onPessoaChanged);
+    profileController.pessoaSelecionadaNotifier.removeListener(
+      _onPessoaChanged,
+    );
     ticketController.disposeRealtimeProfile();
     loadingNotifier.dispose();
     errorNotifier.dispose();
@@ -83,12 +86,12 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
   Future<void> _carregarDados() async {
     final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
 
-    final String idResolvido = widget.pflId.isNotEmpty 
-        ? widget.pflId 
+    final String idResolvido = widget.pflId.isNotEmpty
+        ? widget.pflId
         : (pessoaLogada?.pfl_id?.toString() ?? '');
 
-    final String hldResolvido = widget.hldId.isNotEmpty 
-        ? widget.hldId 
+    final String hldResolvido = widget.hldId.isNotEmpty
+        ? widget.hldId
         : (pessoaLogada?.hld_id?.toString() ?? '');
 
     if (idResolvido.isEmpty) {
@@ -103,7 +106,10 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     if (mounted) setState(() => _isLoading = true);
 
     try {
-      await ticketController.loadTicketsByProfileWithItems(_pflIdResolvido, _hldIdResolvido);
+      await ticketController.loadTicketsByProfileWithItems(
+        _pflIdResolvido,
+        _hldIdResolvido,
+      );
       ticketController.initRealtimeProfile(_pflIdResolvido, _hldIdResolvido);
     } catch (e) {
       debugPrint('❌ Erro ao buscar tickets: $e');
@@ -128,136 +134,227 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
   }
 
   // 🟢 Novo fluxo de Pagamento via Modal de Upload
-  void _irParaPagamento(BuildContext context, TicketsModel ticket) async {
+  // void _irParaPagamento(BuildContext context, TicketsModel ticket) async {
   //   showDialog(
   //     context: context,
   //     builder: (dialogContext) {
-  //       return AlertDialog(
-  //         shape: RoundedRectangleBorder(
-  //           borderRadius: BorderRadius.circular(16),
-  //         ),
-  //         title: Text('Pagamento: ${ticket.tkt_table_number.isNotEmpty ? ticket.tkt_table_number : 'Ticket #${ticket.tkt_id}'}'),
-  //         content: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           crossAxisAlignment: CrossAxisAlignment.start,
-  //           children: [
-  //             Text(
-  //               'Total a pagar: ${generalService.currencyMoneyBr(ticket.totalConsumo.toString())}\n\n'
-  //               'Comprovante/Foto confirma seu pagamento!!!',
-  //             ),
-  //             const SizedBox(height: 16),
+  //       return StatefulBuilder(
+  //         builder: (context, setDialogState) {
+  //           final bool temFoto = ticket.tkt_paiment_path != null;
 
-  //             // 📸 Botão para capturar ou escolher a foto do comprovante
-  //             SizedBox(
-  //               width: double.infinity,
-  //               child: OutlinedButton.icon(
-  //                 onPressed: () async {
-  //                   final tstId = id_ticketStatusList('Ticket closed (Paid)');
-                    
-  //                   await paymentService.selecionarAnexoEEnviar(
-  //                     context: context,
-  //                     payload: {
-  //                       'tkt_id': ticket.tkt_id,
-  //                       'pfl_id': ticket.tkt_pfl_id,
-  //                       'tkt_tst_id': tstId,
-  //                       'barId': ticket.tkt_bar_id,
-  //                       'openDate': ticket.tkt_bar_open_date,
-  //                       'hld_id': widget.hldId,
+  //           return AlertDialog(
+  //             shape: RoundedRectangleBorder(
+  //               borderRadius: BorderRadius.circular(16),
+  //             ),
+  //             title: Text('Pagamento: ${ticket.tkt_table_number}'),
+  //             content: Column(
+  //               mainAxisSize: MainAxisSize.min,
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: [
+  //                 Text(
+  //                   'Total a pagar: ${generalService.currencyMoneyBr(ticket.totalConsumo.toString())}\n\n'
+  //                   'Comprovante/Foto confirma seu pagamento!!!',
+  //                 ),
+  //                 const SizedBox(height: 16),
+
+  //                 // 📸 Botão para capturar ou escolher a foto do comprovante
+  //                 SizedBox(
+  //                   width: double.infinity,
+  //                   child: OutlinedButton.icon(
+  //                     onPressed: () async {
+  //                       final tst_id = id_ticketStatusList(
+  //                         'Ticket closed (Paid)',
+  //                       );
+
+  //                       await paymentService.selecionarAnexoEEnviar(
+  //                         context: context,
+  //                         payload: {
+  //                           'tkt_id': ticket.tkt_id,
+  //                           'pfl_id': ticket.tkt_pfl_id,
+  //                           'tkt_tst_id': ticket.tkt_tst_id,
+  //                           'barId': ticket.tkt_bar_id,
+  //                           'openDate': ticket.tkt_bar_open_date,
+  //                           'hld_id': widget.hldId,
+  //                         },
+  //                       );
+  //                       if (context.mounted && errorNotifier.value == null) {
+  //                         Navigator.of(
+  //                           context,
+  //                         ).pop(); // Fecha o Dialog da comanda
+  //                       }
   //                     },
-  //                   );
-                    
-  //                   if (context.mounted && errorNotifier.value == null) {
-  //                     Navigator.of(dialogContext).pop(); 
-  //                     _carregarDados(); // Recarrega os dados após envio
-  //                   }
-  //                 },
-  //                 icon: const Icon(Icons.add_a_photo, color: Colors.orangeAccent),
-  //                 label: const Text(
-  //                   'Anexar Comprovante / Foto',
-  //                   style: TextStyle(
-  //                     color: Colors.orangeAccent,
-  //                     fontWeight: FontWeight.bold,
+  //                     icon: const Icon(
+  //                       Icons.add_a_photo,
+  //                       color: Colors.orangeAccent,
+  //                     ),
+  //                     label: const Text(
+  //                       'Anexar Comprovante / Foto',
+  //                       style: TextStyle(
+  //                         color: Colors.orangeAccent,
+  //                         fontWeight: FontWeight.bold,
+  //                       ),
+  //                     ),
+  //                     style: OutlinedButton.styleFrom(
+  //                       side: const BorderSide(color: Colors.indigoAccent),
+  //                       padding: const EdgeInsets.symmetric(vertical: 12),
+  //                     ),
   //                   ),
   //                 ),
-  //                 style: OutlinedButton.styleFrom(
-  //                   side: const BorderSide(color: Colors.indigoAccent),
-  //                   padding: const EdgeInsets.symmetric(vertical: 12),
-  //                 ),
-  //               ),
+  //               ],
   //             ),
-  //           ],
-  //         ),
-  //         actions: [
-  //           TextButton(
-  //             onPressed: () => Navigator.pop(dialogContext),
-  //             child: const Text('Cancelar'),
-  //           ),
-  //         ],
+  //             actions: [
+  //               TextButton(
+  //                 onPressed: () => Navigator.pop(dialogContext),
+  //                 child: const Text('Cancelar'),
+  //               ),
+  //             ],
+  //           );
+  //         },
   //       );
   //     },
   //   );
   // }
- showDialog(
+// 🟢 Fluxo de Pagamento via Modal de Upload com Confirmação para tss_id == '2'
+  void _irParaPagamento(BuildContext context, TicketsModel ticket) async {
+    final bool isTipo2 = ticket.bar_tss_id == '2';
+
+    // Estado inicial de Data e Valor
+    DateTime dataPagamento = DateTime.tryParse(ticket.tkt_bar_open_date) ?? DateTime.now();
+    double valorFinal = double.tryParse(ticket.totalConsumo.toString()) ?? 0.0;
+
+    final TextEditingController valorController = TextEditingController(
+      text: valorFinal.toStringAsFixed(2),
+    );
+
+    showDialog(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            final bool temFoto = ticket.tkt_paiment_path != null;
-
             return AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              title: Text('Pagamento: ${ticket.tkt_table_number}'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Total a pagar: ${generalService.currencyMoneyBr(ticket.totalConsumo.toString())}\n\n'
-                    'Comprovante/Foto confirma seu pagamento!!!',
-                  ),
-                  const SizedBox(height: 16),
+              title: Text(
+                'Pagamento: ${ticket.tkt_table_number.isNotEmpty ? ticket.tkt_table_number : 'Ticket #${ticket.tkt_id}'}',
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!isTipo2) ...[
+                      Text(
+                        'Total a pagar: ${generalService.currencyMoneyBr(ticket.totalConsumo.toString())}\n\n'
+                        'Comprovante/Foto confirma seu pagamento!!!',
+                      ),
+                    ] else ...[
+                      const Text(
+                        'Confirme a data e o valor do pagamento antes de anexar o comprovante:',
+                        style: TextStyle(fontSize: 13, color: Colors.white70),
+                      ),
+                      const SizedBox(height: 16),
 
-                  // 📸 Botão para capturar ou escolher a foto do comprovante
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final tst_id = id_ticketStatusList(
-                          'Ticket closed (Paid)',
-                        );
+                      // 📅 1. Campo de Seleção da Data do Pagamento
+                      InkWell(
+                        onTap: () async {
+                          final pickedDate = await showDatePicker(
+                            context: context,
+                            initialDate: dataPagamento,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (pickedDate != null) {
+                            setDialogState(() {
+                              dataPagamento = pickedDate;
+                            });
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Data do Pagamento',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.calendar_today, size: 20),
+                          ),
+                          child: Text(
+                            '${dataPagamento.day.toString().padLeft(2, '0')}/${dataPagamento.month.toString().padLeft(2, '0')}/${dataPagamento.year}',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
 
-                        await paymentService.selecionarAnexoEEnviar(
-                          context: context,
-                          payload: {
+                      // 💵 2. Campo de Valor do Pagamento
+                      TextField(
+                        controller: valorController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Valor do Pagamento (R\$)',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.attach_money, size: 20),
+                        ),
+                        onChanged: (val) {
+                          final parsed = double.tryParse(val.replaceAll(',', '.'));
+                          if (parsed != null) {
+                            valorFinal = parsed;
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Comprovante/Foto confirma seu pagamento!',
+                        style: TextStyle(fontSize: 12, color: Colors.white54),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+
+                    // 📸 Botão para capturar ou escolher a foto do comprovante
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          // Formatação da data escolhida em YYYY-MM-DD
+                          final String dataFormatada =
+                              '${dataPagamento.year}-${dataPagamento.month.toString().padLeft(2, '0')}-${dataPagamento.day.toString().padLeft(2, '0')}';
+
+                          final payload = {
                             'tkt_id': ticket.tkt_id,
                             'pfl_id': ticket.tkt_pfl_id,
                             'tkt_tst_id': ticket.tkt_tst_id,
                             'barId': ticket.tkt_bar_id,
-                            'openDate': ticket.tkt_bar_open_date,
+                            'openDate': isTipo2 ? dataFormatada : ticket.tkt_bar_open_date,
+                            'valor': isTipo2 ? valorFinal : ticket.totalConsumo,
                             'hld_id': widget.hldId,
-                          },
-                        );
-                        if (context.mounted && errorNotifier.value == null) {
-                          Navigator.of(context).pop(); // Fecha o Dialog da comanda
-                        }
-                      },
-                      icon: const Icon(Icons.add_a_photo, color: Colors.orangeAccent),
-                      label: const Text(
-                        'Anexar Comprovante / Foto',
-                        style: TextStyle(
+                          };
+
+                          await paymentService.selecionarAnexoEEnviar(
+                            context: context,
+                            payload: payload,
+                          );
+
+                          if (context.mounted && errorNotifier.value == null) {
+                            Navigator.of(context).pop(); // Fecha o Dialog da comanda
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.add_a_photo,
                           color: Colors.orangeAccent,
-                          fontWeight: FontWeight.bold,
+                        ),
+                        label: const Text(
+                          'Anexar Comprovante / Foto',
+                          style: TextStyle(
+                            color: Colors.orangeAccent,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.indigoAccent),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                       ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.indigoAccent),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -271,6 +368,7 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -306,13 +404,13 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                     _buildResumoUsuario(tickets),
                     const SizedBox(height: 12),
                     ListView.builder(
-  shrinkWrap: true,
-  physics: const NeverScrollableScrollPhysics(),
-  itemCount: tickets.length,
-  itemBuilder: (context, index) {
-    return _buildTicketCard(context, tickets[index]);
-  },
-),
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: tickets.length,
+                      itemBuilder: (context, index) {
+                        return _buildTicketCard(context, tickets[index]);
+                      },
+                    ),
                   ],
                 ),
               );
@@ -326,9 +424,7 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
             if (!isLoading) return const SizedBox.shrink();
             return Container(
               color: Colors.black54, // Fundo escuro semi-transparente
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: const Center(child: CircularProgressIndicator()),
             );
           },
         ),
@@ -340,7 +436,8 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     final int total = lista.length;
 
     final int pagos = lista.where((t) {
-      final temComprovante = t.tkt_paiment_path != null && t.tkt_paiment_path!.trim().isNotEmpty;
+      final temComprovante =
+          t.tkt_paiment_path != null && t.tkt_paiment_path!.trim().isNotEmpty;
       final isPagoStatus = t.tst_name == 'Ticket closed (Paid)';
       return temComprovante || isPagoStatus;
     }).length;
@@ -381,11 +478,18 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
   Widget _buildResumoColumn(String label, String value, Color color) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.white54)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: Colors.white54),
+        ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: color,
+          ),
         ),
       ],
     );
@@ -393,8 +497,11 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
 
   Widget _buildTicketCard(BuildContext context, TicketsModel ticket) {
     final bool temItens = ticket.ticketsItems.isNotEmpty;
-    final bool temComprovante = ticket.tkt_paiment_path != null && ticket.tkt_paiment_path!.trim().isNotEmpty;
-    final bool isPago = ticket.tst_name == 'Ticket closed (Paid)' || temComprovante;
+    final bool temComprovante =
+        ticket.tkt_paiment_path != null &&
+        ticket.tkt_paiment_path!.trim().isNotEmpty;
+    final bool isPago =
+        ticket.tst_name == 'Ticket closed (Paid)' || temComprovante;
     final bool isCancelado = ticket.tst_name == 'Ticket closed without payment';
 
     return Card(
@@ -408,18 +515,26 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Icon(
           (ticket.bar_tss_id == '1')
-            ? Icons.confirmation_number_outlined
-            : ( ticket.bar_tss_id == '2' ? Icons.calendar_month
-              : ( ticket.bar_tss_id == '3' ? Icons.gavel_outlined
-              : Icons.share)),
+              ? Icons.confirmation_number_outlined
+              : (ticket.bar_tss_id == '2'
+                    ? Icons.calendar_month
+                    : (ticket.bar_tss_id == '3'
+                          ? Icons.gavel_outlined
+                          : Icons.view_cozy)),
           color: isCancelado
               ? Colors.redAccent
-              : (isPago ? Colors.greenAccent : (ticket.tkt_has_discount ? Colors.amber : Colors.indigoAccent)),
+              : (isPago
+                    ? Colors.greenAccent
+                    : (ticket.tkt_has_discount
+                          ? Colors.amber
+                          : Colors.indigoAccent)),
         ),
         title: Row(
           children: [
             Text(
-              ticket.tkt_table_number.isNotEmpty ? ticket.tkt_table_number : 'Ticket #${ticket.tkt_id}',
+              ticket.tkt_table_number.isNotEmpty
+                  ? ticket.tkt_table_number
+                  : 'Ticket #${ticket.tkt_id}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(width: 8),
@@ -430,10 +545,7 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
           padding: const EdgeInsets.only(top: 4.0),
           child: Text(
             'Sales: ${ticket.tss_desc} • Data: ${generalService.formatarDataBr(ticket.tkt_bar_open_date)} • Total: ${generalService.currencyMoneyBr(ticket.totalConsumo.toString())}',
-            style: const TextStyle(
-              fontSize: 12, 
-              color: Colors.white70
-              ),
+            style: const TextStyle(fontSize: 12, color: Colors.white70),
           ),
         ),
         children: [
@@ -446,7 +558,11 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
               children: [
                 const Text(
                   'Itens Consumidos:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white70),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white70,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 if (!temItens)
@@ -454,7 +570,11 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                     padding: EdgeInsets.symmetric(vertical: 8.0),
                     child: Text(
                       'Nenhum item registrado neste ticket.',
-                      style: TextStyle(color: Colors.white38, fontSize: 12, fontStyle: FontStyle.italic),
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   )
                 else
@@ -472,17 +592,32 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(item.pdt_name.toString(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                                Text(
+                                  item.pdt_name.toString(),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                                 Text(
                                   '${item.tit_quantities}x ${generalService.currencyMoneyBr(item.tit_unit_value.toString())}',
-                                  style: const TextStyle(fontSize: 11, color: Colors.white54),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white54,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                           Text(
-                            generalService.currencyMoneyBr(item.tit_value.toString()),
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.greenAccent),
+                            generalService.currencyMoneyBr(
+                              item.tit_value.toString(),
+                            ),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.greenAccent,
+                            ),
                           ),
                         ],
                       );
@@ -509,11 +644,20 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
                         ),
                         onPressed: () => _irParaPagamento(context, ticket),
                         icon: const Icon(Icons.payment, size: 16),
-                        label: const Text('Pagar Agora', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        label: const Text(
+                          'Pagar Agora',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -530,7 +674,9 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     Color color = Colors.orangeAccent;
     Color bgColor = Colors.orange.withValues(alpha: 0.15);
 
-    final bool temComprovante = ticket.tkt_paiment_path != null && ticket.tkt_paiment_path!.trim().isNotEmpty;
+    final bool temComprovante =
+        ticket.tkt_paiment_path != null &&
+        ticket.tkt_paiment_path!.trim().isNotEmpty;
 
     if (ticket.tst_name == 'Ticket closed (Paid)' || temComprovante) {
       label = 'PAGO';
@@ -551,7 +697,11 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: color),
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
       ),
     );
   }

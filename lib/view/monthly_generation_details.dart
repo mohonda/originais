@@ -28,10 +28,13 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
 
   final bdProfileController = getItBdProfileController<BdProfileController>();
 
-  final bdMonthlyPaymentsController = getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
+  final bdMonthlyPaymentsController =
+      getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
 
   final bdVMensalidadesDistinctController =
-    getItBdVMensalidadesDistinctController<BdVMensalidadesDistinctController>();
+      getItBdVMensalidadesDistinctController<
+        BdVMensalidadesDistinctController
+      >();
 
   final generalService = getItGeneralService<GeneralService>();
 
@@ -51,6 +54,7 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
   final mValueNotifier = ValueNotifier<String?>(null);
   final yValueNotifier = ValueNotifier<String?>(null);
   List<VProfileModel> filteredList = [];
+  late List listaFormas = [];
 
   // ==========================================
   MonthlyGenerationDetailsState();
@@ -59,7 +63,7 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
   @override
   void initState() {
     initializeDateFormatting('pt', 'BR');
-    
+
     hldValueNotifier.value = '1';
 
     super.initState();
@@ -160,8 +164,7 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
     return ListenableBuilder(
       listenable: bdPaymentValueController.bdPaymentValueNotifier,
       builder: (context, child) {
-        final listaFormas =
-            bdPaymentValueController.bdPaymentValueNotifier.value;
+        listaFormas = bdPaymentValueController.bdPaymentValueNotifier.value;
 
         return DropdownButtonFormField2<String>(
           isExpanded: true,
@@ -173,7 +176,7 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
             border: OutlineInputBorder(),
             // Add more decoration..
           ),
-          
+
           hint: const Text(
             'Select the Payment Value',
             style: TextStyle(fontSize: 14),
@@ -365,19 +368,51 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
   // ==========================================
   void insertMonthlyGeneration() async {
     try {
-      final List<Map<String, dynamic>> dadosParaInserir = filteredList.map((item) {
-      return {
-        'mes_mes_referencia': mValueNotifier.value,
-        'mes_ano_referencia': yValueNotifier.value,
-        'mes_pfl_id': item.pfl_id,
-        'mes_hld_id': item.hld_id,
-        'mes_vpg_id': vpgValueNotifier.value,
-        'mes_vpg_hld_id': item.hld_id,
-        'mes_monthly_percent':item.pas_monthly_percent
+      // final List<Map<String, dynamic>> dadosParaInserir = filteredList.map((item) {
+      // return {
+      //   'mes_mes_referencia': mValueNotifier.value,
+      //   'mes_ano_referencia': yValueNotifier.value,
+      //   'mes_pfl_id': item.pfl_id,
+      //   'mes_hld_id': item.hld_id,
+      //   'mes_vpg_id': vpgValueNotifier.value,
+      //   'mes_vpg_hld_id': item.hld_id,
+      //   'mes_monthly_percent':item.pas_monthly_percent
+      //   };
+      // }).toList();
+
+      final produtoEncontrado = listaFormas.firstWhere(
+        (fpg) => fpg.vpg_id == vpgValueNotifier.value,
+      );
+
+      String desc =
+          'Valor de: ${generalService.currencyMoneyBr(produtoEncontrado.vpg_valor_normal)} até dia ${produtoEncontrado.vpg_dia_valor_normal}';
+      debugPrint(desc);
+      DateTime tmpDT = DateTime(
+        int.parse(yValueNotifier.value.toString()),
+        int.parse(mValueNotifier.value.toString()),
+      );
+      final tmpValor = produtoEncontrado.vpg_valor_normal;
+
+      final List<Map<String, dynamic>> dadosParaInserir = filteredList.map((
+        item,
+      ) {
+        return {
+          'p_hld_id': item.hld_id,
+          'p_pfl_id': item.pfl_id,
+          'p_pfl_name': item.pfl_full_name,
+          'p_date_start': tmpDT, // Formato YYYY-MM-DD ou DateTime
+          'p_desc': '$desc consid. ${item.pas_monthly_percent}%',
+          'p_tss_id': 2, // Removidas as aspas (int)
+          'p_table_number': -1, // Removidas as aspas (int)
+          'p_pdt_id': 33, // Removidas as aspas (int)
+          'p_pdt_quant': 1, // Removidas as aspas (int)
+          'p_valor': tmpValor
         };
       }).toList();
 
-      await bdMonthlyPaymentsController.insertMonthlyGeneration(dadosParaInserir);
+      await bdMonthlyPaymentsController.insertMonthlyGeneration(
+        dadosParaInserir,
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

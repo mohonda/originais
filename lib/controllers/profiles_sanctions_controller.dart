@@ -139,42 +139,6 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
         p_valor: psanValor,
       );
       
-      // final bar = BdHeadquartersBarController();
-
-      // final String barId = await bar.openHeadquartersBar(
-      //   psanPflIid,
-      //   psanHldIid,
-      //   psanDateStart,
-      //   psanDesc,
-      //   '3'
-      // );
-      // debugPrint('---->${barId.toString()}');
-
-      // final tkt = TicketController();
-      // final tktId = await tkt.insertTickets(
-      //   psanHldIid,
-      //   psanDateStart,
-      //   '-1',
-      //   pflName,
-      //   psanPflIid,
-      //   barId
-      // );
-
-      // final ticketsItems2Controller = TicketsItemsModel(
-      //   tit_hld_id: psanHldIid,
-      //   tit_tkt_id: tktId,
-      //   tit_pdt_id: '32',
-      //   tit_quantities: 1,
-      //   tit_unit_value: double.parse(psanValor),
-      //   tit_value: double.parse(psanValor),
-      // );
-      // await tkt.insertTicketsItems(
-      //   ticketsItems2Controller,
-      //   barId,
-      //   psanDateStart,
-      //   psanHldIid,
-      // );
-
       // return sanctionsNotifier.value;
     } catch (e, stackTrace) {
       errorNotifier.value =
