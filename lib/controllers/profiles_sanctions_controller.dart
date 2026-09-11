@@ -8,6 +8,7 @@ import 'package:originais/models/sanction_model.dart';
 import 'package:originais/controllers/headquarters_bar_controller.dart';
 import 'package:originais/controllers/ticket_controller.dart';
 import 'package:originais/models/ticket_model.dart';
+import 'package:originais/controllers/open_bar_ticket_ticketitem_controller.dart';
 
 final getItBdVProfilesSanctionsController = GetIt.instance;
 
@@ -124,48 +125,62 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
           .map((item) => SanctionModel.fromMap(item))
           .toList();
       
-      final bar = BdHeadquartersBarController();
+      final openTicket = OpenBarTicketTicketitemController();
+      openTicket.openBarTicketTicketitem(
+        p_hld_id: psanHldIid,
+        p_pfl_id: psanPflIid,
+        p_pfl_name: pflName,
+        p_date_start: psanDateStart,
+        p_desc: psanDesc,
+        p_tss_id: '3', // table type_sales
+        p_table_number: '-1',
+        p_pdt_id: '32', // table produtos
+        p_pdt_quant: '1',
+        p_valor: psanValor,
+      );
+      
+      // final bar = BdHeadquartersBarController();
 
-      final String barId = await bar.openHeadquartersBar(
-        psanPflIid,
-        psanHldIid,
-        psanDateStart,
-        psanDesc,
-        '3'
-      );
-      debugPrint('---->${barId.toString()}');
+      // final String barId = await bar.openHeadquartersBar(
+      //   psanPflIid,
+      //   psanHldIid,
+      //   psanDateStart,
+      //   psanDesc,
+      //   '3'
+      // );
+      // debugPrint('---->${barId.toString()}');
 
-      final tkt = TicketController();
-      final tktId = await tkt.insertTickets(
-        psanHldIid,
-        psanDateStart,
-        '-1',
-        pflName,
-        psanPflIid,
-        barId
-      );
+      // final tkt = TicketController();
+      // final tktId = await tkt.insertTickets(
+      //   psanHldIid,
+      //   psanDateStart,
+      //   '-1',
+      //   pflName,
+      //   psanPflIid,
+      //   barId
+      // );
 
-      final ticketsItems2Controller = TicketsItemsModel(
-        tit_hld_id: psanHldIid,
-        tit_tkt_id: tktId,
-        tit_pdt_id: '32',
-        tit_quantities: 1,
-        tit_unit_value: double.parse(psanValor),
-        tit_value: double.parse(psanValor),
-      );
-      await tkt.insertTicketsItems(
-        ticketsItems2Controller,
-        barId,
-        psanDateStart,
-        psanHldIid,
-      );
+      // final ticketsItems2Controller = TicketsItemsModel(
+      //   tit_hld_id: psanHldIid,
+      //   tit_tkt_id: tktId,
+      //   tit_pdt_id: '32',
+      //   tit_quantities: 1,
+      //   tit_unit_value: double.parse(psanValor),
+      //   tit_value: double.parse(psanValor),
+      // );
+      // await tkt.insertTicketsItems(
+      //   ticketsItems2Controller,
+      //   barId,
+      //   psanDateStart,
+      //   psanHldIid,
+      // );
 
       // return sanctionsNotifier.value;
     } catch (e, stackTrace) {
       errorNotifier.value =
           ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
       // return sanctionsNotifier.value = [];
-      debugPrint( '$e \n$stackTrace');
+      debugPrint( errorNotifier.value.toString() );
     } finally {
       loadingNotifier.value = false;
     }

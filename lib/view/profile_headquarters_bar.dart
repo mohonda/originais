@@ -227,12 +227,13 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                         final tst_id = id_ticketStatusList(
                           'Ticket closed (Paid)',
                         );
+
                         await paymentService.selecionarAnexoEEnviar(
                           context: context,
                           payload: {
                             'tkt_id': ticket.tkt_id,
                             'pfl_id': ticket.tkt_pfl_id,
-                            'tkt_tst_id': tst_id,
+                            'tkt_tst_id': ticket.tkt_tst_id,
                             'barId': ticket.tkt_bar_id,
                             'openDate': ticket.tkt_bar_open_date,
                             'hld_id': widget.hldId,
@@ -406,7 +407,11 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Icon(
-          Icons.confirmation_number_outlined,
+          (ticket.bar_tss_id == '1')
+            ? Icons.confirmation_number_outlined
+            : ( ticket.bar_tss_id == '2' ? Icons.calendar_month
+              : ( ticket.bar_tss_id == '3' ? Icons.gavel_outlined
+              : Icons.share)),
           color: isCancelado
               ? Colors.redAccent
               : (isPago ? Colors.greenAccent : (ticket.tkt_has_discount ? Colors.amber : Colors.indigoAccent)),
@@ -425,7 +430,10 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
           padding: const EdgeInsets.only(top: 4.0),
           child: Text(
             'Sales: ${ticket.tss_desc} • Data: ${generalService.formatarDataBr(ticket.tkt_bar_open_date)} • Total: ${generalService.currencyMoneyBr(ticket.totalConsumo.toString())}',
-            style: const TextStyle(fontSize: 12, color: Colors.white70),
+            style: const TextStyle(
+              fontSize: 12, 
+              color: Colors.white70
+              ),
           ),
         ),
         children: [

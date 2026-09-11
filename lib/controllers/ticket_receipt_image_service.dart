@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:originais/services/base_image_upload_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
@@ -53,6 +54,9 @@ class TicketReceiptImageService extends BaseImageUploadService {
     final String barId = payload?['barId'];
     final String openDate = payload?['openDate'];
     final String hld_id = payload?['hld_id'];
+
+    debugPrint( payload.toString() );
+
 
     await supabaseClient
         .from('tickets')
