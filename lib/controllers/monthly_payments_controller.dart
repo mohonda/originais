@@ -401,6 +401,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
               p_pdt_id: item['p_pdt_id'].toString(),
               p_pdt_quant: item['p_pdt_quant'].toString(),
               p_valor: item['p_valor'].toString(),
+              p_tkt_vpg_id: item['p_tkt_vpg_id'].toString(),
             );
           }),
         );

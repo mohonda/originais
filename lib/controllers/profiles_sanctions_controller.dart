@@ -137,6 +137,7 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
         p_pdt_id: '32', // table produtos
         p_pdt_quant: '1',
         p_valor: psanValor,
+        p_tkt_vpg_id: '',
       );
       
       // return sanctionsNotifier.value;

@@ -36,7 +36,8 @@ class BdVMensalidadesDistinctController extends ChangeNotifier {
 
       final resposta = await mySupabaseClient.safePostgrestCall(()=>
         supabaseClient
-        .from('vmes_ano_mensalidades_distinct')
+        // .from('vmes_ano_mensalidades_distinct')
+        .from('monthly_distinct')
         .select()
       );
     

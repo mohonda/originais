@@ -100,6 +100,13 @@ class TicketsModel {
   String? bar_tss_id;
   String? tss_desc;
 
+  String? tkt_vpg_id;
+  String? vpg_valor_normal;
+  String? vpg_dia_valor_normal;
+  String? vpg_valor_desconto;
+  String? vpg_dia_valor_desconto;
+  String? vpg_desc;
+
   List<TicketsItemsModel> ticketsItems;
 
   TicketsModel({
@@ -119,6 +126,14 @@ class TicketsModel {
     this.created_at,
     this.bar_tss_id,
     this.tss_desc,
+
+    this.tkt_vpg_id,
+    this.vpg_valor_normal,
+    this.vpg_dia_valor_normal,
+    this.vpg_valor_desconto,
+    this.vpg_dia_valor_desconto,
+    this.vpg_desc,
+
     List<TicketsItemsModel>? ticketsItems,
   }) : ticketsItems = ticketsItems ?? [];
 
@@ -153,6 +168,14 @@ class TicketsModel {
       created_at: json['created_at']?.toString() ?? '',
       bar_tss_id: json['bar_tss_id']?.toString() ?? '',
       tss_desc: json['tss_desc']?.toString() ?? '',
+
+      tkt_vpg_id: json['tkt_vpg_id']?.toString() ?? '',
+      vpg_valor_normal: json['vpg_valor_normal']?.toString() ?? '',
+      vpg_dia_valor_normal: json['vpg_dia_valor_normal']?.toString() ?? '',
+      vpg_valor_desconto: json['vpg_valor_desconto']?.toString() ?? '',
+      vpg_dia_valor_desconto: json['vpg_dia_valor_desconto']?.toString() ?? '',
+      vpg_desc: json['vpg_desc']?.toString() ?? '',
+
       ticketsItems: itens,
     );
   }
@@ -170,6 +193,13 @@ class TicketsModel {
       'tkt_tst_id': tkt_tst_id,
       'bar_tss_id': bar_tss_id,
       'tss_desc': tss_desc,
+
+      'tkt_vpg_id': tkt_vpg_id,
+      'vpg_valor_normal': vpg_valor_normal,
+      'vpg_dia_valor_normal': vpg_dia_valor_normal,
+      'vpg_valor_desconto': vpg_valor_desconto,
+      'vpg_dia_valor_desconto': vpg_dia_valor_desconto,
+      'vpg_desc': vpg_desc,
     };
   }
 }

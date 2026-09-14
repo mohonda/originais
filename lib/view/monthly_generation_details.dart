@@ -406,7 +406,8 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
           'p_table_number': -1, // Removidas as aspas (int)
           'p_pdt_id': 33, // Removidas as aspas (int)
           'p_pdt_quant': 1, // Removidas as aspas (int)
-          'p_valor': tmpValor
+          'p_valor': tmpValor,
+          'p_tkt_vpg_id': vpgValueNotifier.value.toString(),
         };
       }).toList();
 

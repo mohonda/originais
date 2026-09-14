@@ -36,6 +36,7 @@ class OpenBarTicketTicketitemController extends ChangeNotifier {
       required String p_pdt_id,
       required String p_pdt_quant,
       required String p_valor,
+      required String p_tkt_vpg_id,
     }) async {
     try {
       loadingNotifier.value = true;
@@ -55,6 +56,7 @@ class OpenBarTicketTicketitemController extends ChangeNotifier {
             'p_pdt_id': p_pdt_id.toString(),
             'p_pdt_quant': p_pdt_quant.toString(),
             'p_valor': double.parse(p_valor),
+            'p_tkt_vpg_id': p_tkt_vpg_id.toString().isNotEmpty ? p_tkt_vpg_id.toString() : null,
           },
         ),
       );
