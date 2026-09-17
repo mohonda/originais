@@ -3,7 +3,6 @@ import 'package:originais/controllers/monthly_payments_controller.dart';
 import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/mensalidades_model.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/view/monthly_payments_profile_page.dart';
 
 class ProfileMonthlyPayment extends StatefulWidget {
   const ProfileMonthlyPayment({super.key});

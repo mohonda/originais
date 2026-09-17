@@ -132,13 +132,14 @@ class BdJourneyRidingController extends ChangeNotifier {
             'uj_jr_id': ujJrId,
             'uj_promotion_date': ujPromotionDate
           }); 
+      
+      // await loadJourneyRidingDetais(ujPflId, ujHldId);
 
     } catch (e, stackTrace) {
       errorNotifier.value = ("BdItemController::updateItem: $e \n$stackTrace");
       debugPrint(errorNotifier.value.toString());
     } finally {
       loadingNotifier.value = false;
-      loadJourneyRidingDetais(ujPflId, ujHldId);
     }
   }
 
@@ -170,7 +171,7 @@ class BdJourneyRidingController extends ChangeNotifier {
       debugPrint(errorNotifier.value.toString());
     } finally {
       loadingNotifier.value = false;
-      loadJourneyRidingDetais(ujPflId, ujHldId);
+      // loadJourneyRidingDetais(ujPflId, ujHldId);
     }
   }
 
@@ -194,7 +195,7 @@ class BdJourneyRidingController extends ChangeNotifier {
       debugPrint(errorNotifier.value.toString());
     } finally {
       loadingNotifier.value = false;
-      loadJourneyRidingDetais(ujPflId, ujHldId);
+      // loadJourneyRidingDetais(ujPflId, ujHldId);
     }
   }
 

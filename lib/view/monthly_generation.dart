@@ -295,17 +295,17 @@ class MonthlyGenerationState extends State<MonthlyGeneration> {
 
     if (confirmar == true && context.mounted) {
       try {
-        await bdVMensalidadesDistinctController.deleteMensalidadesDistincts(
-          month,
-          year,
-          hldId,
-        );
+        // await bdVMensalidadesDistinctController.deleteMensalidadesDistincts(
+        //   month,
+        //   year,
+        //   hldId,
+        // );
 
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Item excluído!')));
-        }
+        // if (context.mounted) {
+        //   ScaffoldMessenger.of(
+        //     context,
+        //   ).showSnackBar(const SnackBar(content: Text('Item excluído!')));
+        // }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

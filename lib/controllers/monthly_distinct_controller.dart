@@ -53,32 +53,32 @@ class BdVMensalidadesDistinctController extends ChangeNotifier {
     }
   }
 
-  // ==========================================
-  Future<void> deleteMensalidadesDistincts(
-    String month,
-    String year,
-    String hldId,
-  ) async {
-    try {
-      loadingNotifier.value = true;
-      errorNotifier.value = null;
+  // // ==========================================
+  // Future<void> deleteMensalidadesDistincts(
+  //   String month,
+  //   String year,
+  //   String hldId,
+  // ) async {
+  //   try {
+  //     loadingNotifier.value = true;
+  //     errorNotifier.value = null;
 
-      await mySupabaseClient.safePostgrestCall(()=>
-        supabaseClient
-        .from('mensalidades')
-        .delete()
-        .eq('mes_mes_referencia', month)
-        .eq('mes_ano_referencia', year)
-        .eq('mes_hld_id', hldId)
-      );
+  //     await mySupabaseClient.safePostgrestCall(()=>
+  //       supabaseClient
+  //       .from('mensalidades')
+  //       .delete()
+  //       .eq('mes_mes_referencia', month)
+  //       .eq('mes_ano_referencia', year)
+  //       .eq('mes_hld_id', hldId)
+  //     );
           
-    } catch (e, stackTrace) {
-      vMensalidadeDistinctNotifier.value = [];
-      errorNotifier.value = ("BdVMensalidadesDistinctController::loadMensalidadesDistincts: $e \n$stackTrace");
-    } finally {
-      loadingNotifier.value = false;
-      loadMensalidadesDistincts();
-    }
-  }
+  //   } catch (e, stackTrace) {
+  //     vMensalidadeDistinctNotifier.value = [];
+  //     errorNotifier.value = ("BdVMensalidadesDistinctController::loadMensalidadesDistincts: $e \n$stackTrace");
+  //   } finally {
+  //     loadingNotifier.value = false;
+  //     loadMensalidadesDistincts();
+  //   }
+  // }
 
 }

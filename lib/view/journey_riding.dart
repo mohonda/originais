@@ -29,6 +29,8 @@ class JourneyRidingState extends State<JourneyRiding> {
 
     pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
     hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
+
+    bdJourneyRidingController.loadJourneyRiding(hldId);
   }
 
   // ==========================================
@@ -294,7 +296,7 @@ class JourneyRidingState extends State<JourneyRiding> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _confirmarExclusao(context, item.id),
+                    onPressed: () => _confirmarExclusao( context, item.jr_id ),
                   ),
                 ],
               ),

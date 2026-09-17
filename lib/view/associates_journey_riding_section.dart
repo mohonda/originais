@@ -24,6 +24,32 @@ class _AssociatesJourneyRidingSectionState
       getItBdJourneyRidingController<BdJourneyRidingController>();
   final generalService = getItGeneralService<GeneralService>();
 
+  int _refreshKey = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarDados();
+  }
+
+  /// Carrega os dados do banco e atualiza a interface
+  Future<void> _carregarDados() async {
+    
+    await bdJourneyRidingController.loadJourneyRidingDetais(
+      widget.itemAtual.pfl_id.toString(),
+      widget.itemAtual.hld_id.toString(),
+    );
+    await bdJourneyRidingController.loadJourneyRidingOrderByLevel(
+      widget.itemAtual.hld_id.toString(),
+    );
+    if (mounted) {
+      setState(() {
+        _refreshKey++;
+        // debugPrint(_refreshKey.toString());
+      });
+    }
+  }
+
   /// Extrai o valor numérico do nível com segurança
   int _parseLevel(dynamic lvl) {
     if (lvl == null) return 0;
@@ -38,14 +64,6 @@ class _AssociatesJourneyRidingSectionState
 
   /// Busca a lista de opções válidas para o próximo registro
   List<JourneyRidingModel> _obterOpcoesProximoNivel() {
-     bdJourneyRidingController.loadJourneyRidingDetais(
-                        widget.itemAtual.pfl_id.toString(),
-                        widget.itemAtual.hld_id.toString(),
-                      );
-    bdJourneyRidingController.loadJourneyRidingOrderByLevel(
-      widget.itemAtual.hld_id.toString()
-    );
-
     final history =
         bdJourneyRidingController.vProfileJourneyridingDetaisNotifier.value ?? [];
     final catalog =
@@ -65,9 +83,6 @@ class _AssociatesJourneyRidingSectionState
       int lvl = _parseLevel(item.jr_level);
       if (lvl > currentLevel) currentLevel = lvl;
     }
-
-    // final catalogOrdenado = List<JourneyRidingModel>.from(catalog)
-    //   ..sort((a, b) => _parseLevel(a.jr_level).compareTo(_parseLevel(b.jr_level)));
 
     int? proximoLevelNum;
     for (var stage in catalog) {
@@ -214,10 +229,7 @@ class _AssociatesJourneyRidingSectionState
                     );
                     if (mounted) {
                       Navigator.of(dialogContext).pop();
-                      bdJourneyRidingController.loadJourneyRidingDetais(
-                        widget.itemAtual.pfl_id.toString(),
-                        widget.itemAtual.hld_id.toString(),
-                      );
+                      await _carregarDados(); // Re-carrega do banco e redesenha a tela
                     }
                   },
                 ),
@@ -233,9 +245,7 @@ class _AssociatesJourneyRidingSectionState
   // DIÁLOGO DE EDIÇÃO / EXCLUSÃO
   // ==========================================
   void _showEditJourneyDialog(JourneyRidingModel item) {
-    // Tenta parsear a data existente do registro ou usa a data atual
     DateTime dataSelecionada = DateTime.tryParse(item.uj_promotion_date ?? '') ??
-        DateTime.tryParse(item.uj_promotion_date ?? '') ??
         DateTime.now();
 
     final TextEditingController dateController = TextEditingController(
@@ -267,7 +277,6 @@ class _AssociatesJourneyRidingSectionState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Campo Nível (Desabilitado / Apenas Leitura)
                     TextFormField(
                       initialValue: '$nomeNivel (Nível $lvlNum)',
                       enabled: false,
@@ -277,10 +286,7 @@ class _AssociatesJourneyRidingSectionState
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
-                    // Campo Data (Editável via DatePicker)
                     TextFormField(
                       controller: dateController,
                       readOnly: true,
@@ -313,7 +319,6 @@ class _AssociatesJourneyRidingSectionState
               ),
               actionsAlignment: MainAxisAlignment.spaceBetween,
               actions: [
-                // Botão Excluir (Lado Esquerdo)
                 TextButton.icon(
                   icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
                   label: const Text('Excluir', style: TextStyle(color: Colors.red)),
@@ -344,20 +349,19 @@ class _AssociatesJourneyRidingSectionState
 
                     if (confirmar == true) {
                       final String pjrId = item.uj_id?.toString() ?? item.uj_id.toString();
-                      await bdJourneyRidingController.deleteProfileJourneyRiding(pjrId, item.pfl_id, item.hld_id );
+                      await bdJourneyRidingController.deleteProfileJourneyRiding(
+                        pjrId,
+                        item.pfl_id,
+                        item.hld_id,
+                      );
 
                       if (mounted) {
                         Navigator.of(dialogContext).pop();
-                        bdJourneyRidingController.loadJourneyRidingDetais(
-                          widget.itemAtual.pfl_id.toString(),
-                          widget.itemAtual.hld_id.toString(),
-                        );
+                        await _carregarDados(); // Re-carrega e atualiza
                       }
                     }
                   },
                 ),
-
-                // Botões Cancelar e Salvar (Lado Direito)
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -385,10 +389,7 @@ class _AssociatesJourneyRidingSectionState
 
                         if (mounted) {
                           Navigator.of(dialogContext).pop();
-                          bdJourneyRidingController.loadJourneyRidingDetais(
-                            widget.itemAtual.pfl_id.toString(),
-                            widget.itemAtual.hld_id.toString(),
-                          );
+                          await _carregarDados(); // Re-carrega e atualiza
                         }
                       },
                     ),
@@ -405,48 +406,48 @@ class _AssociatesJourneyRidingSectionState
   @override
   Widget build(BuildContext context) {
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Passamos o callback de edição para o componente interno
-          ProfileJourneyRiding(
-            pflId: widget.itemAtual.pfl_id.toString(),
-            hldId: widget.itemAtual.hld_id.toString(),
-            onEdit: _showEditJourneyDialog, // Callback acionado ao clicar em Editar
-          ),
-          const SizedBox(height: 8),
-          ValueListenableBuilder<List<JourneyRidingModel>>(
-            valueListenable:
-                bdJourneyRidingController.vProfileJourneyridingDetaisNotifier,
-            builder: (context, history, child) {
-              return ValueListenableBuilder<List<JourneyRidingModel>>(
-                valueListenable:
-                    bdJourneyRidingController.journeyRidingOrderByLevelNotifier,
-                builder: (context, catalog, child) {
-                  if (!_temProximoNivel()) {
-                    return const SizedBox.shrink();
-                  }
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ProfileJourneyRiding(
+          key: ValueKey(_refreshKey),
+          pflId: widget.itemAtual.pfl_id.toString(),
+          hldId: widget.itemAtual.hld_id.toString(),
+          onEdit: _showEditJourneyDialog,
+        ),
+        const SizedBox(height: 8),
+        ValueListenableBuilder<List<JourneyRidingModel>>(
+          valueListenable:
+              bdJourneyRidingController.vProfileJourneyridingDetaisNotifier,
+          builder: (context, history, child) {
+            return ValueListenableBuilder<List<JourneyRidingModel>>(
+              valueListenable:
+                  bdJourneyRidingController.journeyRidingOrderByLevelNotifier,
+              builder: (context, catalog, child) {
+                if (!_temProximoNivel()) {
+                  return const SizedBox.shrink();
+                }
 
-                  return Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: _showAddJourneyDialog,
-                      icon: const Icon(Icons.add_circle_outline, size: 20),
-                      label: const Text('Add Journey...'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.indigo,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
+                return Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _showAddJourneyDialog,
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                    label: const Text('Add Journey...'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.indigo,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
                     ),
-                  );
-                },
-              );
-            },
-          ),
-        ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 }
