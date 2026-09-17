@@ -39,7 +39,7 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
   final String typeSales = '1';
 
-
+  // ==========================================
   @override
   void initState() {
     super.initState();
@@ -48,23 +48,45 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
     hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
 
-    // 🟢 1. Escuta alterações no Notifier do Controller (Realtime + Carga inicial)
+    // Escuta alterações no Notifier do Controller
     bdHeadquartersBarController.headquartersBarNotifier.addListener(_onHeadquartersBarChanged);
 
-    // 🟢 2. Carga inicial e inicialização do canal em Tempo Real
+    // 🟢 ALTERAÇÃO 1: Escuta notificações de erro do controller
+    bdHeadquartersBarController.errorNotifier.addListener(_onErrorChanged);
+
     _carregarDadosIniciais();
   }
 
+  // ==========================================
   @override
   void dispose() {
-    // 🟢 Remove o ouvinte para evitar vazamento de memória
     bdHeadquartersBarController.headquartersBarNotifier.removeListener(_onHeadquartersBarChanged);
+
+    // 🟢 ALTERAÇÃO 2: Remove o ouvinte de erro
+    bdHeadquartersBarController.errorNotifier.removeListener(_onErrorChanged);
+
     bdHeadquartersBarController.disposeRealtime();
 
     bar_desc.dispose();
     super.dispose();
   }
 
+  // ==========================================
+  void _onErrorChanged() {
+    final error = bdHeadquartersBarController.errorNotifier.value;
+    if (error != null && error.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro: $error'),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
+  // ==========================================
   void initValues() {
     initializeDateFormatting('pt_BR', null).then((_) {
       if (mounted) {
@@ -75,12 +97,13 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     });
   }
 
+  // ==========================================
   Future<void> _carregarDadosIniciais() async {
-    await bdHeadquartersBarController.loadHeadquartersBar( hldId, typeSales );
-    bdHeadquartersBarController.initRealtime( hldId, typeSales );
+    await bdHeadquartersBarController.loadHeadquartersBar(hldId, typeSales);
+    bdHeadquartersBarController.initRealtime(hldId, typeSales);
   }
 
-  // 🟢 3. Atualiza os dias abertos do calendário sempre que o controller mudar
+  // ==========================================
   void _onHeadquartersBarChanged() {
     final barrasAbertas = bdHeadquartersBarController.headquartersBarNotifier.value;
 
@@ -95,6 +118,7 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     }
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     const double distance = 16.0;
@@ -108,89 +132,110 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
     return Scaffold(
       appBar: const CustomFloatingAppBar(title: 'Headquarters Bar'),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  // 🟢 CALENDÁRIO ATUALIZADO EM TEMPO REAL
-                  Expanded(
-                    child: CustomMonthCalendar(
-                      initialDate: _selectedDate,
-                      openDays: _openDays,
-                      minDate: DateTime(2026, 9, 1),
-                      maxDate: DateTime.now(),
-                      onlySelectPastOpenDays: true,
-                      onDateSelected: (date) {
-                        setState(() {
-                          _selectedDate = date;
-                        });
-                      },
-                    ),
-                  ),
+      body: ValueListenableBuilder<bool>(
+        valueListenable: bdHeadquartersBarController.loadingNotifier,
+        builder: (context, isLoading, child) {
+          if (isLoading && _openDays.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-                  const SizedBox(height: distance),
-
-                  TextFormField(
-                    controller: bar_desc,
-                    keyboardType: TextInputType.text,
-                    maxLength: 50,
-                    textAlign: TextAlign.start,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Description:',
-                      prefixIcon: Icon(Icons.info),
-                      border: OutlineInputBorder(),
-                      counterText: '',
-                    ),
+          return Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(height: distance),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            if (_formKey.currentState!.validate()) {
-                              openHeadquartersBar();
-                            }
-                          },
-                          icon: const Icon(Icons.save),
-                          label: const Text('Open'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: CustomMonthCalendar(
+                              initialDate: _selectedDate,
+                              openDays: _openDays,
+                              minDate: DateTime(2026, 9, 1),
+                              maxDate: DateTime.now(),
+                              onlySelectPastOpenDays: true,
+                              onDateSelected: (date) {
+                                setState(() {
+                                  _selectedDate = date;
+                                });
+                              },
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: distance),
+                          TextFormField(
+                            controller: bar_desc,
+                            keyboardType: TextInputType.text,
+                            maxLength: 50,
+                            textAlign: TextAlign.start,
+                            enabled: !isLoading,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Description:',
+                              prefixIcon: Icon(Icons.info),
+                              border: OutlineInputBorder(),
+                              counterText: '',
+                            ),
+                          ),
+                          const SizedBox(height: distance),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: isLoading
+                                      ? null
+                                      : () async {
+                                          if (_formKey.currentState!.validate()) {
+                                            openHeadquartersBar();
+                                          }
+                                        },
+                                  icon: isLoading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(Icons.save),
+                                  label: Text(isLoading ? 'Opening...' : 'Open'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.indigo,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ),
+            ],
+          );
+        },
       ),
     );
   }
 
-void openHeadquartersBar() async {
+  // ==========================================
+  void openHeadquartersBar() async {
     String openDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
-
     final now = DateTime.now();
 
-    // CALCULA O DIA OPERACIONAL
     late DateTime hojeOperacional;
     if (now.hour < 6 || (now.hour == 6 && now.minute == 0)) {
       final ontem = now.subtract(const Duration(days: 1));
@@ -207,25 +252,23 @@ void openHeadquartersBar() async {
 
     final bool isReadOnly = dataSelecionada.isBefore(hojeOperacional);
 
-    // 🟢 1. Busca se a data selecionada já existe na lista do notifier
     final barrasAbertas = bdHeadquartersBarController.headquartersBarNotifier.value;
 
     dynamic barExistente = barrasAbertas.cast<dynamic>().firstWhere(
       (b) {
         final bDate = DateTime.parse(b.bar_open_date.toString());
         return bDate.year == _selectedDate.year &&
-               bDate.month == _selectedDate.month &&
-               bDate.day == _selectedDate.day;
+            bDate.month == _selectedDate.month &&
+            bDate.day == _selectedDate.day;
       },
       orElse: () => null,
     );
 
-    // Captura o bar_id se já existir
     dynamic barId = barExistente?.bar_id ?? barExistente?.barId;
 
-    // 🟢 2. Se NÃO for dia aberto e NÃO for leitura, abre o novo bar
     if (barExistente == null && !isReadOnly) {
-      await bdHeadquartersBarController.openHeadquartersBar(
+      // 🟢 ALTERAÇÃO 5: Captura e valida o resultado da abertura
+      final newBarId = await bdHeadquartersBarController.openHeadquartersBar(
         pflId,
         hldId,
         openDate,
@@ -233,25 +276,38 @@ void openHeadquartersBar() async {
         typeSales,
       );
 
-      // Recarrega os dados do controller para obter o bar_id recém-gerado no banco
-      await bdHeadquartersBarController.loadHeadquartersBar( hldId, typeSales );
+      if (newBarId == '-1') {
+        return;
+      }
 
-      // Busca novamente o bar recém-criado para obter o ID
+      await bdHeadquartersBarController.loadHeadquartersBar(hldId, typeSales);
+
       final barrasAtualizadas = bdHeadquartersBarController.headquartersBarNotifier.value;
       barExistente = barrasAtualizadas.cast<dynamic>().firstWhere(
         (b) {
           final bDate = DateTime.parse(b.bar_open_date.toString());
           return bDate.year == _selectedDate.year &&
-                 bDate.month == _selectedDate.month &&
-                 bDate.day == _selectedDate.day;
+              bDate.month == _selectedDate.month &&
+              bDate.day == _selectedDate.day;
         },
         orElse: () => null,
       );
 
-      barId = barExistente?.bar_id ?? barExistente?.barId;
+      barId = barExistente?.bar_id ?? barExistente?.barId ?? newBarId;
     }
-    
-    debugPrint('aqui -----> $barId');
+
+    if (barId == null || barId.toString() == '-1') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível carregar os dados deste Bar.'),
+            backgroundColor: Colors.deepOrange,
+          ),
+        );
+      }
+      return;
+    }
+
     await productsController.loadProdutos(hldId);
     await ticketController.loadTicketStatus(hldId);
     await ticketController.loadTickets(barId, openDate, hldId);
@@ -261,7 +317,7 @@ void openHeadquartersBar() async {
         context,
         MaterialPageRoute(
           builder: (context) => HeadquartersBarOpened(
-            barId: barId, // 🟢 Passa o bar_id encontrado ou criado
+            barId: barId,
             openDate: openDate,
             hld_id: hldId,
             isReadOnly: isReadOnly,

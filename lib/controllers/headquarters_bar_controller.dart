@@ -31,7 +31,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
     supabaseClient = mySupabaseClient.getSupabaseClient();
   }
 
-  // 🟢 INICIA A ESCUTA EM TEMPO REAL
+  // ==========================================
   void initRealtime( String hldId, String tssId ) {
     disposeRealtime();
 
@@ -54,7 +54,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
         .subscribe();
   }
 
-  // 🟢 ENCERRA A ESCUTA
+  // ==========================================
   void disposeRealtime() {
     if (_realtimeChannel != null) {
       supabaseClient.removeChannel(_realtimeChannel!);
@@ -85,10 +85,11 @@ class BdHeadquartersBarController extends ChangeNotifier {
           .toList();
     } catch (e, stackTrace) {
       headquartersBarNotifier.value = [];
-      errorNotifier.value =
-          ("BdHeadquartersBarController::loadHeadquartersBar: $e \n$stackTrace");
+      errorNotifier.value = ("loadHeadquartersBar: $e \n$stackTrace");
     } finally {
-      if (showLoading) loadingNotifier.value = false;
+      if ( showLoading ) {
+        loadingNotifier.value = false;
+      }
     }
   }
 
@@ -121,8 +122,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
       return resposta['bar_id'].toString();
     } catch (e, stackTrace) {
       headquartersBarNotifier.value = [];
-      errorNotifier.value =
-          ("BdHeadquartersBarController::openHeadquartersBar: $e \n$stackTrace");
+      errorNotifier.value = ("openHeadquartersBar: $e \n$stackTrace");
       return '-1';
     } finally {
       loadingNotifier.value = false;
