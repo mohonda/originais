@@ -167,7 +167,6 @@ class TicketController extends ChangeNotifier {
             .eq('tkt_bar_id', barId)
             .eq('tkt_hld_id', hldId),
       );
-      debugPrint('-----> $barId');
 
       ticketNotifier.value = resposta
           .map((item) => TicketsModel.fromJson(item))

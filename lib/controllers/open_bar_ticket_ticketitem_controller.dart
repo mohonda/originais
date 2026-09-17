@@ -37,10 +37,13 @@ class OpenBarTicketTicketitemController extends ChangeNotifier {
       required String p_pdt_quant,
       required String p_valor,
       required String p_tkt_vpg_id,
+      required String p_tkt_pas_id
     }) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
+
+      debugPrint('--->$p_tkt_pas_id');
 
       await mySupabaseClient.safePostgrestCall(
         () => supabaseClient.rpc(
@@ -57,6 +60,7 @@ class OpenBarTicketTicketitemController extends ChangeNotifier {
             'p_pdt_quant': p_pdt_quant.toString(),
             'p_valor': double.parse(p_valor),
             'p_tkt_vpg_id': p_tkt_vpg_id.toString().isNotEmpty ? p_tkt_vpg_id.toString() : null,
+            'p_tkt_pas_id': p_tkt_pas_id.toString().isNotEmpty ? p_tkt_pas_id.toString() : null
           },
         ),
       );

@@ -12,9 +12,11 @@ class VProfileModel {
   String as_id;
   String as_desc;
   String as_ismonthlypayment;
-    
+  
+  String pas_id;
   String pas_monthly_percent;
   String pas_date;
+  String pas_as_id;
 
   String jr_level;
   String jr_nome;
@@ -35,9 +37,11 @@ class VProfileModel {
     required this.as_id,
     required this.as_desc,
     required this.as_ismonthlypayment,
-    
+
+    required this.pas_id,
     required this.pas_monthly_percent,
     required this.pas_date,
+    required this.pas_as_id,
 
     required this.jr_level,
     required this.jr_nome,
@@ -63,8 +67,10 @@ class VProfileModel {
       as_desc: json['as_desc']?.toString() ?? '',
       as_ismonthlypayment: json['as_ismonthlypayment']?.toString() ?? '',
 
+      pas_id: json['pas_id']?.toString() ?? '',
       pas_monthly_percent: json['pas_monthly_percent']?.toString() ?? '',
       pas_date: json['pas_date']?.toString() ?? '',
+      pas_as_id: json['pas_as_id']?.toString() ?? '',
 
       jr_level: json['jr_level']?.toString() ?? '',
       jr_nome: json['jr_nome']?.toString() ?? '',
@@ -90,8 +96,10 @@ class VProfileModel {
       'as_desc': as_desc,
       'as_ismonthlypayment': as_ismonthlypayment,
 
+      'pas_id': pas_id,
       'pas_monthly_percent': pas_monthly_percent,
       'pas_date': pas_date,
+      'pas_as_id': pas_as_id,
 
       'jr_level': jr_level,
       'jr_nome': jr_nome,

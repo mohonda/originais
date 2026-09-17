@@ -545,7 +545,7 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
           padding: const EdgeInsets.only(top: 4.0),
           child: Text(
             (ticket.bar_tss_id == '2')
-            ? 'Sales: ${ticket.tss_desc} • até dia: ${ticket.vpg_dia_valor_desconto} valor ${generalService.currencyMoneyBr(ticket.vpg_valor_desconto.toString())} • após: ${generalService.currencyMoneyBr(ticket.vpg_valor_normal.toString())}'
+            ? 'Sales: ${ticket.tss_desc} • Data: ${generalService.formatarDataBr(ticket.tkt_bar_open_date)} • até dia: ${ticket.vpg_dia_valor_desconto} valor ${generalService.currencyMoneyBr(ticket.vpg_valor_desconto.toString())} • após: ${generalService.currencyMoneyBr(ticket.vpg_valor_normal.toString())}'
             : 'Sales: ${ticket.tss_desc} • Data: ${generalService.formatarDataBr(ticket.tkt_bar_open_date)} • Total: ${generalService.currencyMoneyBr(ticket.totalConsumo.toString())}',
             style: const TextStyle(fontSize: 12, color: Colors.white70),
           ),

@@ -5,7 +5,7 @@ import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/view/profile_update_password.dart';
 import 'package:originais/controllers/profile_image_service.dart';
-import 'package:originais/view/profile_monthly_payment.dart';
+// import 'package:originais/view/profile_monthly_payment.dart';
 import 'package:originais/view/profile_headquarters_bar.dart'; 
 import 'package:originais/view/profile_executive_committee.dart'; 
 import 'package:originais/view/profile_sanctions.dart'; 
@@ -196,7 +196,7 @@ class _ProfileState extends State<Profile> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 7,
+      length: 6,
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(kToolbarHeight),
@@ -251,12 +251,6 @@ class _ProfileState extends State<Profile> {
                       ),
                       Tab(
                         height: 38,
-                        icon: Icon(Icons.calendar_month, size: 16),
-                        text: 'Monthly',
-                        iconMargin: EdgeInsets.only(bottom: 2),
-                      ),
-                      Tab(
-                        height: 38,
                         icon: Icon(Icons.currency_exchange, size: 16),
                         text: 'Financial',
                         iconMargin: EdgeInsets.only(bottom: 2),
@@ -295,10 +289,6 @@ class _ProfileState extends State<Profile> {
                         _buildTabSection(
                           labelText: 'Profile Information',
                           child: _buildProfileForm(),
-                        ),
-                        _buildTabSection(
-                          labelText: 'Monthly Payments',
-                          child: const ProfileMonthlyPayment(),
                         ),
                         _buildTabSection(
                           labelText: 'Headquarters Bar',

@@ -386,16 +386,18 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
 
       String desc =
           'Valor de: ${generalService.currencyMoneyBr(produtoEncontrado.vpg_valor_normal)} até dia ${produtoEncontrado.vpg_dia_valor_normal}';
-      debugPrint(desc);
       DateTime tmpDT = DateTime(
         int.parse(yValueNotifier.value.toString()),
         int.parse(mValueNotifier.value.toString()),
       );
-      final tmpValor = produtoEncontrado.vpg_valor_normal;
+      final double tmpValor = double.parse( produtoEncontrado.vpg_valor_normal );
 
       final List<Map<String, dynamic>> dadosParaInserir = filteredList.map((
         item,
       ) {
+        double percentValue = double.parse( item.pas_monthly_percent.toString() );
+        percentValue = tmpValor * (percentValue/100);
+        
         return {
           'p_hld_id': item.hld_id,
           'p_pfl_id': item.pfl_id,
@@ -406,8 +408,9 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
           'p_table_number': -1, // Removidas as aspas (int)
           'p_pdt_id': 33, // Removidas as aspas (int)
           'p_pdt_quant': 1, // Removidas as aspas (int)
-          'p_valor': tmpValor,
+          'p_valor': percentValue.toString(),
           'p_tkt_vpg_id': vpgValueNotifier.value.toString(),
+          'p_tkt_pas_id': item.pas_id.toString(),
         };
       }).toList();
 

@@ -3,8 +3,8 @@ import 'package:originais/services/general_service.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/controllers/monthly_payments_controller.dart';
 import 'package:originais/models/mensalidades_model.dart';
-import 'package:originais/view/monthly_payments_cashier_page.dart';
-import 'package:originais/view/monthly_payments_profile_page.dart';
+// import 'package:originais/view/monthly_payments_cashier_page.dart';
+// import 'package:originais/view/monthly_payments_profile_page.dart';
 
 class MonthlyPayments extends StatefulWidget {
   const MonthlyPayments({super.key});
@@ -59,7 +59,7 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
               final listaMesAno = lista
                   .map(
                     (m) =>
-                        '${m.mes_mes_referencia.toString().padLeft(2, '0')}/${m.mes_ano_referencia}',
+                        '${m.month.toString().padLeft(2, '0')}/${m.year}',
                   )
                   .toSet()
                   .toList();
@@ -142,13 +142,13 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
                             children: listaMesAno.map((mesAnoRef) {
                               final listaFiltrada = lista.where((m) {
                                 final refAtual =
-                                    '${m.mes_mes_referencia.toString().padLeft(2, '0')}/${m.mes_ano_referencia}';
+                                    '${m.month.toString().padLeft(2, '0')}/${m.year}';
                                 if (refAtual != mesAnoRef) return false;
 
                                 final nomeMatch = m.pfl_full_name
                                     .toLowerCase()
                                     .contains(_searchQuery.toLowerCase());
-                                final isPago = m.mes_data_pagamento.isNotEmpty;
+                                final isPago = m.tkt_paiment_path.isNotEmpty;
 
                                 if (_filtroStatus == 'Pagas') {
                                   return nomeMatch && isPago;
@@ -237,11 +237,11 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
   Widget _buildBalancete(List<MensalidadesModel> lista) {
     final int totalPessoas = lista.length;
     final int quantasPagaram =
-        lista.where((m) => m.mes_data_pagamento.isNotEmpty).length;
+        lista.where((m) => m.tkt_paiment_path.isNotEmpty).length;
 
     final double totalValorPago = lista.fold<double>(0.0, (soma, m) {
-      if (m.mes_data_pagamento.isNotEmpty) {
-        final double valor = double.tryParse(m.mes_valor.toString()) ?? 0.0;
+      if (m.month.isNotEmpty) {
+        final double valor = double.tryParse(m.tit_value.toString()) ?? 0.0;
         return soma + valor;
       }
       return soma;
@@ -315,237 +315,222 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
     );
   }
 
-  // ==========================================
-  Future<void> monthlyPaymentsIndividual(
-    MensalidadesModel mensalidade,
-    BuildContext context,
-  ) async {
-    try {
-      await bdMonthlyPaymentsController.loadMonthlyPaymentsIndividual(
-        mensalidade.mes_pfl_id,
-        mensalidade.mes_mes_referencia,
-        mensalidade.mes_ano_referencia,
-      );
-
-      if (context.mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const MonthlyPaymentsProfilePage(),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('monthlyPaymentsIndividual error: $e');
-    }
-  }
-
-  // ==========================================
-  Future<void> monthlyPaymentsCashier(
-    MensalidadesModel mensalidade,
-    BuildContext context,
-  ) async {
-    try {
-      await bdMonthlyPaymentsController.loadMonthlyPaymentsIndividual(
-        mensalidade.mes_pfl_id,
-        mensalidade.mes_mes_referencia,
-        mensalidade.mes_ano_referencia,
-      );
-
-      if (context.mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const MonthlyPaymentsCashierPage(),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('monthlyPaymentsCashier error: $e');
-    }
-  }
-
+  
+// ==========================================
+  // NOVO WIDGET DO CARD DE MENSALIDADE (Padrão ExpansionTile)
   // ==========================================
   Widget _buildMensalidadeCard(MensalidadesModel mensalidade) {
-    final bool isPago = mensalidade.mes_data_pagamento.isNotEmpty;
-    final bool isConfirmado = mensalidade.mes_data_confirmacao.isNotEmpty;
-    late bool isCancelado = false;
-    if (!isPago && isConfirmado) {
-      isCancelado = true;
-    }
-
+    final bool temComprovante = mensalidade.tkt_paiment_path.isNotEmpty;
+    final bool isPago = temComprovante; // Regra de pagamento baseada no comprovante
+    
     // Validação de Mês/Ano Atual
     final now = DateTime.now();
-    final int mesRef =
-        int.tryParse(mensalidade.mes_mes_referencia.toString()) ?? 0;
-    final int anoRef =
-        int.tryParse(mensalidade.mes_ano_referencia.toString()) ?? 0;
-
+    final int mesRef = int.tryParse(mensalidade.month.toString()) ?? 0;
+    final int anoRef = int.tryParse(mensalidade.year.toString()) ?? 0;
     final bool isMesAnoAtual = (mesRef == now.month) && (anoRef == now.year);
 
+    double porcPorc = double.parse(mensalidade.pas_monthly_percent) / 100.0;
+    double porcValor = double.parse(mensalidade.vpg_valor_desconto) * porcPorc;
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      margin: const EdgeInsets.symmetric(vertical: 6.0),
       elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Colors.indigo.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Icon(
+          Icons.calendar_month,
+          color: isPago ? Colors.greenAccent : Colors.orangeAccent,
+        ),
+        title: Row(
           children: [
             Expanded(
-              flex: 1,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  CircleAvatar(
-                    backgroundColor: isPago
-                        ? Colors.green.shade100
-                        : Colors.orange.shade100,
-                    child: Icon(
-                      isPago ? Icons.check_circle : Icons.pending_actions,
-                      color: isPago ? Colors.green : Colors.orange,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    isPago ? '  PAGO  ' : 'PENDENTE',
-                    style: TextStyle(
-                      color: isPago
-                          ? Colors.green.shade900
-                          : Colors.orange.shade900,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              child: Text(
+                mensalidade.pfl_full_name.isNotEmpty
+                    ? mensalidade.pfl_full_name
+                    : 'Sócio / Membro',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-
-            // COLUNA 1: DADOS DO SÓCIO
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    mensalidade.pfl_full_name.isNotEmpty
-                        ? mensalidade.pfl_full_name
-                        : 'Membro',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Ref: ${mensalidade.mes_mes_referencia.toString().padLeft(2, '0')}/${mensalidade.mes_ano_referencia}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Valor Ref: ${generalService.currencyMoneyBr(mensalidade.vpg_valor_normal)}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                  ),
-                ],
-              ),
-            ),
-
-            const VerticalDivider(width: 16, thickness: 1),
-
-            // COLUNA 2: DADOS DO PAGAMENTO
-            Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isPago ? Colors.green : Colors.orange,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      minimumSize: const Size(0, 28),
-                    ),
-                    onPressed: isMesAnoAtual
-                        ? () => monthlyPaymentsIndividual(mensalidade, context)
-                        : null,
-                    child: const Text(
-                      'Payment',
-                      style: TextStyle(fontSize: 11),
-                    ),
-                  ),
-                  Text(
-                    generalService.currencyMoneyBr(mensalidade.mes_valor),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: isCancelado ? Colors.redAccent : null,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Data: ${generalService.formatarDataBr(mensalidade.mes_data_pagamento)}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isCancelado ? Colors.redAccent : Colors.grey[800],
-                    ),
-                  ),
-                  Text(
-                    'Forma: ${mensalidade.fpg_descricao}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isCancelado ? Colors.redAccent : Colors.grey[600],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-
-            const VerticalDivider(width: 16, thickness: 1),
-
-            // COLUNA 3: CONFIRMAÇÃO DO TESOUREIRO
-            Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isPago ? Colors.green : Colors.orange,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      minimumSize: const Size(0, 28),
-                    ),
-                    onPressed: (isMesAnoAtual && isPago)
-                        ? () => monthlyPaymentsCashier(mensalidade, context)
-                        : null,
-                    child: const Text(
-                      'Cashier',
-                      style: TextStyle(fontSize: 11),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Date: ${isConfirmado || isCancelado ? generalService.formatarDataBr(mensalidade.mes_data_confirmacao) : ""}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Text(
-                    'Cashier: ${isConfirmado || isCancelado ? mensalidade.mes_full_name_confirmacao : ""}',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
+            const SizedBox(width: 8),
+            _buildStatusBadge(isPago),
           ],
         ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4.0),
+          child: Text(
+            'Ref: ${mensalidade.month.toString().padLeft(2, '0')}/${mensalidade.year} • '
+            'Valor Base: ${generalService.currencyMoneyBr(mensalidade.vpg_valor_normal.toString())} • ${mensalidade.vpg_desc}',
+            style: const TextStyle(fontSize: 12, color: Colors.white70),
+          ),
+        ),
+        children: [
+          const Divider(height: 1),
+          Container(
+            padding: const EdgeInsets.all(12.0),
+            color: Colors.black12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Detalhes da Mensalidade:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Desconto até dia: ${mensalidade.vpg_dia_valor_desconto.toString()} • '
+                            'Valor: ${generalService.currencyMoneyBr(mensalidade.vpg_valor_desconto.toString())}',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                          ),
+                          Text(
+                            'Porcentagem: ${mensalidade.pas_monthly_percent.toString()}%  • '
+                            'Valor: ${generalService.currencyMoneyBr(porcValor.toString())}',
+                            style: const TextStyle(fontSize: 11, color: Colors.white54),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      generalService.currencyMoneyBr(mensalidade.tit_value.toString()),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.greenAccent,
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 16),
+                
+                // Botões de Ação
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (temComprovante)
+                      OutlinedButton.icon(
+                        onPressed: () => _mostrarComprovante(context, mensalidade.tkt_paiment_path),
+                        icon: const Icon(Icons.image_search, size: 16),
+                        label: const Text('Ver Comprovante'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.orangeAccent,
+                          side: const BorderSide(color: Colors.orangeAccent),
+                        ),
+                      )
+                    else
+                      const SizedBox.shrink(),
+                    
+                    if (!isPago && isMesAnoAtual)
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        ),
+                        // onPressed: () => monthlyPaymentsIndividual(mensalidade, context), // Descomente quando reativar a navegação
+                        onPressed: () {
+                           debugPrint('Ir para pagamento do perfil: ${mensalidade.pfl_full_name}');
+                        },
+                        icon: const Icon(Icons.payment, size: 16),
+                        label: const Text(
+                          'Pagar Agora',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // ==========================================
+  // MÉTODO AUXILIAR: STATUS BADGE (Aberto / Pago)
+  // ==========================================
+  Widget _buildStatusBadge(bool isPago) {
+    String label = isPago ? 'PAGO' : 'PENDENTE';
+    Color color = isPago ? Colors.greenAccent : Colors.orangeAccent;
+    Color bgColor = (isPago ? Colors.green : Colors.orange).withValues(alpha: 0.15);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 0.8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // MÉTODO AUXILIAR: VISUALIZAR COMPROVANTE
+  // ==========================================
+  void _mostrarComprovante(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Comprovante de Pagamento', style: TextStyle(fontSize: 16)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 400),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: InteractiveViewer(
+                    panEnabled: true,
+                    minScale: 1.0,
+                    maxScale: 4.0,
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Text(
+                        'Erro ao carregar imagem do comprovante.',
+                        style: TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Fechar'),
+          ),
+        ],
       ),
     );
   }

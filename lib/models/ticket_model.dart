@@ -107,6 +107,9 @@ class TicketsModel {
   String? vpg_dia_valor_desconto;
   String? vpg_desc;
 
+  String? tkt_pas_id;
+  String? pas_monthly_percent;
+
   List<TicketsItemsModel> ticketsItems;
 
   TicketsModel({
@@ -133,6 +136,9 @@ class TicketsModel {
     this.vpg_valor_desconto,
     this.vpg_dia_valor_desconto,
     this.vpg_desc,
+
+    this.tkt_pas_id,
+    this.pas_monthly_percent,
 
     List<TicketsItemsModel>? ticketsItems,
   }) : ticketsItems = ticketsItems ?? [];
@@ -176,6 +182,9 @@ class TicketsModel {
       vpg_dia_valor_desconto: json['vpg_dia_valor_desconto']?.toString() ?? '',
       vpg_desc: json['vpg_desc']?.toString() ?? '',
 
+      tkt_pas_id: json['tkt_pas_id']?.toString() ?? '',
+      pas_monthly_percent: json['pas_monthly_percent']?.toString() ?? '',
+
       ticketsItems: itens,
     );
   }
@@ -200,6 +209,9 @@ class TicketsModel {
       'vpg_valor_desconto': vpg_valor_desconto,
       'vpg_dia_valor_desconto': vpg_dia_valor_desconto,
       'vpg_desc': vpg_desc,
+
+      'tkt_pas_id': tkt_pas_id,
+      'pas_monthly_percent': pas_monthly_percent,
     };
   }
 }

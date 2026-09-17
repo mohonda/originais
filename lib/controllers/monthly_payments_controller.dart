@@ -13,6 +13,7 @@ import 'package:originais/models/vprofile_model.dart';
 import 'dart:io';
 import 'package:originais/controllers/open_bar_ticket_ticketitem_controller.dart';
 
+import 'package:originais/models/ticket_model.dart';
 
 final getItbdMonthlyPaymentsController = GetIt.instance;
 
@@ -94,11 +95,18 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
       if (showLoading) loadingNotifier.value = true;
       errorNotifier.value = null;
 
+      // final resposta = await mySupabaseClient.safePostgrestCall(
+      //   () => supabaseClient
+      //       .from('vmensalidades')
+      //       .select()
+      //       .eq('mes_hld_id', hld_id),
+      // );
       final resposta = await mySupabaseClient.safePostgrestCall(
         () => supabaseClient
-            .from('vmensalidades')
+            .from('vmensalidades_tickets')
             .select()
-            .eq('mes_hld_id', hld_id),
+            // .select()
+            // .eq('mes_hld_id', hld_id),
       );
 
       monthlyPaymentsNotifier.value = resposta
@@ -402,6 +410,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
               p_pdt_quant: item['p_pdt_quant'].toString(),
               p_valor: item['p_valor'].toString(),
               p_tkt_vpg_id: item['p_tkt_vpg_id'].toString(),
+              p_tkt_pas_id: item['p_tkt_pas_id'].toString(),
             );
           }),
         );
