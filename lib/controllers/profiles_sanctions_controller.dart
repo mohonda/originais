@@ -56,8 +56,7 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
           .toList();
     } catch (e, stackTrace) {
       vProfilesSanctionsNotifier.value = [];
-      errorNotifier.value =
-          ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
+      errorNotifier.value = ("loadProfileSanctionsStatus: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
     }

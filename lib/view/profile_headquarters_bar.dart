@@ -3,7 +3,7 @@ import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/controllers/ticket_controller.dart';
 import 'package:originais/models/ticket_model.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/controllers/ticket_receipt_image_service.dart'; // 🟢 Serviço de upload adicionado
+import 'package:originais/controllers/ticket_receipt_image_service.dart';
 
 class ProfileHeadquartersBar extends StatefulWidget {
   final String pflId;
@@ -28,15 +28,15 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
   late final GeneralService generalService;
   late final BdProfileController profileController;
 
-  // 🟢 Controladores de estado do serviço de imagem
+  // Controladores de estado do serviço de imagem / upload
   final loadingNotifier = ValueNotifier<bool>(false);
   final errorNotifier = ValueNotifier<String?>(null);
   late final TicketReceiptImageService paymentService;
 
-  bool _isLoading = true;
   String _pflIdResolvido = '';
   String _hldIdResolvido = '';
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
@@ -44,13 +44,11 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     generalService = getItGeneralService<GeneralService>();
     profileController = getItBdProfileController<BdProfileController>();
 
-    // 🟢 Inicializa o serviço de upload de imagens
     paymentService = TicketReceiptImageService(
       loadingNotifier: loadingNotifier,
       errorNotifier: errorNotifier,
     );
 
-    // 🟢 Escuta mudanças caso o perfil demore para carregar no controller global
     profileController.pessoaSelecionadaNotifier.addListener(_onPessoaChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -58,6 +56,7 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     });
   }
 
+  // ==========================================
   @override
   void dispose() {
     profileController.pessoaSelecionadaNotifier.removeListener(
@@ -69,12 +68,14 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     super.dispose();
   }
 
+  // ==========================================
   void _onPessoaChanged() {
     if (_pflIdResolvido.isEmpty) {
       _carregarDados();
     }
   }
 
+  // ==========================================
   @override
   void didUpdateWidget(covariant ProfileHeadquartersBar oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -83,44 +84,34 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     }
   }
 
+  // ==========================================
   Future<void> _carregarDados() async {
     final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
 
     final String idResolvido = widget.pflId.isNotEmpty
         ? widget.pflId
-        : (pessoaLogada?.pfl_id?.toString() ?? '');
+        : (pessoaLogada?.pfl_id.toString() ?? '');
 
     final String hldResolvido = widget.hldId.isNotEmpty
         ? widget.hldId
-        : (pessoaLogada?.hld_id?.toString() ?? '');
+        : (pessoaLogada?.hld_id.toString() ?? '');
 
     if (idResolvido.isEmpty) {
       debugPrint('⚠️ ProfileHeadquartersBar: pflId ainda não está disponível.');
-      if (mounted) setState(() => _isLoading = false);
       return;
     }
 
     _pflIdResolvido = idResolvido;
     _hldIdResolvido = hldResolvido;
 
-    if (mounted) setState(() => _isLoading = true);
-
-    try {
-      await ticketController.loadTicketsByProfileWithItems(
-        _pflIdResolvido,
-        _hldIdResolvido,
-      );
-      ticketController.initRealtimeProfile(_pflIdResolvido, _hldIdResolvido);
-    } catch (e) {
-      debugPrint('❌ Erro ao buscar tickets: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    await ticketController.loadTicketsByProfileWithItems(
+      _pflIdResolvido,
+      _hldIdResolvido,
+    );
+    ticketController.initRealtimeProfile(_pflIdResolvido, _hldIdResolvido);
   }
 
-  // 🟢 Função para recuperar o ID do status "Pago"
+  // ==========================================
   String id_ticketStatusList(String name) {
     try {
       final tmp = ticketController.ticketStatusNotifier.value
@@ -133,93 +124,12 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     }
   }
 
-  // 🟢 Novo fluxo de Pagamento via Modal de Upload
-  // void _irParaPagamento(BuildContext context, TicketsModel ticket) async {
-  //   showDialog(
-  //     context: context,
-  //     builder: (dialogContext) {
-  //       return StatefulBuilder(
-  //         builder: (context, setDialogState) {
-  //           final bool temFoto = ticket.tkt_paiment_path != null;
-
-  //           return AlertDialog(
-  //             shape: RoundedRectangleBorder(
-  //               borderRadius: BorderRadius.circular(16),
-  //             ),
-  //             title: Text('Pagamento: ${ticket.tkt_table_number}'),
-  //             content: Column(
-  //               mainAxisSize: MainAxisSize.min,
-  //               crossAxisAlignment: CrossAxisAlignment.start,
-  //               children: [
-  //                 Text(
-  //                   'Total a pagar: ${generalService.currencyMoneyBr(ticket.totalConsumo.toString())}\n\n'
-  //                   'Comprovante/Foto confirma seu pagamento!!!',
-  //                 ),
-  //                 const SizedBox(height: 16),
-
-  //                 // 📸 Botão para capturar ou escolher a foto do comprovante
-  //                 SizedBox(
-  //                   width: double.infinity,
-  //                   child: OutlinedButton.icon(
-  //                     onPressed: () async {
-  //                       final tst_id = id_ticketStatusList(
-  //                         'Ticket closed (Paid)',
-  //                       );
-
-  //                       await paymentService.selecionarAnexoEEnviar(
-  //                         context: context,
-  //                         payload: {
-  //                           'tkt_id': ticket.tkt_id,
-  //                           'pfl_id': ticket.tkt_pfl_id,
-  //                           'tkt_tst_id': ticket.tkt_tst_id,
-  //                           'barId': ticket.tkt_bar_id,
-  //                           'openDate': ticket.tkt_bar_open_date,
-  //                           'hld_id': widget.hldId,
-  //                         },
-  //                       );
-  //                       if (context.mounted && errorNotifier.value == null) {
-  //                         Navigator.of(
-  //                           context,
-  //                         ).pop(); // Fecha o Dialog da comanda
-  //                       }
-  //                     },
-  //                     icon: const Icon(
-  //                       Icons.add_a_photo,
-  //                       color: Colors.orangeAccent,
-  //                     ),
-  //                     label: const Text(
-  //                       'Anexar Comprovante / Foto',
-  //                       style: TextStyle(
-  //                         color: Colors.orangeAccent,
-  //                         fontWeight: FontWeight.bold,
-  //                       ),
-  //                     ),
-  //                     style: OutlinedButton.styleFrom(
-  //                       side: const BorderSide(color: Colors.indigoAccent),
-  //                       padding: const EdgeInsets.symmetric(vertical: 12),
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //             actions: [
-  //               TextButton(
-  //                 onPressed: () => Navigator.pop(dialogContext),
-  //                 child: const Text('Cancelar'),
-  //               ),
-  //             ],
-  //           );
-  //         },
-  //       );
-  //     },
-  //   );
-  // }
-// 🟢 Fluxo de Pagamento via Modal de Upload com Confirmação para tss_id == '2'
+  // ==========================================
   void _irParaPagamento(BuildContext context, TicketsModel ticket) async {
     final bool isTipo2 = ticket.bar_tss_id == '2';
 
-    // Estado inicial de Data e Valor
-    DateTime dataPagamento = DateTime.tryParse(ticket.tkt_bar_open_date) ?? DateTime.now();
+    DateTime dataPagamento =
+        DateTime.tryParse(ticket.tkt_bar_open_date) ?? DateTime.now();
     double valorFinal = double.tryParse(ticket.totalConsumo.toString()) ?? 0.0;
 
     final TextEditingController valorController = TextEditingController(
@@ -254,8 +164,6 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                         style: TextStyle(fontSize: 13, color: Colors.white70),
                       ),
                       const SizedBox(height: 16),
-
-                      // 📅 1. Campo de Seleção da Data do Pagamento
                       InkWell(
                         onTap: () async {
                           final pickedDate = await showDatePicker(
@@ -278,23 +186,27 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                           ),
                           child: Text(
                             '${dataPagamento.day.toString().padLeft(2, '0')}/${dataPagamento.month.toString().padLeft(2, '0')}/${dataPagamento.year}',
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 12),
-
-                      // 💵 2. Campo de Valor do Pagamento
                       TextField(
                         controller: valorController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         decoration: const InputDecoration(
                           labelText: 'Valor do Pagamento (R\$)',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.attach_money, size: 20),
                         ),
                         onChanged: (val) {
-                          final parsed = double.tryParse(val.replaceAll(',', '.'));
+                          final parsed =
+                              double.tryParse(val.replaceAll(',', '.'));
                           if (parsed != null) {
                             valorFinal = parsed;
                           }
@@ -307,13 +219,10 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                       ),
                     ],
                     const SizedBox(height: 16),
-
-                    // 📸 Botão para capturar ou escolher a foto do comprovante
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () async {
-                          // Formatação da data escolhida em YYYY-MM-DD
                           final String dataFormatada =
                               '${dataPagamento.year}-${dataPagamento.month.toString().padLeft(2, '0')}-${dataPagamento.day.toString().padLeft(2, '0')}';
 
@@ -322,8 +231,11 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                             'pfl_id': ticket.tkt_pfl_id,
                             'tkt_tst_id': ticket.tkt_tst_id,
                             'barId': ticket.tkt_bar_id,
-                            'openDate': isTipo2 ? dataFormatada : ticket.tkt_bar_open_date,
-                            'valor': isTipo2 ? valorFinal : ticket.totalConsumo,
+                            'openDate': isTipo2
+                                ? dataFormatada
+                                : ticket.tkt_bar_open_date,
+                            'valor':
+                                isTipo2 ? valorFinal : ticket.totalConsumo,
                             'hld_id': widget.hldId,
                           };
 
@@ -332,8 +244,17 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                             payload: payload,
                           );
 
-                          if (context.mounted && errorNotifier.value == null) {
-                            Navigator.of(context).pop(); // Fecha o Dialog da comanda
+                          if (context.mounted) {
+                            if (errorNotifier.value == null) {
+                              Navigator.of(context).pop();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(errorNotifier.value!),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
                           }
                         },
                         icon: const Icon(
@@ -369,62 +290,123 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     );
   }
 
-
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // 🟢 Conteúdo Principal da Tela
-        if (_isLoading)
-          const Padding(
-            padding: EdgeInsets.all(24.0),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else
-          ValueListenableBuilder<List<TicketsModel>>(
-            valueListenable: ticketController.profileTicketsWithItemsNotifier,
-            builder: (context, tickets, child) {
-              if (tickets.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: Center(
-                    child: Text(
-                      'Nenhum ticket encontrado para este perfil.',
-                      style: TextStyle(color: Colors.white54, fontSize: 13),
-                    ),
-                  ),
-                );
-              }
+        ValueListenableBuilder<bool>(
+          valueListenable: ticketController.loadingNotifier,
+          builder: (context, isLoading, child) {
+            if (isLoading) {
+              return const Padding(
+                padding: EdgeInsets.all(32.0),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
 
-              return Padding(
-                padding: const EdgeInsets.all(16.0),
+            return ValueListenableBuilder<String?>(
+              valueListenable: ticketController.errorNotifier,
+              builder: (context, errorMessage, child) {
+                if (errorMessage != null && errorMessage.isNotEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.redAccent,
+                            size: 48,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            errorMessage,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton.icon(
+                            onPressed: _carregarDados,
+                            icon: const Icon(Icons.refresh, size: 18),
+                            label: const Text('Tentar Novamente'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return ValueListenableBuilder<List<TicketsModel>>(
+                  valueListenable:
+                      ticketController.profileTicketsWithItemsNotifier,
+                  builder: (context, tickets, child) {
+                    if (tickets.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: Center(
+                          child: Text(
+                            'Nenhum ticket encontrado para este perfil.',
+                            style:
+                                TextStyle(color: Colors.white54, fontSize: 13),
+                          ),
+                        ),
+                      );
+                    }
+
+                    return SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildResumoUsuario(tickets),
+                            const SizedBox(height: 12),
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: tickets.length,
+                              itemBuilder: (context, index) {
+                                return _buildTicketCard(
+                                  context,
+                                  tickets[index],
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
+        ),
+
+        ValueListenableBuilder<bool>(
+          valueListenable: loadingNotifier,
+          builder: (context, isUploading, child) {
+            if (!isUploading) return const SizedBox.shrink();
+            return Container(
+              color: Colors.black54,
+              child: const Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildResumoUsuario(tickets),
-                    const SizedBox(height: 12),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: tickets.length,
-                      itemBuilder: (context, index) {
-                        return _buildTicketCard(context, tickets[index]);
-                      },
+                    CircularProgressIndicator(),
+                    SizedBox(height: 12),
+                    Text(
+                      'Processando comprovante...',
+                      style: TextStyle(color: Colors.white, fontSize: 13),
                     ),
                   ],
                 ),
-              );
-            },
-          ),
-
-        // 🟢 Overlay de Carregamento para o Upload
-        ValueListenableBuilder<bool>(
-          valueListenable: loadingNotifier,
-          builder: (context, isLoading, child) {
-            if (!isLoading) return const SizedBox.shrink();
-            return Container(
-              color: Colors.black54, // Fundo escuro semi-transparente
-              child: const Center(child: CircularProgressIndicator()),
+              ),
             );
           },
         ),
@@ -432,6 +414,7 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     );
   }
 
+  // ==========================================
   Widget _buildResumoUsuario(List<TicketsModel> lista) {
     final int total = lista.length;
 
@@ -475,6 +458,7 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     );
   }
 
+  // ==========================================
   Widget _buildResumoColumn(String label, String value, Color color) {
     return Column(
       children: [
@@ -495,6 +479,7 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     );
   }
 
+  // ==========================================
   Widget _buildTicketCard(BuildContext context, TicketsModel ticket) {
     final bool temItens = ticket.ticketsItems.isNotEmpty;
     final bool temComprovante =
@@ -509,7 +494,10 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.indigo.withValues(alpha: 0.3), width: 1),
+        side: BorderSide(
+          color: Colors.indigo.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -535,7 +523,8 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
               ticket.tkt_table_number.isNotEmpty
                   ? ticket.tkt_table_number
                   : 'Ticket #${ticket.tkt_id}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(width: 8),
             _buildStatusBadge(ticket),
@@ -545,8 +534,8 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
           padding: const EdgeInsets.only(top: 4.0),
           child: Text(
             (ticket.bar_tss_id == '2')
-            ? 'Sales: ${ticket.tss_desc} • Data: ${generalService.formatarDataBr(ticket.tkt_bar_open_date)} • até dia: ${ticket.vpg_dia_valor_desconto} valor ${generalService.currencyMoneyBr(ticket.vpg_valor_desconto.toString())} • após: ${generalService.currencyMoneyBr(ticket.vpg_valor_normal.toString())}'
-            : 'Sales: ${ticket.tss_desc} • Data: ${generalService.formatarDataBr(ticket.tkt_bar_open_date)} • Total: ${generalService.currencyMoneyBr(ticket.totalConsumo.toString())}',
+                ? 'Sales: ${ticket.tss_desc} • Data: ${generalService.formatarDataBr(ticket.tkt_bar_open_date)} • até dia: ${ticket.vpg_dia_valor_desconto} valor ${generalService.currencyMoneyBr(ticket.vpg_valor_desconto.toString())} • após: ${generalService.currencyMoneyBr(ticket.vpg_valor_normal.toString())}'
+                : 'Sales: ${ticket.tss_desc} • Data: ${generalService.formatarDataBr(ticket.tkt_bar_open_date)} • Total: ${generalService.currencyMoneyBr(ticket.totalConsumo.toString())}',
             style: const TextStyle(fontSize: 12, color: Colors.white70),
           ),
         ),
@@ -671,6 +660,7 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     );
   }
 
+  // ==========================================
   Widget _buildStatusBadge(TicketsModel ticket) {
     String label = 'ABERTO';
     Color color = Colors.orangeAccent;
@@ -708,6 +698,7 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     );
   }
 
+  // ==========================================
   void _mostrarComprovante(BuildContext context, TicketsModel ticket) {
     final String imageUrl = ticket.tkt_paiment_path!;
 
@@ -754,4 +745,5 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
       ),
     );
   }
+
 }

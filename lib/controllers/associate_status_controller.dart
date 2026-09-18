@@ -10,19 +10,25 @@ class AssociateStatusController {
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<List<AssociateStatusModel>> 
     statusNotifier = ValueNotifier<List<AssociateStatusModel>>([]);
+
+  final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
   
+  // ==========================================
   AssociateStatusController(){
     supabaseClient = mySupabaseClient.getSupabaseClient();
   }
 
-  Future<void> loadAssociateStatus(String hldId) async {
-    if (hldId.trim().isEmpty) {
-      statusNotifier.value = [];
-      return;
-    }
+  // ==========================================
+  void dispose() {
+    loadingNotifier.dispose();
+    statusNotifier.dispose();
+  }
 
+  // ==========================================
+  Future<void> loadAssociateStatus(String hldId) async {
     try {
       loadingNotifier.value = true;
+      errorNotifier.value = null;
 
       final resposta = await mySupabaseClient.safePostgrestCall(
         () => supabaseClient
@@ -33,16 +39,12 @@ class AssociateStatusController {
 
       statusNotifier.value =  resposta.map((item) =>
         AssociateStatusModel.fromMap(item)).toList();
-    } catch (e) {
-      debugPrint('❌ Erro ao carregar Associate Status: $e');
+    } catch (e, stackTrace) {
       statusNotifier.value = [];
+      errorNotifier.value = ('loadAssociateStatus:$e\n$stackTrace');
     } finally {
       loadingNotifier.value = false;
     }
   }
 
-  void dispose() {
-    loadingNotifier.dispose();
-    statusNotifier.dispose();
-  }
 }

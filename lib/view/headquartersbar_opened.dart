@@ -80,13 +80,24 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
 
   // ==========================================
   void _onErrorChanged() {
-    if (mounted && errorNotifier.value != null) {
+    final error = errorNotifier.value ??
+        ticketController.errorNotifier.value ??
+        productsController.errorNotifier.value ??
+        bdProfileController.errorNotifier.value;
+
+    if (error != null && error.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorNotifier.value!),
+          content: Text('Erro: $error'),
           backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
         ),
       );
+      if (errorNotifier.value != null) {
+        errorNotifier.value = null;
+      }
     }
   }
 
@@ -103,11 +114,15 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
         .toList();
     ticketStatusList = ticketController.ticketStatusNotifier.value;
 
-    // Vincular Listeners aos Notifiers dos Controllers
+    // Vincular Listeners aos Notifiers dos Controllers e Erros
     productsController.productsNotifier.addListener(_onProductsChanged);
     bdProfileController.profilesNotifier.addListener(_onProfilesChanged);
     ticketController.ticketStatusNotifier.addListener(_onTicketStatusChanged);
+
     errorNotifier.addListener(_onErrorChanged);
+    ticketController.errorNotifier.addListener(_onErrorChanged);
+    productsController.errorNotifier.addListener(_onErrorChanged);
+    bdProfileController.errorNotifier.addListener(_onErrorChanged);
 
     paymentService = TicketReceiptImageService(
       loadingNotifier: loadingNotifier,
@@ -135,7 +150,11 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
     productsController.productsNotifier.removeListener(_onProductsChanged);
     bdProfileController.profilesNotifier.removeListener(_onProfilesChanged);
     ticketController.ticketStatusNotifier.removeListener(_onTicketStatusChanged);
+
     errorNotifier.removeListener(_onErrorChanged);
+    ticketController.errorNotifier.removeListener(_onErrorChanged);
+    productsController.errorNotifier.removeListener(_onErrorChanged);
+    bdProfileController.errorNotifier.removeListener(_onErrorChanged);
 
     loadingNotifier.dispose();
     errorNotifier.dispose();
@@ -175,7 +194,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   ),
                   const SizedBox(height: 16),
 
-                  // 📸 Botão reativo ao estado do Notifier de Envio
                   ValueListenableBuilder<bool>(
                     valueListenable: loadingNotifier,
                     builder: (context, isLoading, _) {
@@ -671,56 +689,70 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                   onPressed: () => Navigator.pop(dialogContext),
                   child: const Text('Cancelar'),
                 ),
-                ElevatedButton.icon(
-                  onPressed: produtoSelecionado == null
-                      ? null
-                      : () async {
-                          if (produtoSelecionado != null) {
-                            final indexExistente = mesa.ticketsItems.indexWhere(
-                              (p) => p.pdt_name == produtoSelecionado!.pdt_name,
-                            );
+                ValueListenableBuilder<bool>(
+                  valueListenable: ticketController.loadingNotifier,
+                  builder: (context, isLoading, _) {
+                    return ElevatedButton.icon(
+                      onPressed: (produtoSelecionado == null || isLoading)
+                          ? null
+                          : () async {
+                              if (produtoSelecionado != null) {
+                                final indexExistente = mesa.ticketsItems.indexWhere(
+                                  (p) => p.pdt_name == produtoSelecionado!.pdt_name,
+                                );
 
-                            if (indexExistente >= 0) {
-                              await ticketController.updateTicketsItems(
-                                mesa.ticketsItems[indexExistente].tit_id
-                                    .toString(),
-                                mesa
-                                        .ticketsItems[indexExistente]
-                                        .tit_quantities +
-                                    quantidade,
-                                widget.barId,
-                                widget.openDate,
-                                widget.hld_id,
-                              );
-                            } else {
-                              final ticketsItems2Controller = TicketsItemsModel(
-                                tit_hld_id: widget.hld_id,
-                                tit_tkt_id: mesa.tkt_id.toString(),
-                                tit_pdt_id: produtoSelecionado!.pdt_id,
-                                tit_quantities: quantidade,
-                                tit_unit_value: precoCalculado,
-                                tit_value: quantidade * precoCalculado,
-                              );
+                                if (indexExistente >= 0) {
+                                  await ticketController.updateTicketsItems(
+                                    mesa.ticketsItems[indexExistente].tit_id
+                                        .toString(),
+                                    mesa
+                                            .ticketsItems[indexExistente]
+                                            .tit_quantities +
+                                        quantidade,
+                                    widget.barId,
+                                    widget.openDate,
+                                    widget.hld_id,
+                                  );
+                                } else {
+                                  final ticketsItems2Controller = TicketsItemsModel(
+                                    tit_hld_id: widget.hld_id,
+                                    tit_tkt_id: mesa.tkt_id.toString(),
+                                    tit_pdt_id: produtoSelecionado!.pdt_id,
+                                    tit_quantities: quantidade,
+                                    tit_unit_value: precoCalculado,
+                                    tit_value: quantidade * precoCalculado,
+                                  );
 
-                              await ticketController.insertTicketsItems(
-                                ticketsItems2Controller,
-                                widget.barId,
-                                widget.openDate,
-                                widget.hld_id,
-                              );
-                            }
-                            if (context.mounted) {
-                              Navigator.pop(dialogContext);
-                              _mostrarResumoMesa(mesa);
-                            }
-                          }
-                        },
-                  icon: const Icon(Icons.check),
-                  label: const Text('Confirmar'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    foregroundColor: Colors.white,
-                  ),
+                                  await ticketController.insertTicketsItems(
+                                    ticketsItems2Controller,
+                                    widget.barId,
+                                    widget.openDate,
+                                    widget.hld_id,
+                                  );
+                                }
+                                if (context.mounted) {
+                                  Navigator.pop(dialogContext);
+                                  _mostrarResumoMesa(mesa);
+                                }
+                              }
+                            },
+                      icon: isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.check),
+                      label: Text(isLoading ? 'Processando...' : 'Confirmar'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white,
+                      ),
+                    );
+                  },
                 ),
               ],
             );
@@ -1490,447 +1522,495 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
         title:
             'Headquarters Bar - ${generalService.formatarDataBr(widget.openDate)}',
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  if (widget.isReadOnly)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 12,
-                      ),
-                      color: Colors.amber.shade900.withValues(alpha: 0.8),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+      body: ListenableBuilder(
+        listenable: Listenable.merge([
+          ticketController.loadingNotifier,
+          productsController.loadingNotifier,
+          bdProfileController.loadingNotifier,
+          loadingNotifier,
+        ]),
+        builder: (context, _) {
+          final bool isProcessing = ticketController.loadingNotifier.value ||
+              productsController.loadingNotifier.value ||
+              bdProfileController.loadingNotifier.value ||
+              loadingNotifier.value;
+
+          return Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
                         children: [
-                          Icon(Icons.lock_clock, color: Colors.white, size: 16),
-                          SizedBox(width: 8),
-                          Text(
-                            'Modo de Consulta (Somente Leitura)',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                          if (widget.isReadOnly)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8,
+                                horizontal: 12,
+                              ),
+                              color: Colors.amber.shade900.withValues(alpha: 0.8),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.lock_clock, color: Colors.white, size: 16),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Modo de Consulta (Somente Leitura)',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
+                          _buildDashboardVendas(),
+                          const SizedBox(height: distance),
+                          Expanded(
+                            child: ValueListenableBuilder<List<TicketsModel>>(
+                              valueListenable: ticketController.ticketNotifier,
+                              builder: (context, listaMesas, _) {
+                                if (isProcessing && listaMesas.isEmpty) {
+                                  return const Center(
+                                    child: CircularProgressIndicator(),
+                                  );
+                                }
+
+                                final idAberto = id_ticketStatusList(
+                                  'Ticket opened',
+                                );
+
+                                final mesasOrdenadas =
+                                    List<TicketsModel>.from(listaMesas)..sort((
+                                      a,
+                                      b,
+                                    ) {
+                                      final aAberta = a.tkt_tst_id == idAberto;
+                                      final bAberta = b.tkt_tst_id == idAberto;
+
+                                      if (aAberta && !bAberta) return -1;
+                                      if (!aAberta && bAberta) return 1;
+
+                                      return (a.tkt_table_number).compareTo(
+                                        b.tkt_table_number,
+                                      );
+                                    });
+
+                                return InputDecorator(
+                                  decoration: const InputDecoration(
+                                    labelText: 'Tables',
+                                    border: OutlineInputBorder(),
+                                    contentPadding: EdgeInsets.only(
+                                      left: 8.0,
+                                      right: 8.0,
+                                      top: 30.0,
+                                    ),
+                                  ),
+                                  child: SizedBox.expand(
+                                    child: mesasOrdenadas.isEmpty
+                                        ? const Center(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.table_bar_outlined,
+                                                  size: 48,
+                                                  color: Colors.white38,
+                                                ),
+                                                SizedBox(height: 8),
+                                                Text(
+                                                  'Nenhuma mesa adicionada.',
+                                                  style: TextStyle(
+                                                    color: Colors.white54,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        : GridView.builder(
+                                            gridDelegate:
+                                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                                  maxCrossAxisExtent: 180,
+                                                  childAspectRatio: 1.40,
+                                                  crossAxisSpacing: 10,
+                                                  mainAxisSpacing: 10,
+                                                ),
+                                            itemCount: mesasOrdenadas.length,
+                                            itemBuilder: (context, index) {
+                                              final mesa = mesasOrdenadas[index];
+                                              final bool isFechadaPaga =
+                                                  mesa.tkt_tst_id ==
+                                                  id_ticketStatusList(
+                                                    'Ticket closed (Paid)',
+                                                  );
+                                              final bool isFechadaSemPag =
+                                                  mesa.tkt_tst_id ==
+                                                  id_ticketStatusList(
+                                                    'Ticket closed without payment',
+                                                  );
+                                              final bool isFechada =
+                                                  isFechadaPaga || isFechadaSemPag;
+
+                                              Color cardColor = Colors.indigo
+                                                  .withValues(alpha: 0.15);
+                                              Color borderColor =
+                                                  Colors.indigoAccent;
+
+                                              if (isFechadaPaga) {
+                                                cardColor = Colors.green.withValues(
+                                                  alpha: 0.08,
+                                                );
+                                                borderColor = Colors.green
+                                                    .withValues(alpha: 0.4);
+                                              } else if (isFechadaSemPag) {
+                                                cardColor = Colors.grey.withValues(
+                                                  alpha: 0.08,
+                                                );
+                                                borderColor = Colors.grey
+                                                    .withValues(alpha: 0.3);
+                                              } else if (mesa.tkt_has_discount) {
+                                                cardColor = Colors.amber.withValues(
+                                                  alpha: 0.12,
+                                                );
+                                                borderColor = Colors.amber;
+                                              }
+
+                                              return InkWell(
+                                                onTap: isProcessing
+                                                    ? null
+                                                    : () => _mostrarResumoMesa(mesa),
+                                                borderRadius: BorderRadius.circular(
+                                                  10,
+                                                ),
+                                                child: Card(
+                                                  elevation: isFechada ? 0 : 2,
+                                                  color: cardColor,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(10),
+                                                    side: BorderSide(
+                                                      color: borderColor,
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.all(
+                                                      6.0,
+                                                    ),
+                                                    child: Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceBetween,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment.start,
+                                                      children: [
+                                                        Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .spaceBetween,
+                                                          children: [
+                                                            Text(
+                                                              mesa.tkt_table_number,
+                                                              style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight.bold,
+                                                                fontSize: 12,
+                                                                color: isFechada
+                                                                    ? Colors.white38
+                                                                    : Colors.white,
+                                                              ),
+                                                            ),
+                                                            if (!widget
+                                                                .isReadOnly) ...[
+                                                              GestureDetector(
+                                                                onTap: isProcessing
+                                                                    ? null
+                                                                    : () => _mostrarDialogAcaoMesa(
+                                                                          mesa,
+                                                                        ),
+                                                                child: Icon(
+                                                                  Icons.close,
+                                                                  size: 18,
+                                                                  color: isFechada
+                                                                      ? Colors
+                                                                            .white38
+                                                                      : Colors
+                                                                            .redAccent,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ],
+                                                        ),
+                                                        Row(
+                                                          children: [
+                                                            Icon(
+                                                              isFechadaPaga
+                                                                  ? Icons.task_alt
+                                                                  : (isFechadaSemPag
+                                                                        ? Icons
+                                                                              .block
+                                                                        : (mesa.tkt_has_discount
+                                                                              ? Icons.star
+                                                                              : Icons.person_outline)),
+                                                              size: 12,
+                                                              color: isFechadaPaga
+                                                                  ? Colors
+                                                                        .greenAccent
+                                                                  : (isFechadaSemPag
+                                                                        ? Colors
+                                                                              .white38
+                                                                        : (mesa.tkt_has_discount
+                                                                              ? Colors.amber
+                                                                              : Colors.indigoAccent)),
+                                                            ),
+                                                            const SizedBox(
+                                                              width: 4,
+                                                            ),
+                                                            Expanded(
+                                                              child: Text(
+                                                                (mesa.tkt_client_name !=
+                                                                            null &&
+                                                                        mesa
+                                                                            .tkt_client_name!
+                                                                            .isNotEmpty &&
+                                                                        mesa.tkt_client_name !=
+                                                                            'null')
+                                                                    ? mesa.tkt_client_name
+                                                                          .toString()
+                                                                    : mesa.pfl_full_name
+                                                                          .toString(),
+                                                                maxLines: 1,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                                style: TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  fontSize: 13,
+                                                                  color: isFechada
+                                                                      ? Colors
+                                                                            .white38
+                                                                      : (mesa.tkt_has_discount
+                                                                            ? Colors
+                                                                                  .amber[200]
+                                                                            : Colors
+                                                                                  .white),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .spaceBetween,
+                                                          children: [
+                                                            Flexible(
+                                                              child: FittedBox(
+                                                                fit: BoxFit
+                                                                    .scaleDown,
+                                                                alignment: Alignment
+                                                                    .centerLeft,
+                                                                child: Text(
+                                                                  generalService
+                                                                      .currencyMoneyBr(
+                                                                        mesa.totalConsumo
+                                                                            .toString(),
+                                                                      ),
+                                                                  style: TextStyle(
+                                                                    fontSize: 12,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color:
+                                                                        isFechadaPaga
+                                                                        ? Colors
+                                                                              .greenAccent
+                                                                              .withValues(
+                                                                                alpha: 0.7,
+                                                                              )
+                                                                        : (isFechadaSemPag
+                                                                              ? Colors.redAccent.withValues(alpha: 0.6)
+                                                                              : Colors.greenAccent),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            if (isFechadaPaga)
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal: 4,
+                                                                      vertical: 2,
+                                                                    ),
+                                                                decoration: BoxDecoration(
+                                                                  color: Colors
+                                                                      .green
+                                                                      .withValues(
+                                                                        alpha: 0.2,
+                                                                      ),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        4,
+                                                                      ),
+                                                                ),
+                                                                child: const Text(
+                                                                  'PAGO',
+                                                                  style: TextStyle(
+                                                                    fontSize: 8,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color: Colors
+                                                                        .greenAccent,
+                                                                  ),
+                                                                ),
+                                                              )
+                                                            else if (isFechadaSemPag)
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal: 4,
+                                                                      vertical: 2,
+                                                                    ),
+                                                                decoration: BoxDecoration(
+                                                                  color: Colors.red
+                                                                      .withValues(
+                                                                        alpha: 0.15,
+                                                                      ),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        4,
+                                                                      ),
+                                                                ),
+                                                                child: const Text(
+                                                                  'S/ PAG.',
+                                                                  style: TextStyle(
+                                                                    fontSize: 8,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color: Colors
+                                                                        .redAccent,
+                                                                  ),
+                                                                ),
+                                                              )
+                                                            else if (mesa
+                                                                .tkt_has_discount)
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal: 4,
+                                                                      vertical: 2,
+                                                                    ),
+                                                                decoration: BoxDecoration(
+                                                                  color: Colors
+                                                                      .amber
+                                                                      .withValues(
+                                                                        alpha: 0.2,
+                                                                      ),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        4,
+                                                                      ),
+                                                                ),
+                                                                child: const Text(
+                                                                  'Associated',
+                                                                  style: TextStyle(
+                                                                    fontSize: 8,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color: Colors
+                                                                        .amber,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: distance),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: isProcessing ? null : () => Navigator.pop(context),
+                                  icon: const Icon(Icons.arrow_back),
+                                  label: const Text('Cancelar'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.indigo,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                  _buildDashboardVendas(),
-                  const SizedBox(height: distance),
-                  Expanded(
-                    child: ValueListenableBuilder<bool>(
-                      valueListenable: ticketController.loadingNotifier,
-                      builder: (context, isLoading, _) {
-                        return ValueListenableBuilder<List<TicketsModel>>(
-                          valueListenable: ticketController.ticketNotifier,
-                          builder: (context, listaMesas, _) {
-                            if (isLoading && listaMesas.isEmpty) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
-
-                            final idAberto = id_ticketStatusList(
-                              'Ticket opened',
-                            );
-
-                            final mesasOrdenadas =
-                                List<TicketsModel>.from(listaMesas)..sort((
-                                  a,
-                                  b,
-                                ) {
-                                  final aAberta = a.tkt_tst_id == idAberto;
-                                  final bAberta = b.tkt_tst_id == idAberto;
-
-                                  if (aAberta && !bAberta) return -1;
-                                  if (!aAberta && bAberta) return 1;
-
-                                  return ( a.tkt_table_number ).compareTo(
-                                    b.tkt_table_number ,
-                                  );
-                                });
-
-                            return InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Tables',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.only(
-                                  left: 8.0,
-                                  right: 8.0,
-                                  top: 30.0,
-                                ),
-                              ),
-                              child: SizedBox.expand(
-                                child: mesasOrdenadas.isEmpty
-                                    ? const Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.table_bar_outlined,
-                                              size: 48,
-                                              color: Colors.white38,
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              'Nenhuma mesa adicionada.',
-                                              style: TextStyle(
-                                                color: Colors.white54,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : GridView.builder(
-                                        gridDelegate:
-                                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                                              maxCrossAxisExtent: 180,
-                                              childAspectRatio: 1.40,
-                                              crossAxisSpacing: 10,
-                                              mainAxisSpacing: 10,
-                                            ),
-                                        itemCount: mesasOrdenadas.length,
-                                        itemBuilder: (context, index) {
-                                          final mesa = mesasOrdenadas[index];
-                                          final bool isFechadaPaga =
-                                              mesa.tkt_tst_id ==
-                                              id_ticketStatusList(
-                                                'Ticket closed (Paid)',
-                                              );
-                                          final bool isFechadaSemPag =
-                                              mesa.tkt_tst_id ==
-                                              id_ticketStatusList(
-                                                'Ticket closed without payment',
-                                              );
-                                          final bool isFechada =
-                                              isFechadaPaga || isFechadaSemPag;
-
-                                          Color cardColor = Colors.indigo
-                                              .withValues(alpha: 0.15);
-                                          Color borderColor =
-                                              Colors.indigoAccent;
-
-                                          if (isFechadaPaga) {
-                                            cardColor = Colors.green.withValues(
-                                              alpha: 0.08,
-                                            );
-                                            borderColor = Colors.green
-                                                .withValues(alpha: 0.4);
-                                          } else if (isFechadaSemPag) {
-                                            cardColor = Colors.grey.withValues(
-                                              alpha: 0.08,
-                                            );
-                                            borderColor = Colors.grey
-                                                .withValues(alpha: 0.3);
-                                          } else if (mesa.tkt_has_discount) {
-                                            cardColor = Colors.amber.withValues(
-                                              alpha: 0.12,
-                                            );
-                                            borderColor = Colors.amber;
-                                          }
-
-                                          return InkWell(
-                                            onTap: () =>
-                                                _mostrarResumoMesa(mesa),
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                            child: Card(
-                                              elevation: isFechada ? 0 : 2,
-                                              color: cardColor,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                                side: BorderSide(
-                                                  color: borderColor,
-                                                  width: 1,
-                                                ),
-                                              ),
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(
-                                                  6.0,
-                                                ),
-                                                child: Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceBetween,
-                                                      children: [
-                                                        Text(
-                                                          mesa.tkt_table_number,
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontSize: 12,
-                                                            color: isFechada
-                                                                ? Colors.white38
-                                                                : Colors.white,
-                                                          ),
-                                                        ),
-                                                        if (!widget
-                                                            .isReadOnly) ...[
-                                                          GestureDetector(
-                                                            onTap: () =>
-                                                                _mostrarDialogAcaoMesa(
-                                                                  mesa,
-                                                                ),
-                                                            child: Icon(
-                                                              Icons.close,
-                                                              size: 18,
-                                                              color: isFechada
-                                                                  ? Colors
-                                                                        .white38
-                                                                  : Colors
-                                                                        .redAccent,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ],
-                                                    ),
-                                                    Row(
-                                                      children: [
-                                                        Icon(
-                                                          isFechadaPaga
-                                                              ? Icons.task_alt
-                                                              : (isFechadaSemPag
-                                                                    ? Icons
-                                                                          .block
-                                                                    : (mesa.tkt_has_discount
-                                                                          ? Icons.star
-                                                                          : Icons.person_outline)),
-                                                          size: 12,
-                                                          color: isFechadaPaga
-                                                              ? Colors
-                                                                    .greenAccent
-                                                              : (isFechadaSemPag
-                                                                    ? Colors
-                                                                          .white38
-                                                                    : (mesa.tkt_has_discount
-                                                                          ? Colors.amber
-                                                                          : Colors.indigoAccent)),
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 4,
-                                                        ),
-                                                        Expanded(
-                                                          child: Text(
-                                                            (mesa.tkt_client_name !=
-                                                                        null &&
-                                                                    mesa
-                                                                        .tkt_client_name!
-                                                                        .isNotEmpty &&
-                                                                    mesa.tkt_client_name !=
-                                                                        'null')
-                                                                ? mesa.tkt_client_name
-                                                                      .toString()
-                                                                : mesa.pfl_full_name
-                                                                      .toString(),
-                                                            maxLines: 1,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                            style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600,
-                                                              fontSize: 13,
-                                                              color: isFechada
-                                                                  ? Colors
-                                                                        .white38
-                                                                  : (mesa.tkt_has_discount
-                                                                        ? Colors
-                                                                              .amber[200]
-                                                                        : Colors
-                                                                              .white),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceBetween,
-                                                      children: [
-                                                        Flexible(
-                                                          child: FittedBox(
-                                                            fit: BoxFit
-                                                                .scaleDown,
-                                                            alignment: Alignment
-                                                                .centerLeft,
-                                                            child: Text(
-                                                              generalService
-                                                                  .currencyMoneyBr(
-                                                                    mesa.totalConsumo
-                                                                        .toString(),
-                                                                  ),
-                                                              style: TextStyle(
-                                                                fontSize: 12,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                color:
-                                                                    isFechadaPaga
-                                                                    ? Colors
-                                                                          .greenAccent
-                                                                          .withValues(
-                                                                            alpha: 0.7,
-                                                                          )
-                                                                    : (isFechadaSemPag
-                                                                          ? Colors.redAccent.withValues(alpha: 0.6)
-                                                                          : Colors.greenAccent),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        if (isFechadaPaga)
-                                                          Container(
-                                                            padding:
-                                                                const EdgeInsets.symmetric(
-                                                                  horizontal: 4,
-                                                                  vertical: 2,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              color: Colors
-                                                                  .green
-                                                                  .withValues(
-                                                                    alpha: 0.2,
-                                                                  ),
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    4,
-                                                                  ),
-                                                            ),
-                                                            child: const Text(
-                                                              'PAGO',
-                                                              style: TextStyle(
-                                                                fontSize: 8,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                color: Colors
-                                                                    .greenAccent,
-                                                              ),
-                                                            ),
-                                                          )
-                                                        else if (isFechadaSemPag)
-                                                          Container(
-                                                            padding:
-                                                                const EdgeInsets.symmetric(
-                                                                  horizontal: 4,
-                                                                  vertical: 2,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              color: Colors.red
-                                                                  .withValues(
-                                                                    alpha: 0.15,
-                                                                  ),
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    4,
-                                                                  ),
-                                                            ),
-                                                            child: const Text(
-                                                              'S/ PAG.',
-                                                              style: TextStyle(
-                                                                fontSize: 8,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                color: Colors
-                                                                    .redAccent,
-                                                              ),
-                                                            ),
-                                                          )
-                                                        else if (mesa
-                                                            .tkt_has_discount)
-                                                          Container(
-                                                            padding:
-                                                                const EdgeInsets.symmetric(
-                                                                  horizontal: 4,
-                                                                  vertical: 2,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              color: Colors
-                                                                  .amber
-                                                                  .withValues(
-                                                                    alpha: 0.2,
-                                                                  ),
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    4,
-                                                                  ),
-                                                            ),
-                                                            child: const Text(
-                                                              'Associated',
-                                                              style: TextStyle(
-                                                                fontSize: 8,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                color: Colors
-                                                                    .amber,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
                   ),
-                  const SizedBox(height: distance),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back),
-                          label: const Text('Cancelar'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.indigo,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+
+              // 🌀 Overlay global de carregamento enquanto o banco estiver processando
+              if (isProcessing)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withOpacity(0.25),
+                    child: Center(
+                      child: Card(
+                        elevation: 6,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24.0,
+                            vertical: 16.0,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(width: 16),
+                              Text(
+                                'Processando requisição...',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ],
-              ),
-            ),
-          ),
-        ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
-
 }

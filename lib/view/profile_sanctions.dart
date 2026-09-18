@@ -30,40 +30,40 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
   String _pflIdResolvido = '';
   String _hldIdResolvido = '';
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
     generalService = GeneralService();
-    
-    // Instância compartilhada do pai ou resolvida via GetIt
+
     controller =
         widget.controller ??
         getItBdVProfilesSanctionsController
             .get<BdVProfilesSanctionsController>();
     profileController = getItBdProfileController<BdProfileController>();
 
-    // 🟢 1. Escuta mudanças caso o perfil global demore a carregar
     profileController.pessoaSelecionadaNotifier.addListener(_onPerfilAtualizado);
 
-    // 🟢 2. Garante o carregamento após a renderização do primeiro frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarSancoes();
     });
   }
 
+  // ==========================================
   @override
   void dispose() {
     profileController.pessoaSelecionadaNotifier.removeListener(_onPerfilAtualizado);
     super.dispose();
   }
 
+  // ==========================================
   void _onPerfilAtualizado() {
-    // Tenta carregar novamente se os IDs ainda não foram resolvidos
     if (_pflIdResolvido.isEmpty || _hldIdResolvido.isEmpty) {
       _carregarSancoes();
     }
   }
 
+  // ==========================================
   @override
   void didUpdateWidget(covariant ProfileSanctions oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -72,31 +72,26 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     }
   }
 
+  // ==========================================
   Future<void> _carregarSancoes() async {
     final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
 
-    // 🟢 3. Resolve dinamicamente os IDs
     _pflIdResolvido = (widget.pflId != null && widget.pflId!.isNotEmpty)
         ? widget.pflId!
-        : (pessoaLogada?.pfl_id?.toString() ?? '');
+        : (pessoaLogada?.pfl_id.toString() ?? '');
 
     _hldIdResolvido = (widget.hldId != null && widget.hldId!.isNotEmpty)
         ? widget.hldId!
-        : (pessoaLogada?.hld_id?.toString() ?? '');
+        : (pessoaLogada?.hld_id.toString() ?? '');
 
-    if (_pflIdResolvido.isEmpty || _hldIdResolvido.isEmpty) {
-      debugPrint('⚠️ ProfileSanctions: pflId ou hldId ainda indisponíveis.');
+    if (_pflIdResolvido.isEmpty || _hldIdResolvido.isEmpty) {      
       return;
     }
 
-    try {
-      debugPrint('🔍 Buscando sanções para pflId: $_pflIdResolvido, hldId: $_hldIdResolvido');
-      await controller.loadProfileSanctionsStatus(_pflIdResolvido, _hldIdResolvido);
-    } catch (e) {
-      debugPrint('❌ Erro ao buscar sanções: $e');
-    }
+    await controller.loadProfileSanctionsStatus(_pflIdResolvido, _hldIdResolvido);    
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -104,55 +99,92 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
       builder: (context, isLoading, child) {
         if (isLoading) {
           return const Padding(
-            padding: EdgeInsets.all(24.0),
+            padding: EdgeInsets.all(32.0),
             child: Center(child: CircularProgressIndicator()),
           );
         }
 
-        return ValueListenableBuilder<List<VProfilesSanctionsModel>>(
-          valueListenable: controller.vProfilesSanctionsNotifier,
-          builder: (context, listaSancoes, child) {
-            if (listaSancoes.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
+        return ValueListenableBuilder<String?>(
+          valueListenable: controller.errorNotifier,
+          builder: (context, errorMessage, child) {
+            if (errorMessage != null && errorMessage.isNotEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Center(
-                  child: Text(
-                    'Nenhuma sanção disciplinar registrada.',
-                    style: TextStyle(color: Colors.white54, fontSize: 13),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.redAccent,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        errorMessage,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: _carregarSancoes,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Tentar Novamente'),
+                      ),
+                    ],
                   ),
                 ),
               );
             }
 
-            // Ordena as sanções por data de início (Mais recente primeiro)
-            final listaOrdenada =
-                List<VProfilesSanctionsModel>.from(listaSancoes)..sort((a, b) {
-                  final dateA =
-                      DateTime.tryParse(a.psan_date_start ?? '') ??
-                      DateTime(1970);
-                  final dateB =
-                      DateTime.tryParse(b.psan_date_start ?? '') ??
-                      DateTime(1970);
-                  return dateB.compareTo(dateA);
-                });
+            return ValueListenableBuilder<List<VProfilesSanctionsModel>>(
+              valueListenable: controller.vProfilesSanctionsNotifier,
+              builder: (context, listaSancoes, child) {
+                if (listaSancoes.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Text(
+                        'Nenhuma sanção disciplinar registrada.',
+                        style: TextStyle(color: Colors.white54, fontSize: 13),
+                      ),
+                    ),
+                  );
+                }
 
-            return Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildResumoSancoes(listaOrdenada),
-                  const SizedBox(height: 12),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: listaOrdenada.length,
-                    itemBuilder: (context, index) {
-                      return _buildSancaoCard(listaOrdenada[index]);
-                    },
+                final listaOrdenada =
+                    List<VProfilesSanctionsModel>.from(listaSancoes)..sort((a, b) {
+                      final dateA =
+                          DateTime.tryParse(a.psan_date_start) ??
+                          DateTime(1970);
+                      final dateB =
+                          DateTime.tryParse(b.psan_date_start) ??
+                          DateTime(1970);
+                      return dateB.compareTo(dateA);
+                    });
+
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildResumoSancoes(listaOrdenada),
+                      const SizedBox(height: 12),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: listaOrdenada.length,
+                        itemBuilder: (context, index) {
+                          return _buildSancaoCard(listaOrdenada[index]);
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             );
           },
         );
@@ -160,13 +192,13 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     );
   }
 
-  // 📊 Card de Resumo de Sanções
+  // ==========================================
   Widget _buildResumoSancoes(List<VProfilesSanctionsModel> lista) {
     final int total = lista.length;
 
     final int ativas = lista.where((s) {
-      final String dateEndStr = s.psan_date_end ?? '';
-      if (dateEndStr.isEmpty) return true; // Sem data de término = Ativa
+      final String dateEndStr = s.psan_date_end;
+      if (dateEndStr.isEmpty) return true;
       final DateTime? endDate = DateTime.tryParse(dateEndStr);
       return endDate == null || endDate.isAfter(DateTime.now());
     }).length;
@@ -197,6 +229,7 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     );
   }
 
+  // ==========================================
   Widget _buildResumoColumn(String label, String value, Color color) {
     return Column(
       children: [
@@ -217,18 +250,17 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     );
   }
 
-  // 📋 Card Individual da Sanção
+  // ==========================================
   Widget _buildSancaoCard(VProfilesSanctionsModel sancao) {
-    final String dateEndStr = sancao.psan_date_end ?? '';
+    final String dateEndStr = sancao.psan_date_end;
     final DateTime? endDate = DateTime.tryParse(dateEndStr);
     final bool isAtiva =
         dateEndStr.isEmpty ||
         (endDate != null && endDate.isAfter(DateTime.now()));
 
-    final String sancaoNome =
-        sancao.san_name ?? sancao.psan_desc ?? 'Sanção Disciplinar';
+    final String sancaoNome = sancao.san_name;
     final String inicioData = generalService.formatarDataBr(
-      sancao.psan_date_start ?? '',
+      sancao.psan_date_start,
     );
     final String fimData = dateEndStr.isNotEmpty
         ? generalService.formatarDataBr(dateEndStr)
@@ -289,10 +321,9 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
                 _buildInfoRow('Início da Sanção:', inicioData),
                 const SizedBox(height: 6),
                 _buildInfoRow('Término Previsto/Real:', fimData),
-                if (sancao.psan_desc != null &&
-                    sancao.psan_desc!.isNotEmpty) ...[
+                if (sancao.psan_desc.isNotEmpty && sancao.psan_desc.isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  _buildInfoRow('Observações / Motivo:', sancao.psan_desc!),
+                  _buildInfoRow('Observações / Motivo:', sancao.psan_desc),
                 ],
               ],
             ),
@@ -302,6 +333,7 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     );
   }
 
+  // ==========================================
   Widget _buildInfoRow(String label, String valor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -327,6 +359,7 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     );
   }
 
+  // ==========================================
   Widget _buildStatusBadge(bool isAtiva) {
     final String label = isAtiva ? 'ATIVA' : 'CUMPRIDA';
     final Color color = isAtiva ? Colors.redAccent : Colors.greenAccent;
@@ -351,4 +384,5 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
       ),
     );
   }
+
 }

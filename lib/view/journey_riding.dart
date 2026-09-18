@@ -7,7 +7,6 @@ import 'package:originais/controllers/profile_controller.dart';
 class JourneyRiding extends StatefulWidget {
   const JourneyRiding({super.key});
 
-  // ==========================================
   @override
   State<JourneyRiding> createState() => JourneyRidingState();
 }
@@ -21,6 +20,22 @@ class JourneyRidingState extends State<JourneyRiding> {
   late String pflId = '';
   late String hldId = '';
 
+  // ==========================================
+  void _onErrorChanged() {
+    final error = bdJourneyRidingController.errorNotifier.value;
+
+    if (error != null && error.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro: $error'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
 
   // ==========================================
   @override
@@ -30,7 +45,16 @@ class JourneyRidingState extends State<JourneyRiding> {
     pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
     hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
 
+    bdJourneyRidingController.errorNotifier.addListener(_onErrorChanged);
+
     bdJourneyRidingController.loadJourneyRiding(hldId);
+  }
+
+  // ==========================================
+  @override
+  void dispose() {
+    bdJourneyRidingController.errorNotifier.removeListener(_onErrorChanged);
+    super.dispose();
   }
 
   // ==========================================
@@ -60,24 +84,18 @@ class JourneyRidingState extends State<JourneyRiding> {
     );
 
     if (confirmar == true && context.mounted) {
-      try {
-        // await bdJourneyRidingController.deleteItem( id );
-        // if (context.mounted) {
-        //   ScaffoldMessenger.of(
-        //     context,
-        //   ).showSnackBar(const SnackBar(
-        //     content: Text( 'Item excluído!' )
-        //   ));
-        // }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erro ao excluir.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      await bdJourneyRidingController.deleteProfileJourneyRiding( id, pflId, hldId );
+      
+      if (context.mounted &&
+          (bdJourneyRidingController.errorNotifier.value == null ||
+              bdJourneyRidingController.errorNotifier.value!.isEmpty)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Item excluído com sucesso!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
@@ -87,81 +105,109 @@ class JourneyRidingState extends State<JourneyRiding> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomFloatingAppBar(title: 'Journey Riding'),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
-        child: SizedBox.expand(
-          child: Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: ListenableBuilder(
-                    listenable: Listenable.merge([
-                      bdJourneyRidingController.loadingNotifier,
-                      bdJourneyRidingController.errorNotifier,
-                      bdJourneyRidingController.bdJourneyRidingNotifier,
-                    ]),
-                    builder: (context, _) {
-                      final isLoading =
-                          bdJourneyRidingController.loadingNotifier.value;
+      body: ListenableBuilder(
+        listenable: Listenable.merge([
+          bdJourneyRidingController.loadingNotifier,
+          bdJourneyRidingController.errorNotifier,
+          bdJourneyRidingController.bdJourneyRidingNotifier,
+        ]),
+        builder: (context, _) {
+          final isLoading = bdJourneyRidingController.loadingNotifier.value;
+          final errorMessage = bdJourneyRidingController.errorNotifier.value;
+          final itens = bdJourneyRidingController.bdJourneyRidingNotifier.value;
 
-                      final errorMessage =
-                          bdJourneyRidingController.errorNotifier.value;
-
-                      final itens = bdJourneyRidingController
-                          .bdJourneyRidingNotifier
-                          .value;
-
-                      if (errorMessage != null && !isLoading) {
-                        return _buildErrorState(errorMessage);
-                      }
-
-                      if (isLoading && itens.isEmpty) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      return RefreshIndicator(
-                        onRefresh: () async {
-                          await bdJourneyRidingController.loadJourneyRiding(hldId);
-                        },
-                        color: Colors.green,
-                        child: itens.isEmpty
-                            ? _buildEmptyState()
-                            : _buildListView(itens),
-                      );
-                    },
-                  ),
-                ),
-
-                Positioned(
-                  bottom: 16.0,
-                  right: 16.0,
-                  child: FloatingActionButton(
-                    heroTag: 'addItemCardFab',
-                    elevation: 2,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ItensForm(
-                            bdJourneyRidingController:
-                                bdJourneyRidingController,
-                            itemAtual: null,
+          return Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                child: SizedBox.expand(
+                  child: Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Stack(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: (errorMessage != null &&
+                                  errorMessage.isNotEmpty &&
+                                  itens.isEmpty)
+                              ? _buildErrorState(errorMessage)
+                              : RefreshIndicator(
+                                  onRefresh: () async {
+                                    await bdJourneyRidingController.loadJourneyRiding(hldId);
+                                  },
+                                  color: Colors.green,
+                                  child: (itens.isEmpty && !isLoading)
+                                      ? _buildEmptyState()
+                                      : _buildListView(itens, isLoading),
+                                ),
+                        ),
+                        Positioned(
+                          bottom: 16.0,
+                          right: 16.0,
+                          child: FloatingActionButton(
+                            heroTag: 'addItemCardFab',
+                            elevation: 2,
+                            onPressed: isLoading
+                                ? null
+                                : () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ItensForm(
+                                          bdJourneyRidingController:
+                                              bdJourneyRidingController,
+                                          itemAtual: null,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                            child: const Icon(Icons.add),
                           ),
                         ),
-                      );
-                    },
-                    child: const Icon(Icons.add),
+                      ],
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
+              ),
+
+              // Overlay de carregamento unificado enquanto o banco processa
+              if (isLoading)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    child: Center(
+                      child: Card(
+                        elevation: 6,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24.0,
+                            vertical: 16.0,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(width: 16),
+                              Text(
+                                'Processando...',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -206,7 +252,7 @@ class JourneyRidingState extends State<JourneyRiding> {
   }
 
   // ==========================================
-  Widget _buildListView(List<dynamic> itens) {
+  Widget _buildListView(List<dynamic> itens, bool isLoading) {
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(),
@@ -226,22 +272,19 @@ class JourneyRidingState extends State<JourneyRiding> {
                 item.jr_nome,
                 style: const TextStyle(fontWeight: FontWeight.w500),
               ),
-              // 👇 Usando Wrap para exibir os dados lado a lado (em colunas)
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 4.0),
                 child: Wrap(
-                  spacing: 16.0, // Espaço horizontal entre as "colunas"
-                  runSpacing:
-                      4.0, // Espaço vertical caso falte espaço na tela e quebre a linha
+                  spacing: 16.0,
+                  runSpacing: 4.0,
                   children: [
-                    // Coluna 1: Tempo Mínimo
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
                           Icons.timer_outlined,
                           size: 14,
-                          color:  Colors.grey,
+                          color: Colors.grey,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -253,15 +296,13 @@ class JourneyRidingState extends State<JourneyRiding> {
                         ),
                       ],
                     ),
-
-                    // Coluna 2: Nível
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
                           Icons.leaderboard_outlined,
                           size: 14,
-                          color:  Colors.grey,
+                          color: Colors.grey,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -281,22 +322,26 @@ class JourneyRidingState extends State<JourneyRiding> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.edit, color: Colors.orange),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ItensForm(
-                            bdJourneyRidingController:
-                                bdJourneyRidingController,
-                            itemAtual: item,
-                          ),
-                        ),
-                      );
-                    },
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ItensForm(
+                                  bdJourneyRidingController:
+                                      bdJourneyRidingController,
+                                  itemAtual: item,
+                                ),
+                              ),
+                            );
+                          },
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _confirmarExclusao( context, item.jr_id ),
+                    onPressed: isLoading
+                        ? null
+                        : () => _confirmarExclusao(context, item.jr_id.toString()),
                   ),
                 ],
               ),

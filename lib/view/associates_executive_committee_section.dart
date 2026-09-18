@@ -27,18 +27,70 @@ class _AssociatesExecutiveCommitteeSectionState
   final generalService = getItGeneralService<GeneralService>();
 
   // ==========================================
-  // DIÁLOGO DE ADIÇÃO (CADASTRO)
+  @override
+  void initState() {
+    super.initState();
+    // 🔔 Escuta mensagens de erro do controller
+    controller.errorNotifier.addListener(_handleError);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carregarDados();
+    });
+  }
+
+  // ==========================================
+  void _handleError() {
+    final errorMessage = controller.errorNotifier.value;
+    if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  // ==========================================
+  @override
+  void didUpdateWidget(
+      covariant AssociatesExecutiveCommitteeSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.itemAtual.pfl_id != widget.itemAtual.pfl_id ||
+        oldWidget.itemAtual.hld_id != widget.itemAtual.hld_id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _carregarDados();
+      });
+    }
+  }
+
+  // ==========================================
+  @override
+  void dispose() {
+    controller.errorNotifier.removeListener(_handleError);
+    super.dispose();
+  }
+
+  // ==========================================
+  void _carregarDados() {
+    final pflId = widget.itemAtual.pfl_id.toString();
+    final hldId = widget.itemAtual.hld_id.toString();
+
+    if (pflId.isNotEmpty && hldId.isNotEmpty) {
+      controller.loadExecutiveOrderByDateStart(pflId, hldId);
+    }
+  }
+
   // ==========================================
   void _showAddExecutiveCommitteeDialog() async {
-    // 1. Busca os cargos vagos antes de abrir o diálogo
-    // (Substitua "loadVacantExecutiveRoles" pelo método real do seu controller)
     final listCargosVagos = await controller.loadExecutiveCommitteeVacancy(
       widget.itemAtual.hld_id.toString(),
     );
 
     if (!mounted) return;
 
-    // Se não houver nenhum cargo vago na gestão atual
     if (listCargosVagos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -52,20 +104,19 @@ class _AssociatesExecutiveCommitteeSectionState
     ExecutiveCommitteeVacancyModel cargoSelecionado = listCargosVagos.first;
     DateTime dataInicio = DateTime.now();
 
-    final ectId = cargoSelecionado.ect_id;
-
     final TextEditingController startDateController = TextEditingController(
       text: generalService.formatarDataBr(dataInicio.toIso8601String()),
     );
-    
-    // Preenche inicialmente com a data do primeiro cargo da lista
+
     final TextEditingController endDateController = TextEditingController(
-      text: cargoSelecionado?.ectmDateEnd != null &&
+      text: cargoSelecionado.ectmDateEnd != null &&
               cargoSelecionado.ectmDateEnd.toString().isNotEmpty
-          ? generalService.formatarDataBr(cargoSelecionado.ectmDateEnd.toString())
+          ? generalService.formatarDataBr(
+              cargoSelecionado.ectmDateEnd.toString(),
+            )
           : 'Sem término definido',
     );
-    
+
     final TextEditingController obsController = TextEditingController();
 
     showDialog(
@@ -82,7 +133,8 @@ class _AssociatesExecutiveCommitteeSectionState
                 children: [
                   Icon(Icons.add_circle, color: Colors.indigo),
                   SizedBox(width: 8),
-                  Text('Adicionar Cargo Executivo', style: TextStyle(fontSize: 18)),
+                  Text('Adicionar Cargo Executivo',
+                      style: TextStyle(fontSize: 18)),
                 ],
               ),
               content: SingleChildScrollView(
@@ -90,7 +142,6 @@ class _AssociatesExecutiveCommitteeSectionState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 📋 Combobox de Seleção do Cargo Vago
                     DropdownButtonFormField<ExecutiveCommitteeVacancyModel>(
                       initialValue: cargoSelecionado,
                       isExpanded: true,
@@ -100,23 +151,24 @@ class _AssociatesExecutiveCommitteeSectionState
                         border: OutlineInputBorder(),
                       ),
                       items: listCargosVagos.map((cargo) {
-                        return DropdownMenuItem<ExecutiveCommitteeVacancyModel>(
+                        return DropdownMenuItem<
+                            ExecutiveCommitteeVacancyModel>(
                           value: cargo,
                           child: Text(
-                            cargo.ecmName ?? 'Cargo Sem Nome',
+                            cargo.ecmName,
                             overflow: TextOverflow.ellipsis,
                           ),
                         );
                       }).toList(),
                       onChanged: (novoCargo) {
+                        if (novoCargo == null) return;
                         setStateDialog(() {
-                          if ( novoCargo!.ecmId.isNotEmpty )
-                            cargoSelecionado = novoCargo;
+                          cargoSelecionado = novoCargo;
 
-                          // Atualiza o campo de término automaticamente ao trocar de cargo
-                          if (novoCargo?.ectmDateEnd != null &&
-                              novoCargo!.ectmDateEnd.toString().isNotEmpty) {
-                            endDateController.text = generalService.formatarDataBr(
+                          if (novoCargo.ectmDateEnd != null &&
+                              novoCargo.ectmDateEnd.toString().isNotEmpty) {
+                            endDateController.text =
+                                generalService.formatarDataBr(
                               novoCargo.ectmDateEnd.toString(),
                             );
                           } else {
@@ -125,10 +177,7 @@ class _AssociatesExecutiveCommitteeSectionState
                         });
                       },
                     ),
-
                     const SizedBox(height: 16),
-
-                    // 📅 Data de Início
                     TextFormField(
                       controller: startDateController,
                       readOnly: true,
@@ -147,30 +196,24 @@ class _AssociatesExecutiveCommitteeSectionState
                         if (picked != null) {
                           setStateDialog(() {
                             dataInicio = picked;
-                            startDateController.text =
-                                generalService.formatarDataBr(picked.toIso8601String());
+                            startDateController.text = generalService
+                                .formatarDataBr(picked.toIso8601String());
                           });
                         }
                       },
                     ),
-
                     const SizedBox(height: 16),
-
-                    // 🔒 Término Previsto (Somente Leitura - Preenchido pela View)
                     TextFormField(
                       controller: endDateController,
                       readOnly: true,
-                      enabled: false, // Inativa para edição manual
+                      enabled: false,
                       decoration: const InputDecoration(
                         labelText: 'Término Previsto (Gestão)',
                         prefixIcon: Icon(Icons.event_busy),
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
-                    // 📝 Observações
                     TextFormField(
                       controller: obsController,
                       maxLines: 2,
@@ -186,7 +229,8 @@ class _AssociatesExecutiveCommitteeSectionState
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                  child:
+                      const Text('Cancelar', style: TextStyle(color: Colors.grey)),
                 ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.check, size: 18),
@@ -196,25 +240,18 @@ class _AssociatesExecutiveCommitteeSectionState
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () async {
-                    if (cargoSelecionado == null) return;
+                    await controller.insertExecutiveCommitteeMember(
+                      cargoSelecionado.ect_id,
+                      cargoSelecionado.ecmId.toString(),
+                      widget.itemAtual.pfl_id.toString(),
+                      widget.itemAtual.hld_id.toString(),
+                      dataInicio.toIso8601String(),
+                      obsController.text,
+                    );
 
-                    // Exemplo de chamada enviando o ecm_id do cargo selecionado
-                    
-                      await controller.insertExecutiveCommitteeMember(
-                        ectId,
-                        cargoSelecionado.ecmId.toString(),
-                        widget.itemAtual.pfl_id.toString(),
-                        widget.itemAtual.hld_id.toString(),
-                        dataInicio.toIso8601String(),
-                        obsController.text
-                      );
-  
                     if (mounted) {
                       Navigator.of(dialogContext).pop();
-                      controller.loadExecutiveOrderByDateStart(
-                        widget.itemAtual.pfl_id.toString(),
-                        widget.itemAtual.hld_id.toString(),
-                      );
+                      _carregarDados();
                     }
                   },
                 ),
@@ -227,24 +264,26 @@ class _AssociatesExecutiveCommitteeSectionState
   }
 
   // ==========================================
-  // DIÁLOGO DE EDIÇÃO / EXCLUSÃO
-  // ==========================================
   void _showEditExecutiveCommitteeDialog(
       VExecutiveCommitteeTermOfOfficeMembersModel item) {
-    DateTime dataInicio = DateTime.tryParse(item.ect_date_start ?? '') ?? DateTime.now();
+    DateTime dataInicio =
+        DateTime.tryParse(item.ect_date_start) ?? DateTime.now();
     DateTime? dataFim = DateTime.tryParse(item.ectm_date_end);
 
     final TextEditingController startDateController = TextEditingController(
       text: generalService.formatarDataBr(dataInicio.toIso8601String()),
     );
     final TextEditingController endDateController = TextEditingController(
-      text: dataFim != null ? generalService.formatarDataBr(dataFim!.toIso8601String()) : '',
+      text: dataFim != null
+          ? generalService.formatarDataBr(dataFim.toIso8601String())
+          : '',
     );
     final TextEditingController obsController = TextEditingController(
-      text: item.ectm_motivo_saida ?? '',
+      text: item.ectm_motivo_saida,
     );
 
-    final String cargoNome = item.ecm_name ?? item.ect_name ?? 'Cargo Executivo';
+    final String cargoNome =
+        item.ecm_name ?? item.ect_name ?? 'Cargo Executivo';
 
     showDialog(
       context: context,
@@ -260,7 +299,8 @@ class _AssociatesExecutiveCommitteeSectionState
                 children: [
                   Icon(Icons.edit, color: Colors.orange),
                   SizedBox(width: 8),
-                  Text('Editar Cargo Executivo', style: TextStyle(fontSize: 18)),
+                  Text('Editar Cargo Executivo',
+                      style: TextStyle(fontSize: 18)),
                 ],
               ),
               content: SingleChildScrollView(
@@ -296,8 +336,8 @@ class _AssociatesExecutiveCommitteeSectionState
                         if (picked != null) {
                           setStateDialog(() {
                             dataInicio = picked;
-                            startDateController.text =
-                                generalService.formatarDataBr(picked.toIso8601String());
+                            startDateController.text = generalService
+                                .formatarDataBr(picked.toIso8601String());
                           });
                         }
                       },
@@ -321,8 +361,8 @@ class _AssociatesExecutiveCommitteeSectionState
                         if (picked != null) {
                           setStateDialog(() {
                             dataFim = picked;
-                            endDateController.text =
-                                generalService.formatarDataBr(picked.toIso8601String());
+                            endDateController.text = generalService
+                                .formatarDataBr(picked.toIso8601String());
                           });
                         }
                       },
@@ -342,10 +382,11 @@ class _AssociatesExecutiveCommitteeSectionState
               ),
               actionsAlignment: MainAxisAlignment.spaceBetween,
               actions: [
-                // Botão Excluir
                 TextButton.icon(
-                  icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                  label: const Text('Excluir', style: TextStyle(color: Colors.red)),
+                  icon: const Icon(Icons.delete_outline,
+                      size: 20, color: Colors.red),
+                  label: const Text('Excluir',
+                      style: TextStyle(color: Colors.red)),
                   onPressed: () async {
                     final bool? confirmar = await showDialog<bool>(
                       context: context,
@@ -370,31 +411,26 @@ class _AssociatesExecutiveCommitteeSectionState
                     );
 
                     if (confirmar == true) {
-                      // Implemente o método de exclusão do controller
                       await controller.deleteExecutiveCommitteeMember(
                         item.ectm_id,
                         widget.itemAtual.pfl_id.toString(),
                         widget.itemAtual.hld_id.toString(),
                       );
-                      
+
                       if (mounted) {
                         Navigator.of(dialogContext).pop();
-                        controller.loadExecutiveOrderByDateStart(
-                          widget.itemAtual.pfl_id.toString(),
-                          widget.itemAtual.hld_id.toString(),
-                        );
+                        _carregarDados();
                       }
                     }
                   },
                 ),
-
-                // Botões Cancelar e Salvar
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextButton(
                       onPressed: () => Navigator.of(dialogContext).pop(),
-                      child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                      child: const Text('Cancelar',
+                          style: TextStyle(color: Colors.grey)),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
@@ -405,23 +441,18 @@ class _AssociatesExecutiveCommitteeSectionState
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () async {
-                        // Implemente o método de atualização do controller
-                        /*
-                        await controller.updateExecutiveCommitteeMember(
-                          item.ectm_id,
-                          widget.itemAtual.pfl_id,
-                          widget.itemAtual.hld_id,
-                          dataInicio.toIso8601String(),
-                          dataFim?.toIso8601String(),
-                          obsController.text,
-                        );
-                        */
+                        // await controller.updateExecutiveCommitteeMember(
+                        //   item.ectm_id,
+                        //   widget.itemAtual.pfl_id.toString(),
+                        //   widget.itemAtual.hld_id.toString(),
+                        //   dataInicio.toIso8601String(),
+                        //   dataFim?.toIso8601String(),
+                        //   obsController.text,
+                        // );
+
                         if (mounted) {
                           Navigator.of(dialogContext).pop();
-                          controller.loadExecutiveOrderByDateStart(
-                            widget.itemAtual.pfl_id.toString(),
-                            widget.itemAtual.hld_id.toString(),
-                          );
+                          _carregarDados();
                         }
                       },
                     ),
@@ -435,35 +466,77 @@ class _AssociatesExecutiveCommitteeSectionState
     );
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
-    return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ProfileExecutiveCommittee(
-            pflId: widget.itemAtual.pfl_id.toString(),
-            hldId: widget.itemAtual.hld_id.toString(),
-            controller: controller,
-            onEdit: _showEditExecutiveCommitteeDialog,
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: _showAddExecutiveCommitteeDialog,
-              icon: const Icon(Icons.add_circle_outline, size: 20),
-              label: const Text('Add Executive Committee...'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.indigo,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+    return ListenableBuilder(
+      listenable: controller.loadingNotifier,
+      builder: (context, _) {
+        final bool isLoading = controller.loadingNotifier.value;
+
+        return Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ProfileExecutiveCommittee(
+                  pflId: widget.itemAtual.pfl_id.toString(),
+                  hldId: widget.itemAtual.hld_id.toString(),
+                  controller: controller,
+                  onEdit: _showEditExecutiveCommitteeDialog,
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed:
+                        isLoading ? null : _showAddExecutiveCommitteeDialog,
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                    label: const Text('Add Executive Committee...'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.indigo,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            if (isLoading)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  child: Center(
+                    child: Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            CircularProgressIndicator(),
+                            SizedBox(width: 16),
+                            Text(
+                              'Processando...',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+          ],
+        );
+      },
     );
   }
 }

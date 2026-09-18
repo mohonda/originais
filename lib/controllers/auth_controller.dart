@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:originais/view/settings/router_settings.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
@@ -6,6 +7,9 @@ class AuthController {
   // Pega a instância já inicializada do Supabase
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
   late SupabaseClient supabaseClient;
+
+  final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
   
   // ==========================================
   AuthController() {
@@ -19,6 +23,9 @@ class AuthController {
     required bool isSignUp,
   }) async {
     try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
       if (isSignUp) {
         // Fluxo de Cadastro
         await supabaseClient.auth.signUp(
@@ -33,11 +40,13 @@ class AuthController {
         );
       }
     } on AuthException catch (e) {
-      // Captura erros do próprio Supabase (senha errada, limite de tentativas, etc)
+      errorNotifier.value = 'authentication: $e';
       throw Exception(e.message);
     } catch (e) {
-      // Captura erros genéricos (falta de internet, falha no dispositivo)
+      errorNotifier.value = 'authentication: $e';
       throw Exception('Ocorreu um erro inesperado. Verifique sua conexão.');
+    } finally{
+      loadingNotifier.value = false;
     }
   }
 
@@ -48,16 +57,24 @@ class AuthController {
   }
 
   // ==========================================
-  Future<void> updatePassword( String newPassword ) async {
+  Future<bool> updatePassword( String newPassword ) async {
     try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
       await supabaseClient.auth.updateUser(
         UserAttributes( password: newPassword ),
       );
-      // Senha alterada com sucesso
-    } on AuthException catch (error) {
-      throw Exception( error.message );
-    } catch (error) {
-      throw Exception( error );
+      return true;      
+    } on AuthException catch (e) {
+      errorNotifier.value = 'updatePassword: $e';
+      throw Exception( e.message );
+      
+    } catch (e) {
+      errorNotifier.value = 'updatePassword: $e';
+      throw Exception( e );
+    } finally{
+      loadingNotifier.value = false;
     }
   }
 

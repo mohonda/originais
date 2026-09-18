@@ -26,58 +26,94 @@ class _AssociatesJourneyRidingSectionState
 
   int _refreshKey = 0;
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
-    _carregarDados();
+
+    bdJourneyRidingController.errorNotifier.addListener(_handleError);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carregarDados();
+    });
   }
 
-  /// Carrega os dados do banco e atualiza a interface
-  Future<void> _carregarDados() async {
-    
-    await bdJourneyRidingController.loadJourneyRidingDetais(
-      widget.itemAtual.pfl_id.toString(),
-      widget.itemAtual.hld_id.toString(),
-    );
-    await bdJourneyRidingController.loadJourneyRidingOrderByLevel(
-      widget.itemAtual.hld_id.toString(),
-    );
-    if (mounted) {
-      setState(() {
-        _refreshKey++;
-        // debugPrint(_refreshKey.toString());
+  // ==========================================
+  void _handleError() {
+    final errorMessage = bdJourneyRidingController.errorNotifier.value;
+    if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  // ==========================================
+  @override
+  void didUpdateWidget(covariant AssociatesJourneyRidingSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.itemAtual.pfl_id != widget.itemAtual.pfl_id ||
+        oldWidget.itemAtual.hld_id != widget.itemAtual.hld_id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _carregarDados();
       });
     }
   }
 
-  /// Extrai o valor numérico do nível com segurança
+  // ==========================================
+  @override
+  void dispose() {
+    bdJourneyRidingController.errorNotifier.removeListener(_handleError);
+    super.dispose();
+  }
+
+  // ==========================================
+  Future<void> _carregarDados() async {
+    final pflId = widget.itemAtual.pfl_id.toString();
+    final hldId = widget.itemAtual.hld_id.toString();
+
+    if (pflId.isNotEmpty && hldId.isNotEmpty) {
+      await bdJourneyRidingController.loadJourneyRidingDetais(pflId, hldId);
+      await bdJourneyRidingController.loadJourneyRidingOrderByLevel(hldId);
+      if (mounted) {
+        setState(() {
+          _refreshKey++;
+        });
+      }
+    }
+  }
+
+  // ==========================================
   int _parseLevel(dynamic lvl) {
     if (lvl == null) return 0;
     return int.tryParse(lvl.toString().replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
   }
 
-  /// Verifica se a etapa é inicial (sem precursor)
+  // ==========================================
   bool _isInitialStage(JourneyRidingModel stage) {
-    final precursory = stage.jr_id_precursory?.toString().trim();
-    return precursory == null || precursory.isEmpty || precursory == '0';
+    final precursory = stage.jr_id_precursory.toString().trim();
+    return precursory.isEmpty || precursory == '0';
   }
 
-  /// Busca a lista de opções válidas para o próximo registro
+  // ==========================================
   List<JourneyRidingModel> _obterOpcoesProximoNivel() {
     final history =
-        bdJourneyRidingController.vProfileJourneyridingDetaisNotifier.value ?? [];
+        bdJourneyRidingController.vProfileJourneyridingDetaisNotifier.value;
     final catalog =
-        bdJourneyRidingController.journeyRidingOrderByLevelNotifier.value ?? [];
+        bdJourneyRidingController.journeyRidingOrderByLevelNotifier.value;
 
     if (catalog.isEmpty) return [];
 
-    // 1. Caso SEM Histórico: Busca todas as etapas de início (sem precursor)
     if (history.isEmpty) {
       final iniciais = catalog.where(_isInitialStage).toList();
       return iniciais.isNotEmpty ? iniciais : catalog;
     }
 
-    // 2. Caso COM Histórico: Descobre o maior nível atual
     int currentLevel = 0;
     for (var item in history) {
       int lvl = _parseLevel(item.jr_level);
@@ -104,8 +140,6 @@ class _AssociatesJourneyRidingSectionState
     return _obterOpcoesProximoNivel().isNotEmpty;
   }
 
-  // ==========================================
-  // DIÁLOGO DE ADIÇÃO (CADASTRO)
   // ==========================================
   void _showAddJourneyDialog() {
     final opcoesNivel = _obterOpcoesProximoNivel();
@@ -157,8 +191,8 @@ class _AssociatesJourneyRidingSectionState
                         border: OutlineInputBorder(),
                       ),
                       items: opcoesNivel.map((stage) {
-                        final String nome = stage.jr_nome ?? 'Sem Nome';
-                        final String lvl = stage.jr_level?.toString() ?? '-';
+                        final String nome = stage.jr_nome;
+                        final String lvl = stage.jr_level.toString();
                         return DropdownMenuItem<JourneyRidingModel>(
                           value: stage,
                           child: Text('$nome (Nível $lvl)'),
@@ -229,7 +263,7 @@ class _AssociatesJourneyRidingSectionState
                     );
                     if (mounted) {
                       Navigator.of(dialogContext).pop();
-                      await _carregarDados(); // Re-carrega do banco e redesenha a tela
+                      await _carregarDados();
                     }
                   },
                 ),
@@ -242,18 +276,16 @@ class _AssociatesJourneyRidingSectionState
   }
 
   // ==========================================
-  // DIÁLOGO DE EDIÇÃO / EXCLUSÃO
-  // ==========================================
   void _showEditJourneyDialog(JourneyRidingModel item) {
-    DateTime dataSelecionada = DateTime.tryParse(item.uj_promotion_date ?? '') ??
-        DateTime.now();
+    DateTime dataSelecionada =
+        DateTime.tryParse(item.uj_promotion_date) ?? DateTime.now();
 
     final TextEditingController dateController = TextEditingController(
       text: generalService.formatarDataBr(dataSelecionada.toIso8601String()),
     );
 
-    final String nomeNivel = item.jr_nome ?? 'Nível Cadastrado';
-    final String lvlNum = item.jr_level?.toString() ?? '-';
+    final String nomeNivel = item.jr_nome;
+    final String lvlNum = item.jr_level.toString();
 
     showDialog(
       context: context,
@@ -348,7 +380,8 @@ class _AssociatesJourneyRidingSectionState
                     );
 
                     if (confirmar == true) {
-                      final String pjrId = item.uj_id?.toString() ?? item.uj_id.toString();
+                      final String pjrId =
+                          item.uj_id.toString();
                       await bdJourneyRidingController.deleteProfileJourneyRiding(
                         pjrId,
                         item.pfl_id,
@@ -357,7 +390,7 @@ class _AssociatesJourneyRidingSectionState
 
                       if (mounted) {
                         Navigator.of(dialogContext).pop();
-                        await _carregarDados(); // Re-carrega e atualiza
+                        await _carregarDados();
                       }
                     }
                   },
@@ -367,7 +400,8 @@ class _AssociatesJourneyRidingSectionState
                   children: [
                     TextButton(
                       onPressed: () => Navigator.of(dialogContext).pop(),
-                      child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                      child: const Text('Cancelar',
+                          style: TextStyle(color: Colors.grey)),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
@@ -378,7 +412,8 @@ class _AssociatesJourneyRidingSectionState
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () async {
-                        final String pjrId = item.uj_id?.toString() ?? item.uj_id.toString();
+                        final String pjrId =
+                            item.uj_id.toString();
                         await bdJourneyRidingController.updateProfileJourneyRiding(
                           pjrId,
                           item.pfl_id,
@@ -389,7 +424,7 @@ class _AssociatesJourneyRidingSectionState
 
                         if (mounted) {
                           Navigator.of(dialogContext).pop();
-                          await _carregarDados(); // Re-carrega e atualiza
+                          await _carregarDados();
                         }
                       },
                     ),
@@ -403,51 +438,92 @@ class _AssociatesJourneyRidingSectionState
     );
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ProfileJourneyRiding(
-          key: ValueKey(_refreshKey),
-          pflId: widget.itemAtual.pfl_id.toString(),
-          hldId: widget.itemAtual.hld_id.toString(),
-          onEdit: _showEditJourneyDialog,
-        ),
-        const SizedBox(height: 8),
-        ValueListenableBuilder<List<JourneyRidingModel>>(
-          valueListenable:
-              bdJourneyRidingController.vProfileJourneyridingDetaisNotifier,
-          builder: (context, history, child) {
-            return ValueListenableBuilder<List<JourneyRidingModel>>(
-              valueListenable:
-                  bdJourneyRidingController.journeyRidingOrderByLevelNotifier,
-              builder: (context, catalog, child) {
-                if (!_temProximoNivel()) {
-                  return const SizedBox.shrink();
-                }
+    return ListenableBuilder(
+      listenable: bdJourneyRidingController.loadingNotifier,
+      builder: (context, _) {
+        final bool isLoading = bdJourneyRidingController.loadingNotifier.value;
 
-                return Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: _showAddJourneyDialog,
-                    icon: const Icon(Icons.add_circle_outline, size: 20),
-                    label: const Text('Add Journey...'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.indigo,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+        return Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ProfileJourneyRiding(
+                  key: ValueKey(_refreshKey),
+                  pflId: widget.itemAtual.pfl_id.toString(),
+                  hldId: widget.itemAtual.hld_id.toString(),
+                  onEdit: _showEditJourneyDialog,
+                ),
+                const SizedBox(height: 8),
+                ValueListenableBuilder<List<JourneyRidingModel>>(
+                  valueListenable: bdJourneyRidingController
+                      .vProfileJourneyridingDetaisNotifier,
+                  builder: (context, history, child) {
+                    return ValueListenableBuilder<List<JourneyRidingModel>>(
+                      valueListenable: bdJourneyRidingController
+                          .journeyRidingOrderByLevelNotifier,
+                      builder: (context, catalog, child) {
+                        if (!_temProximoNivel()) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: isLoading ? null : _showAddJourneyDialog,
+                            icon: const Icon(Icons.add_circle_outline, size: 20),
+                            label: const Text('Add Journey...'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.indigo,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
+
+            if (isLoading)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  child: Center(
+                    child: Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            CircularProgressIndicator(),
+                            SizedBox(width: 16),
+                            Text(
+                              'Processando...',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                );
-              },
-            );
-          },
-        ),
-      ],
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

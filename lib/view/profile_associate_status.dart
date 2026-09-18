@@ -30,10 +30,10 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
   late String pflId = '';
   late String hldId = '';
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
-    // Usa o controller recebido do pai ou busca no GetIt
     controller =
         widget.controller ??
         getItBdVProfileAssociateStatusController
@@ -52,25 +52,33 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarStatusAssociado();
     });
-    
   }
 
+  // ==========================================
   @override
   void didUpdateWidget(covariant ProfileAssociateStatus oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.pflId != widget.pflId || oldWidget.hldId != widget.hldId) {
-      pflId = widget.pflId ?? '';
-      hldId = widget.hldId ?? '';
+      pflId =
+          widget.pflId ??
+          profileController.pessoaSelecionadaNotifier.value?.pfl_id ??
+          '';
+      hldId =
+          widget.hldId ??
+          profileController.pessoaSelecionadaNotifier.value?.hld_id ??
+          '';
       _carregarStatusAssociado();
     }
   }
 
+  // ==========================================
   Future<void> _carregarStatusAssociado() async {
     if (pflId.isNotEmpty && hldId.isNotEmpty) {
       await controller.loadProfileAssociateStatus(pflId, hldId);
     }
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -78,53 +86,94 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
       builder: (context, isLoading, child) {
         if (isLoading) {
           return const Padding(
-            padding: EdgeInsets.all(24.0),
+            padding: EdgeInsets.all(32.0),
             child: Center(child: CircularProgressIndicator()),
           );
         }
 
-        return ValueListenableBuilder<List<VProfileAssociateStatusModel>>(
-          valueListenable: controller.vProfileAssociateStatusNotifier,
-          builder: (context, listaStatus, child) {
-            if (listaStatus.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
+        return ValueListenableBuilder<String?>(
+          valueListenable: controller.errorNotifier,
+          builder: (context, errorMessage, child) {
+            if (errorMessage != null && errorMessage.isNotEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Center(
-                  child: Text(
-                    'Nenhum histórico de status de associado registrado.',
-                    style: TextStyle(color: Colors.white54, fontSize: 13),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.redAccent,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        errorMessage,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: _carregarStatusAssociado,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Tentar Novamente'),
+                      ),
+                    ],
                   ),
                 ),
               );
             }
 
-            final listaOrdenada =
-                List<VProfileAssociateStatusModel>.from(listaStatus)
-                  ..sort((a, b) {
-                    final dateA =
-                        DateTime.tryParse(a.pas_date ?? '') ?? DateTime(1970);
-                    final dateB =
-                        DateTime.tryParse(b.pas_date ?? '') ?? DateTime(1970);
-                    return dateB.compareTo(dateA);
-                  });
+            return ValueListenableBuilder<List<VProfileAssociateStatusModel>>(
+              valueListenable: controller.vProfileAssociateStatusNotifier,
+              builder: (context, listaStatus, child) {
+                // 🟢 3. Trata estado de dados vazios
+                if (listaStatus.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Text(
+                        'Nenhum histórico de status de associado registrado.',
+                        style: TextStyle(color: Colors.white54, fontSize: 13),
+                      ),
+                    ),
+                  );
+                }
 
-            return Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildResumoStatus(listaOrdenada),
-                  const SizedBox(height: 12),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: listaOrdenada.length,
-                    itemBuilder: (context, index) {
-                      return _buildStatusCard(listaOrdenada[index]);
-                    },
+                final listaOrdenada =
+                    List<VProfileAssociateStatusModel>.from(listaStatus)
+                      ..sort((a, b) {
+                        final dateA =
+                            DateTime.tryParse(a.pas_date) ??
+                            DateTime(1970);
+                        final dateB =
+                            DateTime.tryParse(b.pas_date) ??
+                            DateTime(1970);
+                        return dateB.compareTo(dateA);
+                      });
+
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildResumoStatus(listaOrdenada),
+                      const SizedBox(height: 12),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: listaOrdenada.length,
+                        itemBuilder: (context, index) {
+                          return _buildStatusCard(listaOrdenada[index]);
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             );
           },
         );
@@ -132,18 +181,18 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
     );
   }
 
+  // ==========================================
   Widget _buildResumoStatus(List<VProfileAssociateStatusModel> lista) {
     final int total = lista.length;
     final int ativos = lista.where((s) {
-      final bool isAtivoFlag = (s.pas_date ?? '').isNotEmpty;
-      final DateTime? endDate = DateTime.tryParse(s.pas_date ?? '');
+      final bool isAtivoFlag = (s.pas_date).isNotEmpty;
+      final DateTime? endDate = DateTime.tryParse(s.pas_date);
       return isAtivoFlag &&
           (endDate == null || endDate.isAfter(DateTime.now()));
     }).length;
 
-    final VProfileAssociateStatusModel? statusAtualModel = lista.isNotEmpty
-        ? lista.first
-        : null;
+    final VProfileAssociateStatusModel? statusAtualModel =
+        lista.isNotEmpty ? lista.first : null;
     final String statusAtualNome = statusAtualModel?.as_desc ?? 'N/A';
 
     return Container(
@@ -190,15 +239,16 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
     );
   }
 
+  // ==========================================
   Widget _buildStatusCard(VProfileAssociateStatusModel status) {
-    final bool isAtivoFlag = (status.pas_date ?? '').isNotEmpty;
-    final DateTime? endDate = DateTime.tryParse(status.pas_date ?? '');
+    final bool isAtivoFlag = (status.pas_date).isNotEmpty;
+    final DateTime? endDate = DateTime.tryParse(status.pas_date);
     final bool isAtivo =
         isAtivoFlag && (endDate == null || endDate.isAfter(DateTime.now()));
 
-    final String statusNome = status.as_desc ?? 'Status de Associado';
+    final String statusNome = status.as_desc;
     final String inicioData = generalService.formatarDataBr(
-      status.pas_date ?? '',
+      status.pas_date,
     );
 
     return Card(
@@ -206,7 +256,10 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.indigo.withValues(alpha: 0.3), width: 1),
+        side: BorderSide(
+          color: Colors.indigo.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -237,12 +290,13 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
             style: const TextStyle(fontSize: 12, color: Colors.white70),
           ),
         ),
-        trailing: widget.onEdit != null
-            ? IconButton(
-                icon: const Icon(Icons.edit, size: 20, color: Colors.orange),
-                onPressed: () => widget.onEdit!(status),
-              )
-            : null,
+        trailing:
+            widget.onEdit != null
+                ? IconButton(
+                  icon: const Icon(Icons.edit, size: 20, color: Colors.orange),
+                  onPressed: () => widget.onEdit!(status),
+                )
+                : null,
         children: [
           const Divider(height: 1),
           Container(
@@ -262,6 +316,7 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
     );
   }
 
+  // ==========================================
   Widget _buildInfoRow(String label, String valor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -285,15 +340,17 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
     );
   }
 
+  // ==========================================
   Widget _buildStatusBadge(bool isAtivo) {
     final String label = isAtivo ? 'ATIVO' : 'HISTÓRICO';
     final Color color = isAtivo ? Colors.greenAccent : Colors.white38;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: isAtivo
-            ? Colors.green.withValues(alpha: 0.15)
-            : Colors.grey.withValues(alpha: 0.15),
+        color:
+            isAtivo
+                ? Colors.green.withValues(alpha: 0.15)
+                : Colors.grey.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: color.withValues(alpha: 0.5), width: 0.8),
       ),
@@ -307,4 +364,5 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
       ),
     );
   }
+
 }

@@ -53,7 +53,7 @@ class BdJourneyRidingController extends ChangeNotifier {
       
     } catch (e, stackTrace) {
       bdJourneyRidingNotifier.value = [];
-      errorNotifier.value = ("BdItemController::loadItems: $e \n$stackTrace");
+      errorNotifier.value = ("loadJourneyRiding: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
     }
@@ -72,14 +72,14 @@ class BdJourneyRidingController extends ChangeNotifier {
         .select()
         .eq( 'jr_hld_id', hld_id )
         .order( 'jr_level', ascending: true )
-    );
+      );
       
-        journeyRidingOrderByLevelNotifier.value = resposta.map( ( item ) =>
-          JourneyRidingModel.fromJson( item ) ).toList();
+      journeyRidingOrderByLevelNotifier.value = resposta.map( ( item ) =>
+        JourneyRidingModel.fromJson( item ) ).toList();
       
     } catch (e, stackTrace) {
       journeyRidingOrderByLevelNotifier.value = [];
-      errorNotifier.value = ("BdItemController::loadItems: $e \n$stackTrace");
+      errorNotifier.value = ("loadJourneyRidingOrderByLevel: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
     }
@@ -107,7 +107,7 @@ class BdJourneyRidingController extends ChangeNotifier {
       
     } catch (e, stackTrace) {
       vProfileJourneyridingDetaisNotifier.value = [];
-      errorNotifier.value = ("BdItemController::loadItems: $e \n$stackTrace");
+      errorNotifier.value = ("loadJourneyRidingDetais: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
     }
@@ -133,11 +133,8 @@ class BdJourneyRidingController extends ChangeNotifier {
             'uj_promotion_date': ujPromotionDate
           }); 
       
-      // await loadJourneyRidingDetais(ujPflId, ujHldId);
-
     } catch (e, stackTrace) {
-      errorNotifier.value = ("BdItemController::updateItem: $e \n$stackTrace");
-      debugPrint(errorNotifier.value.toString());
+      errorNotifier.value = ("insertProfileJourneyRiding: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
     }
@@ -167,11 +164,9 @@ class BdJourneyRidingController extends ChangeNotifier {
           .eq( 'uj_id', ujId);
 
     } catch (e, stackTrace) {
-      errorNotifier.value = ("BdItemController::updateItem: $e \n$stackTrace");
-      debugPrint(errorNotifier.value.toString());
+      errorNotifier.value = ("updateProfileJourneyRiding: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
-      // loadJourneyRidingDetais(ujPflId, ujHldId);
     }
   }
 
@@ -191,11 +186,9 @@ class BdJourneyRidingController extends ChangeNotifier {
           .eq('uj_id', ujId);
 
     } catch (e, stackTrace) {
-      errorNotifier.value = ("BdItemController::updateItem: $e \n$stackTrace");
-      debugPrint(errorNotifier.value.toString());
+      errorNotifier.value = ("deleteProfileJourneyRiding: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
-      // loadJourneyRidingDetais(ujPflId, ujHldId);
     }
   }
 

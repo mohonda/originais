@@ -31,6 +31,8 @@ void main() async {
       minimumSize: Size(500, 820),
       center: true,
       title: ' Originais Moto Clube \u00AE ',
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.normal,
     );
  
     windowManager.waitUntilReadyToShow(

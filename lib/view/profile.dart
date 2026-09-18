@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/view/profile_update_password.dart';
 import 'package:originais/controllers/profile_image_service.dart';
-// import 'package:originais/view/profile_monthly_payment.dart';
 import 'package:originais/view/profile_headquarters_bar.dart'; 
 import 'package:originais/view/profile_executive_committee.dart'; 
 import 'package:originais/view/profile_sanctions.dart'; 
@@ -30,17 +28,22 @@ class _ProfileState extends State<Profile> {
   final updatedAtController = TextEditingController();
   String hld_id = '';
 
-  bool isUpdate = false;
-
   final paymentService = ProfileImageService();
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
+
+    bdProfileController.pessoaSelecionadaNotifier
+      .addListener(_onProfileChanged);
+    _onProfileChanged();
   }
 
+  // ==========================================
   @override
   void dispose() {
+    bdProfileController.pessoaSelecionadaNotifier.removeListener(_onProfileChanged);
     idController.dispose();
     fullNameController.dispose();
     nickNameController.dispose();
@@ -50,54 +53,37 @@ class _ProfileState extends State<Profile> {
     super.dispose();
   }
 
-  void onFieldChanged() {
-    if ((fullNameController.text ==
-            bdProfileController
-                .pessoaSelecionadaNotifier
-                .value
-                ?.pfl_full_name) &&
-        (nickNameController.text ==
-            bdProfileController
-                .pessoaSelecionadaNotifier
-                .value
-                ?.pfl_nick_name) &&
-        (urlController.text ==
-            bdProfileController
-                .pessoaSelecionadaNotifier
-                .value
-                ?.pfl_avatar_url) &&
-        (bioController.text ==
-            bdProfileController.pessoaSelecionadaNotifier.value?.pfl_bio)) {
+  // ==========================================
+  void _onProfileChanged() {
+    final profile = bdProfileController.pessoaSelecionadaNotifier.value;
+    if (profile != null) {
+      idController.text = profile.pfl_id;
+      hld_id = profile.hld_id;
+      fullNameController.text = profile.pfl_full_name;
+      nickNameController.text = profile.pfl_nick_name;
+      urlController.text = profile.pfl_avatar_url;
+      bioController.text = profile.pfl_bio;
+      updatedAtController.text = profile.pfl_updated_at;
       bdProfileController.changedNotifier(false);
-    } else {
-      bdProfileController.changedNotifier(true);
     }
   }
 
-  void initValues() {
-    idController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? "";
-    hld_id = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
-    fullNameController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_full_name ??
-        "";
-    nickNameController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_nick_name ??
-        "";
-    urlController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_avatar_url ??
-        "";
-    bioController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_bio ?? "";
-    updatedAtController.text =
-        bdProfileController.pessoaSelecionadaNotifier.value?.pfl_updated_at ??
-        "";
+  // ==========================================
+  void onFieldChanged() {
+    final currentProfile = bdProfileController.pessoaSelecionadaNotifier.value;
+    if (currentProfile == null) return;
 
-    bdProfileController.changedNotifier(false);
+    final isSame = (fullNameController.text == (currentProfile.pfl_full_name)) &&
+        (nickNameController.text == (currentProfile.pfl_nick_name)) &&
+        (urlController.text == (currentProfile.pfl_avatar_url)) &&
+        (bioController.text == (currentProfile.pfl_bio));
+
+    bdProfileController.changedNotifier(!isSame);
   }
 
-  void updateProfile() async {
-    isUpdate = true;
+  // ==========================================
+  Future<void> updateProfile() async {
+    bdProfileController.errorNotifier.value = null;
 
     try {
       await bdProfileController.updateProfile(
@@ -108,18 +94,9 @@ class _ProfileState extends State<Profile> {
         urlController.text,
         bioController.text,
       );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error dados não atualizados!'),
-            backgroundColor: Colors.redAccent,
-            duration: Duration(seconds: 2),
-          ),
-        );
-        context.pop();
-      }
-    } finally {
+
+      await bdProfileController.fetchProfilesById(idController.text, hld_id);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -128,14 +105,20 @@ class _ProfileState extends State<Profile> {
             duration: Duration(seconds: 2),
           ),
         );
-        context.pop();
       }
-      await bdProfileController.fetchProfilesById(idController.text, hld_id);
-      isUpdate = false;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(bdProfileController.errorNotifier.value ?? 'Erro ao atualizar os dados!'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
-  // 🟢 Helper com a cor de fundo perfeitamente idêntica à superfície do Card
   Widget _buildTabSection({
     required String labelText,
     required Widget child,
@@ -144,8 +127,6 @@ class _ProfileState extends State<Profile> {
       builder: (context, constraints) {
         const double extraVerticalSpace = 24.0;
         final double minHeight = constraints.maxHeight - extraVerticalSpace;
-
-        // Cor exata da superfície do tema (casada com o Card)
         final cardBgColor = Theme.of(context).colorScheme.surface;
         final labelTextColor = Theme.of(context).colorScheme.onSurface;
 
@@ -174,7 +155,7 @@ class _ProfileState extends State<Profile> {
                   top: 0,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    color: cardBgColor, // 🟢 Fundo idêntico sem efeito de caixa
+                    color: cardBgColor,
                     child: Text(
                       labelText,
                       style: TextStyle(
@@ -193,6 +174,7 @@ class _ProfileState extends State<Profile> {
     );
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -204,7 +186,7 @@ class _ProfileState extends State<Profile> {
             valueListenable: bdProfileController.pessoaSelecionadaNotifier,
             builder: (context, value, child) {
               return CustomFloatingAppBar(
-                title: 'Profile - ${value?.pfl_full_name}',
+                title: 'Profile - ${value?.pfl_full_name ?? ''}',
               );
             },
           ),
@@ -213,8 +195,8 @@ class _ProfileState extends State<Profile> {
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
           child: Card(
             elevation: 4,
-            surfaceTintColor: Colors.transparent, // 🟢 Desativa a tinta M3 que alterava a cor do Card
-            color: Theme.of(context).colorScheme.surface, // 🟢 Garante sincronia total de cor
+            surfaceTintColor: Colors.transparent,
+            color: Theme.of(context).colorScheme.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -223,7 +205,6 @@ class _ProfileState extends State<Profile> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // 1. NAVEGAÇÃO EM ABAS
                   const TabBar(
                     isScrollable: true,
                     tabAlignment: TabAlignment.start,
@@ -240,7 +221,7 @@ class _ProfileState extends State<Profile> {
                     ),
                     unselectedLabelStyle: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w100
+                      fontWeight: FontWeight.w100,
                     ),
                     tabs: [
                       Tab(
@@ -281,8 +262,6 @@ class _ProfileState extends State<Profile> {
                       ),
                     ],
                   ),
-
-                  // 2. CONTEÚDO DAS ABAS
                   Expanded(
                     child: TabBarView(
                       children: [
@@ -328,23 +307,39 @@ class _ProfileState extends State<Profile> {
     );
   }
 
-  // Form de Profile
+  // ==========================================
   Widget _buildProfileForm() {
     return ValueListenableBuilder<bool>(
       valueListenable: bdProfileController.loadingNotifier,
       builder: (context, isLoading, child) {
         if (isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
         }
 
         return ValueListenableBuilder<String?>(
           valueListenable: bdProfileController.errorNotifier,
           builder: (context, errorMessage, child) {
-            if (errorMessage != null) {
+            if (errorMessage != null && errorMessage.isNotEmpty) {
               return Center(
-                child: Text(
-                  errorMessage,
-                  style: const TextStyle(color: Colors.red, fontSize: 16),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                      const SizedBox(height: 8),
+                      Text(
+                        errorMessage,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.red, fontSize: 16),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }
@@ -355,14 +350,12 @@ class _ProfileState extends State<Profile> {
                 if (profile == null) {
                   return const Center(child: Text('Nenhum dado encontrado.'));
                 }
-                initValues();
 
                 const double distance = 12.0;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // LINHA 1: ID e Updated At
                     Row(
                       children: [
                         Expanded(
@@ -390,10 +383,7 @@ class _ProfileState extends State<Profile> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: distance),
-
-                    // LINHA 2: Nome
                     TextFormField(
                       controller: fullNameController,
                       onChanged: (_) => onFieldChanged(),
@@ -409,10 +399,7 @@ class _ProfileState extends State<Profile> {
                         return null;
                       },
                     ),
-
                     const SizedBox(height: distance),
-
-                    // LINHA 3: Form Esquerda + Avatar Direita
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -472,17 +459,15 @@ class _ProfileState extends State<Profile> {
                                       child: Image.network(
                                         urlController.text,
                                         fit: BoxFit.contain,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                const Icon(
-                                                  Icons.broken_image,
-                                                  size: 48,
-                                                ),
+                                        errorBuilder: (context, error, stackTrace) =>
+                                            const Icon(
+                                          Icons.broken_image,
+                                          size: 48,
+                                        ),
                                       ),
                                     )
                                   : const Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Icon(
                                           Icons.add_a_photo,
@@ -505,10 +490,7 @@ class _ProfileState extends State<Profile> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: distance * 2),
-
-                    // Botões de Ação
                     ValueListenableBuilder<bool>(
                       valueListenable: bdProfileController.isChangedNotifier,
                       builder: (context, isChanged, child) {
@@ -523,7 +505,7 @@ class _ProfileState extends State<Profile> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) =>
-                                          ProfileUpdatePassword(),
+                                          const ProfileUpdatePassword(),
                                     ),
                                   );
                                 },
@@ -542,19 +524,8 @@ class _ProfileState extends State<Profile> {
                             Expanded(
                               child: ElevatedButton.icon(
                                 onPressed: canSubmit ? updateProfile : null,
-                                icon: isLoading
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
-                                        ),
-                                      )
-                                    : const Icon(Icons.save),
-                                label: Text(
-                                  isLoading ? 'Salvando...' : 'Salvar',
-                                ),
+                                icon: const Icon(Icons.save),
+                                label: const Text('Salvar'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.indigo,
                                   foregroundColor: Colors.white,
@@ -577,4 +548,5 @@ class _ProfileState extends State<Profile> {
       },
     );
   }
+
 }

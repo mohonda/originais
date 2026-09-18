@@ -27,27 +27,73 @@ class _AssociatesSanctionsSectionState
   late final SanctionsController sanctionsController;
   final GeneralService generalService = GeneralService();
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
     controller = getItBdVProfilesSanctionsController
         .get<BdVProfilesSanctionsController>();
 
-    // Controller responsável por buscar a lista de sanções da Holding
     sanctionsController = SanctionsController();
+
+    controller.errorNotifier.addListener(_handleError);
+    sanctionsController.errorNotifier.addListener(_handleError);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carregarDados();
+    });
   }
 
+  // ==========================================
+  void _handleError() {
+    final errorMessage = controller.errorNotifier.value ??
+        sanctionsController.errorNotifier.value;
+
+    if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  // ==========================================
+  @override
+  void didUpdateWidget(covariant AssociatesSanctionsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.itemAtual.pfl_id != widget.itemAtual.pfl_id ||
+        oldWidget.itemAtual.hld_id != widget.itemAtual.hld_id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _carregarDados();
+      });
+    }
+  }
+
+  // ==========================================
   @override
   void dispose() {
+    controller.errorNotifier.removeListener(_handleError);
+    sanctionsController.errorNotifier.removeListener(_handleError);
     sanctionsController.dispose();
     super.dispose();
   }
 
   // ==========================================
-  // DIÁLOGO DE ADIÇÃO (CADASTRO DE SANÇÃO)
+  void _carregarDados() {
+    final pflId = widget.itemAtual.pfl_id.toString();
+    final hldId = widget.itemAtual.hld_id.toString();
+
+    if (pflId.isNotEmpty && hldId.isNotEmpty) {
+      controller.loadProfileSanctionsStatus(pflId, hldId);
+    }
+  }
+
   // ==========================================
   void _showAddSanctionDialog() async {
-    // 🟢 Busca as sanções cadastradas via Controller da Tabela de Sanções
     await sanctionsController.loadSanctions(
       widget.itemAtual.hld_id.toString(),
     );
@@ -92,7 +138,8 @@ class _AssociatesSanctionsSectionState
                 children: [
                   Icon(Icons.gavel, color: Colors.redAccent),
                   SizedBox(width: 8),
-                  Text('Aplicar Sanção Disciplinar', style: TextStyle(fontSize: 17)),
+                  Text('Aplicar Sanção Disciplinar',
+                      style: TextStyle(fontSize: 17)),
                 ],
               ),
               content: Form(
@@ -191,7 +238,8 @@ class _AssociatesSanctionsSectionState
                           if (value == null || value.trim().isEmpty) {
                             return 'Informe a data de término';
                           }
-                          if (dataFim != null && !dataFim!.isAfter(dataInicio)) {
+                          if (dataFim != null &&
+                              !dataFim!.isAfter(dataInicio)) {
                             return 'A data de término deve ser posterior à data de início';
                           }
                           return null;
@@ -199,9 +247,10 @@ class _AssociatesSanctionsSectionState
                         onTap: () async {
                           final picked = await showDatePicker(
                             context: context,
-                            initialDate: (dataFim != null && dataFim!.isAfter(dataInicio))
-                                ? dataFim!
-                                : dataInicio.add(const Duration(days: 1)),
+                            initialDate:
+                                (dataFim != null && dataFim!.isAfter(dataInicio))
+                                    ? dataFim!
+                                    : dataInicio.add(const Duration(days: 1)),
                             firstDate: dataInicio.add(const Duration(days: 1)),
                             lastDate: DateTime(2100),
                           );
@@ -221,8 +270,8 @@ class _AssociatesSanctionsSectionState
                       TextFormField(
                         controller: valueController,
                         maxLines: 1,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         decoration: const InputDecoration(
                           labelText: 'Valor *',
                           prefixIcon: Icon(Icons.attach_money),
@@ -268,7 +317,8 @@ class _AssociatesSanctionsSectionState
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                  child:
+                      const Text('Cancelar', style: TextStyle(color: Colors.grey)),
                 ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.check, size: 18),
@@ -295,10 +345,7 @@ class _AssociatesSanctionsSectionState
 
                     if (mounted) {
                       Navigator.of(dialogContext).pop();
-                      controller.loadProfileSanctionsStatus(
-                        widget.itemAtual.pfl_id.toString(),
-                        widget.itemAtual.hld_id.toString(),
-                      );
+                      _carregarDados();
                     }
                   },
                 ),
@@ -310,8 +357,6 @@ class _AssociatesSanctionsSectionState
     );
   }
 
-  // ==========================================
-  // DIÁLOGO DE EDIÇÃO / EXCLUSÃO DE SANÇÃO
   // ==========================================
   void _showEditSanctionDialog(VProfilesSanctionsModel item) async {
     await sanctionsController.loadSanctions(
@@ -334,8 +379,8 @@ class _AssociatesSanctionsSectionState
     }
 
     DateTime dataInicio =
-        DateTime.tryParse(item.psan_date_start ?? '') ?? DateTime.now();
-    DateTime? dataFim = DateTime.tryParse(item.psan_date_end ?? '');
+        DateTime.tryParse(item.psan_date_start) ?? DateTime.now();
+    DateTime? dataFim = DateTime.tryParse(item.psan_date_end);
 
     final TextEditingController startDateController = TextEditingController(
       text: generalService.formatarDataBr(dataInicio.toIso8601String()),
@@ -346,13 +391,13 @@ class _AssociatesSanctionsSectionState
           : '',
     );
     final TextEditingController valueController = TextEditingController(
-      text: item.psan_valor?.toString() ?? '',
+      text: item.psan_valor.toString(),
     );
     final TextEditingController obsController = TextEditingController(
-      text: item.psan_desc ?? '',
+      text: item.psan_desc,
     );
 
-    final String sancaoNome = item.san_name ?? 'Sanção Disciplinar';
+    final String sancaoNome = item.san_name;
 
     showDialog(
       context: context,
@@ -368,7 +413,8 @@ class _AssociatesSanctionsSectionState
                 children: [
                   Icon(Icons.edit, color: Colors.orange),
                   SizedBox(width: 8),
-                  Text('Editar Sanção Disciplinar', style: TextStyle(fontSize: 17)),
+                  Text('Editar Sanção Disciplinar',
+                      style: TextStyle(fontSize: 17)),
                 ],
               ),
               content: Form(
@@ -467,7 +513,8 @@ class _AssociatesSanctionsSectionState
                           if (value == null || value.trim().isEmpty) {
                             return 'Informe a data de término';
                           }
-                          if (dataFim != null && !dataFim!.isAfter(dataInicio)) {
+                          if (dataFim != null &&
+                              !dataFim!.isAfter(dataInicio)) {
                             return 'A data de término deve ser posterior à data de início';
                           }
                           return null;
@@ -475,9 +522,10 @@ class _AssociatesSanctionsSectionState
                         onTap: () async {
                           final picked = await showDatePicker(
                             context: context,
-                            initialDate: (dataFim != null && dataFim!.isAfter(dataInicio))
-                                ? dataFim!
-                                : dataInicio.add(const Duration(days: 1)),
+                            initialDate:
+                                (dataFim != null && dataFim!.isAfter(dataInicio))
+                                    ? dataFim!
+                                    : dataInicio.add(const Duration(days: 1)),
                             firstDate: dataInicio.add(const Duration(days: 1)),
                             lastDate: DateTime(2100),
                           );
@@ -497,8 +545,8 @@ class _AssociatesSanctionsSectionState
                       TextFormField(
                         controller: valueController,
                         maxLines: 1,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         decoration: const InputDecoration(
                           labelText: 'Valor *',
                           prefixIcon: Icon(Icons.attach_money),
@@ -545,8 +593,10 @@ class _AssociatesSanctionsSectionState
               actions: [
                 // Botão de Exclusão
                 TextButton.icon(
-                  icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                  label: const Text('Excluir', style: TextStyle(color: Colors.red)),
+                  icon: const Icon(Icons.delete_outline,
+                      size: 20, color: Colors.red),
+                  label: const Text('Excluir',
+                      style: TextStyle(color: Colors.red)),
                   onPressed: () async {
                     final bool? confirmar = await showDialog<bool>(
                       context: context,
@@ -574,15 +624,12 @@ class _AssociatesSanctionsSectionState
                       await controller.deleteProfileSanction(
                         item.psan_id,
                         item.psan_pfl_id,
-                        item.psan_hld_id
+                        item.psan_hld_id,
                       );
 
                       if (mounted) {
                         Navigator.of(dialogContext).pop();
-                        controller.loadProfileSanctionsStatus(
-                          widget.itemAtual.pfl_id.toString(),
-                          widget.itemAtual.hld_id.toString(),
-                        );
+                        _carregarDados();
                       }
                     }
                   },
@@ -594,8 +641,8 @@ class _AssociatesSanctionsSectionState
                   children: [
                     TextButton(
                       onPressed: () => Navigator.of(dialogContext).pop(),
-                      child:
-                          const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                      child: const Text('Cancelar',
+                          style: TextStyle(color: Colors.grey)),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
@@ -623,10 +670,7 @@ class _AssociatesSanctionsSectionState
 
                         if (mounted) {
                           Navigator.of(dialogContext).pop();
-                          controller.loadProfileSanctionsStatus(
-                            widget.itemAtual.pfl_id.toString(),
-                            widget.itemAtual.hld_id.toString(),
-                          );
+                          _carregarDados();
                         }
                       },
                     ),
@@ -640,35 +684,81 @@ class _AssociatesSanctionsSectionState
     );
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ProfileSanctions(
-          controller: controller,
-          pflId: widget.itemAtual.pfl_id.toString(),
-          hldId: widget.itemAtual.hld_id.toString(),
-          onEdit: _showEditSanctionDialog,
-        ),
-        const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: _showAddSanctionDialog,
-            icon: const Icon(Icons.add_circle_outline, size: 20),
-            label: const Text('Add Sanction...'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.redAccent,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        controller.loadingNotifier,
+        sanctionsController.loadingNotifier,
+      ]),
+      builder: (context, _) {
+        final bool isLoading = controller.loadingNotifier.value ||
+            sanctionsController.loadingNotifier.value;
+
+        return Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ProfileSanctions(
+                  controller: controller,
+                  pflId: widget.itemAtual.pfl_id.toString(),
+                  hldId: widget.itemAtual.hld_id.toString(),
+                  onEdit: _showEditSanctionDialog,
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: isLoading ? null : _showAddSanctionDialog,
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                    label: const Text('Add Sanction...'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.redAccent,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ),
-      ],
+
+            if (isLoading)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  child: Center(
+                    child: Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            CircularProgressIndicator(),
+                            SizedBox(width: 16),
+                            Text(
+                              'Processando...',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
+
 }

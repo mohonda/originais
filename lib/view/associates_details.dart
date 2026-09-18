@@ -42,23 +42,54 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
 
   final _formKey = GlobalKey<FormState>();
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
     idController.text = widget.itemAtual.pfl_id.toString();
     fullNameController.text = widget.itemAtual.pfl_full_name.toString();
     hldController.text = widget.itemAtual.hld_name.toString();
+
+    // 🔔 Ouve notificações de erro dos controllers
+    bdVProfileAssociateStatusController.errorNotifier.addListener(_handleError);
+    bdVProfilesSanctionsController.errorNotifier.addListener(_handleError);
+    bdVExecutiveCommitteeTermOfOfficeMembersController.errorNotifier
+        .addListener(_handleError);
   }
 
+  // ==========================================
+  void _handleError() {
+    final errorMessage =
+        bdVProfileAssociateStatusController.errorNotifier.value ??
+        bdVProfilesSanctionsController.errorNotifier.value ??
+        bdVExecutiveCommitteeTermOfOfficeMembersController.errorNotifier.value;
+
+    if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  // ==========================================
   @override
   void dispose() {
+    bdVProfileAssociateStatusController.errorNotifier.removeListener(_handleError);
+    bdVProfilesSanctionsController.errorNotifier.removeListener(_handleError);
+    bdVExecutiveCommitteeTermOfOfficeMembersController.errorNotifier
+        .removeListener(_handleError);
+
     idController.dispose();
     hldController.dispose();
     fullNameController.dispose();
     super.dispose();
   }
 
-  // 🟢 Helper otimizado: Borda fixa, scroll restrito ao conteúdo interno
+  // ==========================================
   Widget _buildTabSection({
     required String labelText,
     required Widget child,
@@ -109,6 +140,7 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
     );
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -117,200 +149,261 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
         appBar: CustomFloatingAppBar(
           title: 'Associates - ${fullNameController.text}',
         ),
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
-          child: Card(
-            elevation: 4,
-            surfaceTintColor: Colors.transparent, // 🟢 Desativa a tinta M3
-            color: Theme.of(context).colorScheme.surface, // 🟢 Sincronia total de cor
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // 1. NAVEGAÇÃO EM ABAS
-                    const TabBar(
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.start,
-                      padding: EdgeInsets.zero, 
-                      labelPadding: EdgeInsets.symmetric(horizontal: 6.0),
-                      indicatorPadding: EdgeInsets.zero,
-                      dividerColor: Colors.transparent,
-                      indicatorColor: Colors.indigo,
-                      labelColor: Colors.indigo,
-                      unselectedLabelColor: Colors.grey,
-                      labelStyle: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w100,
-                      ),
-                      unselectedLabelStyle: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w100
-                      ),
-                      tabs: [
-                        Tab(
-                          height: 38,
-                          icon: Icon(Icons.explore_outlined, size: 16),
-                          text: 'Journey of the Riding',
-                          iconMargin: EdgeInsets.only(bottom: 2),
-                        ),
-                        Tab(
-                          height: 38,
-                          icon: Icon(Icons.badge_outlined, size: 16),
-                          text: 'Status',
-                          iconMargin: EdgeInsets.only(bottom: 2),
-                        ),
-                        Tab(
-                          height: 38,
-                          icon: Icon(Icons.gavel_outlined, size: 16),
-                          text: 'Sanctions',
-                          iconMargin: EdgeInsets.only(bottom: 2),
-                        ),
-                        Tab(
-                          height: 38,
-                          icon: Icon(Icons.groups_outlined, size: 16),
-                          text: 'Executive Committee',
-                          iconMargin: EdgeInsets.only(bottom: 2),
-                        ),
-                      ],
+        body: ListenableBuilder(
+          listenable: Listenable.merge([
+            bdVProfileAssociateStatusController.loadingNotifier,
+            bdVProfilesSanctionsController.loadingNotifier,
+            bdVExecutiveCommitteeTermOfOfficeMembersController.loadingNotifier,
+          ]),
+          builder: (context, _) {
+            final bool isLoading =
+                bdVProfileAssociateStatusController.loadingNotifier.value ||
+                bdVProfilesSanctionsController.loadingNotifier.value ||
+                bdVExecutiveCommitteeTermOfOfficeMembersController
+                    .loadingNotifier.value;
+
+            return Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 12.0,
+                  ),
+                  child: Card(
+                    elevation: 4,
+                    surfaceTintColor: Colors.transparent,
+                    color: Theme.of(context).colorScheme.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-
-                    // 2. CONTEÚDO DAS ABAS
-                    Expanded(
-                      child: TabBarView(
-                        children: [
-                          _buildTabSection(
-                            labelText: 'Journey of the Riding',
-                            child: AssociatesJourneyRidingSection(
-                              itemAtual: widget.itemAtual,
-                            ),
-                          ),
-                          _buildTabSection(
-                            labelText: 'Associate Status',
-                            child: AssociatesAssociateStatusSection(
-                              itemAtual: widget.itemAtual,
-                            ),
-                          ),
-                          _buildTabSection(
-                            labelText: 'Sanctions',
-                            child: AssociatesSanctionsSection(
-                              itemAtual: widget.itemAtual,
-                            ),
-                          ),
-                          _buildTabSection(
-                            labelText: 'Executive Committee',
-                            child: AssociatesExecutiveCommitteeSection(
-                              itemAtual: widget.itemAtual,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const Divider(height: 24),
-
-                    // 3. RODAPÉ FIXO (Informações de ID/Holding + Botão)
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final bool isSmallScreen = constraints.maxWidth < 480;
-
-                        final chipsWidget = Wrap(
-                          spacing: 8.0,
-                          runSpacing: 4.0,
-                          crossAxisAlignment: WrapCrossAlignment.center,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Chip(
-                              avatar: const Icon(
-                                Icons.key,
-                                size: 14,
-                                color: Colors.indigo,
-                              ),
-                              label: Text(
-                                'ID: ${idController.text}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                            // 1. NAVEGAÇÃO EM ABAS
+                            const TabBar(
+                              isScrollable: true,
+                              tabAlignment: TabAlignment.start,
                               padding: EdgeInsets.zero,
-                              visualDensity: VisualDensity.compact,
-                              backgroundColor: Colors.indigo.withValues(
-                                alpha: 0.08,
+                              labelPadding:
+                                  EdgeInsets.symmetric(horizontal: 6.0),
+                              indicatorPadding: EdgeInsets.zero,
+                              dividerColor: Colors.transparent,
+                              indicatorColor: Colors.indigo,
+                              labelColor: Colors.indigo,
+                              unselectedLabelColor: Colors.grey,
+                              labelStyle: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w100,
                               ),
-                              side: BorderSide.none,
+                              unselectedLabelStyle: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w100,
+                              ),
+                              tabs: [
+                                Tab(
+                                  height: 38,
+                                  icon: Icon(Icons.explore_outlined, size: 16),
+                                  text: 'Journey of the Riding',
+                                  iconMargin: EdgeInsets.only(bottom: 2),
+                                ),
+                                Tab(
+                                  height: 38,
+                                  icon: Icon(Icons.badge_outlined, size: 16),
+                                  text: 'Status',
+                                  iconMargin: EdgeInsets.only(bottom: 2),
+                                ),
+                                Tab(
+                                  height: 38,
+                                  icon: Icon(Icons.gavel_outlined, size: 16),
+                                  text: 'Sanctions',
+                                  iconMargin: EdgeInsets.only(bottom: 2),
+                                ),
+                                Tab(
+                                  height: 38,
+                                  icon: Icon(Icons.groups_outlined, size: 16),
+                                  text: 'Executive Committee',
+                                  iconMargin: EdgeInsets.only(bottom: 2),
+                                ),
+                              ],
                             ),
-                            Chip(
-                              avatar: const Icon(
-                                Icons.verified_user,
-                                size: 14,
-                                color: Colors.indigo,
+
+                            // 2. CONTEÚDO DAS ABAS
+                            Expanded(
+                              child: TabBarView(
+                                children: [
+                                  _buildTabSection(
+                                    labelText: 'Journey of the Riding',
+                                    child: AssociatesJourneyRidingSection(
+                                      itemAtual: widget.itemAtual,
+                                    ),
+                                  ),
+                                  _buildTabSection(
+                                    labelText: 'Associate Status',
+                                    child: AssociatesAssociateStatusSection(
+                                      itemAtual: widget.itemAtual,
+                                    ),
+                                  ),
+                                  _buildTabSection(
+                                    labelText: 'Sanctions',
+                                    child: AssociatesSanctionsSection(
+                                      itemAtual: widget.itemAtual,
+                                    ),
+                                  ),
+                                  _buildTabSection(
+                                    labelText: 'Executive Committee',
+                                    child: AssociatesExecutiveCommitteeSection(
+                                      itemAtual: widget.itemAtual,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              label: Text(
-                                hldController.text,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              padding: EdgeInsets.zero,
-                              visualDensity: VisualDensity.compact,
-                              backgroundColor: Colors.indigo.withValues(
-                                alpha: 0.08,
-                              ),
-                              side: BorderSide.none,
+                            ),
+
+                            const Divider(height: 24),
+
+                            // 3. RODAPÉ FIXO (Informações de ID/Holding + Botão)
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final bool isSmallScreen =
+                                    constraints.maxWidth < 480;
+
+                                final chipsWidget = Wrap(
+                                  spacing: 8.0,
+                                  runSpacing: 4.0,
+                                  crossAxisAlignment:
+                                      WrapCrossAlignment.center,
+                                  children: [
+                                    Chip(
+                                      avatar: const Icon(
+                                        Icons.key,
+                                        size: 14,
+                                        color: Colors.indigo,
+                                      ),
+                                      label: Text(
+                                        'ID: ${idController.text}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      visualDensity: VisualDensity.compact,
+                                      backgroundColor: Colors.indigo
+                                          .withValues(alpha: 0.08),
+                                      side: BorderSide.none,
+                                    ),
+                                    Chip(
+                                      avatar: const Icon(
+                                        Icons.verified_user,
+                                        size: 14,
+                                        color: Colors.indigo,
+                                      ),
+                                      label: Text(
+                                        hldController.text,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      visualDensity: VisualDensity.compact,
+                                      backgroundColor: Colors.indigo
+                                          .withValues(alpha: 0.08),
+                                      side: BorderSide.none,
+                                    ),
+                                  ],
+                                );
+
+                                final buttonWidget = ElevatedButton.icon(
+                                  onPressed: isLoading ? null : context.pop,
+                                  icon: const Icon(Icons.arrow_back, size: 18),
+                                  label: const Text('Voltar / Sair'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.indigo,
+                                    foregroundColor: Colors.white,
+                                    elevation: 2,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                );
+
+                                if (isSmallScreen) {
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      chipsWidget,
+                                      const SizedBox(height: 12),
+                                      buttonWidget,
+                                    ],
+                                  );
+                                }
+
+                                return Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(child: chipsWidget),
+                                    const SizedBox(width: 12),
+                                    buttonWidget,
+                                  ],
+                                );
+                              },
                             ),
                           ],
-                        );
-
-                        final buttonWidget = ElevatedButton.icon(
-                          onPressed: context.pop,
-                          icon: const Icon(Icons.arrow_back, size: 18),
-                          label: const Text('Voltar / Sair'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo,
-                            foregroundColor: Colors.white,
-                            elevation: 2,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        );
-
-                        if (isSmallScreen) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              chipsWidget,
-                              const SizedBox(height: 12),
-                              buttonWidget,
-                            ],
-                          );
-                        }
-
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(child: chipsWidget),
-                            const SizedBox(width: 12),
-                            buttonWidget,
-                          ],
-                        );
-                      },
+                        ),
+                      ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ),
+
+                // 🌀 OVERLAY DE CARREGAMENTO DURANTE PROCESSAMENTO
+                if (isLoading)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      child: Center(
+                        child: Card(
+                          elevation: 6,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24.0,
+                              vertical: 16.0,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                CircularProgressIndicator(),
+                                SizedBox(width: 16),
+                                Text(
+                                  'Carregando dados...',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );

@@ -43,8 +43,6 @@ class OpenBarTicketTicketitemController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      debugPrint('--->$p_tkt_pas_id');
-
       await mySupabaseClient.safePostgrestCall(
         () => supabaseClient.rpc(
           'open_bar_ticket_item',

@@ -28,6 +28,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
   String _pflIdResolvido = '';
   String _hldIdResolvido = '';
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
@@ -36,7 +37,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
         getItBdJourneyRidingController.get<BdJourneyRidingController>();
     profileController = getItBdProfileController<BdProfileController>();
 
-    // 🟢 Escuta alterações no perfil global
     profileController.pessoaSelecionadaNotifier.addListener(_onPessoaChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,19 +44,21 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     });
   }
 
+  // ==========================================
   @override
   void dispose() {
     profileController.pessoaSelecionadaNotifier.removeListener(_onPessoaChanged);
     super.dispose();
   }
 
+  // ==========================================
   void _onPessoaChanged() {
-    // 🟢 CORREÇÃO: Tenta carregar se QUALQUER um dos dois IDs ainda estiver vazio
     if (_pflIdResolvido.isEmpty || _hldIdResolvido.isEmpty) {
       _carregarJornada();
     }
   }
 
+  // ==========================================
   @override
   void didUpdateWidget(covariant ProfileJourneyRiding oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -65,6 +67,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     }
   }
 
+  // ==========================================
   void _atualizarECarregarJornada() {
     controller.vProfileJourneyridingDetaisNotifier.value = [];
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -72,39 +75,32 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     });
   }
 
+  // ==========================================
   Future<void> _carregarJornada() async {
     final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
 
-    // 🟢 Resolve dinamicamente os IDs (do Widget ou da Pessoa Logada)
     final String idResolvido = (widget.pflId != null && widget.pflId!.isNotEmpty)
         ? widget.pflId!
-        : (pessoaLogada?.pfl_id?.toString() ?? '');
+        : (pessoaLogada?.pfl_id.toString() ?? '');
 
     final String hldResolvido = (widget.hldId != null && widget.hldId!.isNotEmpty)
         ? widget.hldId!
-        : (pessoaLogada?.hld_id?.toString() ?? '');
+        : (pessoaLogada?.hld_id.toString() ?? '');
 
-    // 🟢 Valida AMBOS os IDs antes de chamar o banco
     if (idResolvido.isEmpty || hldResolvido.isEmpty) {
-      debugPrint('⚠️ ProfileJourneyRiding: pflId ou hldId ainda não disponíveis.');
       return;
     }
 
     _pflIdResolvido = idResolvido;
     _hldIdResolvido = hldResolvido;
 
-    try {
-      debugPrint('🔍 Buscando jornada para pflId: $_pflIdResolvido, hldId: $_hldIdResolvido');
-      await Future.wait([
-        controller.loadJourneyRidingDetais(_pflIdResolvido, _hldIdResolvido),
-        controller.loadJourneyRidingOrderByLevel(_hldIdResolvido),
-      ]);
-      debugPrint('✅ Etapas retornadas: ${controller.vProfileJourneyridingDetaisNotifier.value.length}');
-    } catch (e) {
-      debugPrint('❌ Erro ao buscar jornada: $e');
-    }
+    await Future.wait([
+      controller.loadJourneyRidingDetais(_pflIdResolvido, _hldIdResolvido),
+      controller.loadJourneyRidingOrderByLevel(_hldIdResolvido),
+    ]);
   }
 
+  // ==========================================
   int _parseLevel(dynamic levelValue) {
     if (levelValue == null) return 0;
     final str = levelValue.toString().trim();
@@ -120,6 +116,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     return int.tryParse(onlyDigits) ?? 0;
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -127,90 +124,128 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
       builder: (context, isLoading, child) {
         if (isLoading) {
           return const Padding(
-            padding: EdgeInsets.all(24.0),
+            padding: EdgeInsets.all(32.0),
             child: Center(child: CircularProgressIndicator()),
           );
         }
 
-        return ValueListenableBuilder<List<JourneyRidingModel>>(
-          valueListenable: controller.vProfileJourneyridingDetaisNotifier,
-          builder: (context, listaJornadaPerfil, child) {
-            return ValueListenableBuilder<List<JourneyRidingModel>>(
-              valueListenable: controller.journeyRidingOrderByLevelNotifier,
-              builder: (context, todasEtapas, child) {
-                if (listaJornadaPerfil.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: Center(
-                      child: Text(
-                        'Nenhuma graduação ou etapa registrada para este perfil.',
-                        style: TextStyle(color: Colors.white54, fontSize: 13),
-                      ),
-                    ),
-                  );
-                }
-
-                final graduacaoAtual = listaJornadaPerfil.first;
-                final int currentLevel = _parseLevel(graduacaoAtual.jr_level);
-
-                JourneyRidingModel? proximoNivel;
-                for (var etapa in todasEtapas) {
-                  final lvl = _parseLevel(etapa.jr_level);
-                  if (lvl > currentLevel) {
-                    proximoNivel = etapa;
-                    break;
-                  }
-                }
-
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
+        return ValueListenableBuilder<String?>(
+          valueListenable: controller.errorNotifier,
+          builder: (context, errorMessage, child) {
+            if (errorMessage != null && errorMessage.isNotEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Center(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildResumoJornada(
-                        lista: listaJornadaPerfil,
-                        proximoNivel: proximoNivel,
-                        catalogoCarregado: todasEtapas.isNotEmpty,
-                        isLoading: isLoading,
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      if (proximoNivel != null) ...[
-                        _buildProximoNivelCard(
-                          proximo: proximoNivel,
-                          graduacaoAtual: graduacaoAtual,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      const Text(
-                        'Histórico de Graduações',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white70,
-                        ),
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.redAccent,
+                        size: 48,
                       ),
                       const SizedBox(height: 8),
-
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: listaJornadaPerfil.length,
-                        itemBuilder: (context, index) {
-                          final bool isAtual =
-                              listaJornadaPerfil[index].jr_id ==
-                              graduacaoAtual.jr_id;
-                          return _buildJornadaCard(
-                            listaJornadaPerfil[index],
-                            isAtual,
-                          );
-                        },
+                      Text(
+                        errorMessage,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: _carregarJornada,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Tentar Novamente'),
                       ),
                     ],
                   ),
+                ),
+              );
+            }
+
+            return ValueListenableBuilder<List<JourneyRidingModel>>(
+              valueListenable: controller.vProfileJourneyridingDetaisNotifier,
+              builder: (context, listaJornadaPerfil, child) {
+                return ValueListenableBuilder<List<JourneyRidingModel>>(
+                  valueListenable: controller.journeyRidingOrderByLevelNotifier,
+                  builder: (context, todasEtapas, child) {
+                    if (listaJornadaPerfil.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: Center(
+                          child: Text(
+                            'Nenhuma graduação ou etapa registrada para este perfil.',
+                            style: TextStyle(color: Colors.white54, fontSize: 13),
+                          ),
+                        ),
+                      );
+                    }
+
+                    final graduacaoAtual = listaJornadaPerfil.first;
+                    final int currentLevel = _parseLevel(graduacaoAtual.jr_level);
+
+                    JourneyRidingModel? proximoNivel;
+                    for (var etapa in todasEtapas) {
+                      final lvl = _parseLevel(etapa.jr_level);
+                      if (lvl > currentLevel) {
+                        proximoNivel = etapa;
+                        break;
+                      }
+                    }
+
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildResumoJornada(
+                            lista: listaJornadaPerfil,
+                            proximoNivel: proximoNivel,
+                            catalogoCarregado: todasEtapas.isNotEmpty,
+                            isLoading: isLoading,
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          if (proximoNivel != null) ...[
+                            _buildProximoNivelCard(
+                              proximo: proximoNivel,
+                              graduacaoAtual: graduacaoAtual,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+
+                          const Text(
+                            'Histórico de Graduações',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: listaJornadaPerfil.length,
+                            itemBuilder: (context, index) {
+                              final bool isAtual =
+                                  listaJornadaPerfil[index].jr_id ==
+                                  graduacaoAtual.jr_id;
+                              return _buildJornadaCard(
+                                listaJornadaPerfil[index],
+                                isAtual,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 );
               },
             );
@@ -220,6 +255,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
+  // ==========================================
   Widget _buildResumoJornada({
     required List<JourneyRidingModel> lista,
     required JourneyRidingModel? proximoNivel,
@@ -239,8 +275,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     final String nomeProximaGraduacao;
     if (proximoNivel != null) {
       nomeProximaGraduacao =
-          proximoNivel.jr_nome ??
-          'Lvl ${_parseLevel(proximoNivel.jr_level)}';
+          proximoNivel.jr_nome;
     } else if (isLoading || (!catalogoCarregado && totalEtapas > 0)) {
       nomeProximaGraduacao = 'Carregando...';
     } else {
@@ -285,6 +320,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
+  // ==========================================
   Widget _buildResumoColumn(String label, String value, Color color) {
     return Column(
       children: [
@@ -311,12 +347,13 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
+  // ==========================================
   Widget _buildProximoNivelCard({
     required JourneyRidingModel proximo,
     required JourneyRidingModel? graduacaoAtual,
   }) {
-    final String nome = proximo.jr_nome ?? 'Próxima Graduação';
-    final String nivel = proximo.jr_level?.toString() ?? '';
+    final String nome = proximo.jr_nome;
+    final String nivel = proximo.jr_level.toString();
 
     final String? promoDateStr = graduacaoAtual?.uj_promotion_date;
     final DateTime? promoDate =
@@ -461,6 +498,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
+  // ==========================================
   Widget _buildBadgeContagemRegressiva(int? diasRestantes) {
     if (diasRestantes == null) return const SizedBox.shrink();
 
@@ -498,6 +536,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
+  // ==========================================
   Widget _buildInfoLinhaProgresso(String rotulo, String valor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -523,10 +562,11 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
+  // ==========================================
   Widget _buildJornadaCard(JourneyRidingModel etapa, bool isAtual) {
-    final String tituloEtapa = etapa.jr_nome ?? 'Graduação / Etapa';
+    final String tituloEtapa = etapa.jr_nome;
     final String dataPromocao = generalService.formatarDataBr(
-      etapa.uj_promotion_date ?? '',
+      etapa.uj_promotion_date,
     );
 
     return Card(
@@ -583,22 +623,22 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildInfoRow('Etapa / Graduação:', tituloEtapa),
-                if (etapa.jr_level != null) ...[
+                if (etapa.jr_level.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   _buildInfoRow('Nível:', '${etapa.jr_level}'),
                 ],
                 const SizedBox(height: 6),
                 _buildInfoRow('Data da Promoção:', dataPromocao),
-                if (etapa.jr_minimum_time_indays != null) ...[
+                if (etapa.jr_minimum_time_indays.isNotEmpty ) ...[
                   const SizedBox(height: 6),
                   _buildInfoRow(
                     'Tempo Mínimo Exigido:',
                     '${etapa.jr_minimum_time_indays} dias',
                   ),
                 ],
-                if (etapa.jr_desc != null && etapa.jr_desc!.isNotEmpty) ...[
+                if (etapa.jr_desc.isNotEmpty && etapa.jr_desc.isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  _buildInfoRow('Observações:', etapa.jr_desc!),
+                  _buildInfoRow('Observações:', etapa.jr_desc),
                 ],
               ],
             ),
@@ -608,6 +648,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
+  // ==========================================
   Widget _buildInfoRow(String label, String valor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -633,6 +674,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
+  // ==========================================
   Widget _buildStatusBadge(bool isAtual) {
     final String label = isAtual ? 'ATUAL' : 'CONCLUÍDA';
     final Color color = isAtual ? Colors.greenAccent : Colors.white38;
@@ -657,4 +699,5 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
       ),
     );
   }
+
 }

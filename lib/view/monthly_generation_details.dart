@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:originais/models/profile_model.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/controllers/payment_value_controller.dart';
-import 'package:originais/models/payment_value.dart';
 import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/controllers/monthly_payments_controller.dart';
@@ -16,7 +14,6 @@ import 'package:originais/controllers/monthly_distinct_controller.dart';
 class MonthlyGenerationDetails extends StatefulWidget {
   const MonthlyGenerationDetails({super.key});
 
-  // ==========================================
   @override
   State<MonthlyGenerationDetails> createState() =>
       MonthlyGenerationDetailsState();
@@ -41,10 +38,10 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
   final myreferencia = TextEditingController();
   final hldController = TextEditingController();
   final fullNameController = TextEditingController();
+  final datapagamento = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
 
-  final datapagamento = TextEditingController();
   String? formaPagamentoSelecionada;
 
   final ScrollController profilesScrollController = ScrollController();
@@ -57,22 +54,51 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
   late List listaFormas = [];
 
   // ==========================================
-  MonthlyGenerationDetailsState();
+  void _onErrorChanged() {
+    final error = bdMonthlyPaymentsController.errorNotifier.value;
+
+    if (error != null && error.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro: $error'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
 
   // ==========================================
   @override
   void initState() {
+    super.initState();
     initializeDateFormatting('pt', 'BR');
 
     hldValueNotifier.value = '1';
 
-    super.initState();
+    // Registrar o ouvinte de notificações de erro do controller
+    bdMonthlyPaymentsController.errorNotifier.addListener(_onErrorChanged);
   }
 
   // ==========================================
   @override
   void dispose() {
+    // Remover o listener para evitar vazamento de memória (memory leaks)
+    bdMonthlyPaymentsController.errorNotifier.removeListener(_onErrorChanged);
+
+    // Descarte de controllers e notifiers
+    myreferencia.dispose();
+    hldController.dispose();
+    fullNameController.dispose();
+    datapagamento.dispose();
     profilesScrollController.dispose();
+
+    hldValueNotifier.dispose();
+    vpgValueNotifier.dispose();
+    mValueNotifier.dispose();
+    yValueNotifier.dispose();
 
     super.dispose();
   }
@@ -84,83 +110,128 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
 
     return Scaffold(
       appBar: const CustomFloatingAppBar(title: 'Monthly Generation Details'),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
-        child: Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8.0,
-              vertical: 16.0,
-            ),
-            child: SizedBox.expand(
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
+      body: ListenableBuilder(
+        listenable: Listenable.merge([
+          bdMonthlyPaymentsController.loadingNotifier,
+          bdMonthlyPaymentsController.errorNotifier,
+        ]),
+        builder: (context, _) {
+          final isLoading = bdMonthlyPaymentsController.loadingNotifier.value;
+
+          return Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 12.0,
                 ),
-                child: Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            // 1. CAMPO DE DATA (Mês/Ano)
-                            TextFormField(
-                              controller: myreferencia,
-                              readOnly: true,
-                              onTap: () => _exibirSeletorMesAno(context),
-                              textAlign: TextAlign.start,
-                              decoration: const InputDecoration(
-                                labelText: 'Ref.: Mês/Ano',
-                                prefixIcon: Icon(Icons.calendar_today),
-                                border: OutlineInputBorder(),
-                              ),
-                              // Validação do campo
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Selecione o Mês/Ano de referência';
-                                }
-                                return null;
-                              },
+                child: Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 16.0,
+                    ),
+                    child: SizedBox.expand(
+                      child: Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              children: [
+                                // 1. CAMPO DE DATA (Mês/Ano)
+                                TextFormField(
+                                  controller: myreferencia,
+                                  readOnly: true,
+                                  enabled: !isLoading,
+                                  onTap: () => _exibirSeletorMesAno(context),
+                                  textAlign: TextAlign.start,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Ref.: Mês/Ano',
+                                    prefixIcon: Icon(Icons.calendar_today),
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Selecione o Mês/Ano de referência';
+                                    }
+                                    return null;
+                                  },
+                                ),
+
+                                const SizedBox(height: distance),
+
+                                // 2. DROPDOWN
+                                paymentValueDropDown(isLoading),
+
+                                const SizedBox(height: distance),
+
+                                // 3. TABELA DE PERFIS
+                                Expanded(child: profilesTable()),
+
+                                const SizedBox(height: distance),
+
+                                // 4. BOTÕES NO RODAPÉ
+                                _buildButtons(isLoading),
+                              ],
                             ),
-
-                            const SizedBox(height: distance),
-
-                            // 2. DROPDOWN
-                            paymentValueDropDown(),
-
-                            const SizedBox(height: distance),
-
-                            // 3. EXPANDED APENAS NA TABELA:
-                            // Ocupa exatamente o espaço restante da tela sem estourar os limites
-                            Expanded(child: profilesTable()),
-
-                            const SizedBox(height: distance),
-
-                            // 4. BOTÕES NO RODAPÉ
-                            _buildButtons(),
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-        ),
+
+              // Overlay de carregamento durante operações no banco de dados
+              if (isLoading)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    child: Center(
+                      child: Card(
+                        elevation: 6,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24.0,
+                            vertical: 16.0,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(width: 16),
+                              Text(
+                                'Processando mensalidades...',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 
   // ==========================================
-  Widget paymentValueDropDown() {
+  Widget paymentValueDropDown(bool isLoading) {
     return ListenableBuilder(
       listenable: bdPaymentValueController.bdPaymentValueNotifier,
       builder: (context, child) {
@@ -168,15 +239,13 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
 
         return DropdownButtonFormField2<String>(
           isExpanded: true,
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(
+          decoration: const InputDecoration(
+            contentPadding: EdgeInsets.symmetric(
               vertical: 16,
               horizontal: 16,
             ),
             border: OutlineInputBorder(),
-            // Add more decoration..
           ),
-
           hint: const Text(
             'Select the Payment Value',
             style: TextStyle(fontSize: 14),
@@ -199,9 +268,11 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
             }
             return null;
           },
-          onChanged: (value) {
-            vpgValueNotifier.value = value;
-          },
+          onChanged: isLoading
+              ? null
+              : (value) {
+                  vpgValueNotifier.value = value;
+                },
           iconStyleData: const IconStyleData(
             icon: Icon(Icons.arrow_drop_down, color: Colors.white70),
           ),
@@ -302,13 +373,13 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
   }
 
   // ==========================================
-  Widget _buildButtons() {
+  Widget _buildButtons(bool isLoading) {
     const double distance = 16.0;
     return Row(
       children: [
         Expanded(
           child: OutlinedButton.icon(
-            onPressed: () => context.pop(),
+            onPressed: isLoading ? null : () => context.pop(),
             icon: const Icon(Icons.arrow_back),
             label: const Text('Cancelar'),
             style: OutlinedButton.styleFrom(
@@ -320,11 +391,13 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
         const SizedBox(width: distance),
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: () async {
-              if (_formKey.currentState!.validate()) {
-                insertMonthlyGeneration();
-              }
-            },
+            onPressed: isLoading
+                ? null
+                : () async {
+                    if (_formKey.currentState!.validate()) {
+                      insertMonthlyGeneration();
+                    }
+                  },
             icon: const Icon(Icons.save),
             label: const Text('Generate monthly'),
             style: ElevatedButton.styleFrom(
@@ -342,7 +415,6 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
   void _exibirSeletorMesAno(BuildContext context) async {
     final now = DateTime.now();
 
-    // Define o limite inferior como o dia 1 do mês atual
     final DateTime currentMonthStart = DateTime(now.year, now.month, 1);
 
     final DateTime? selectedDate = await showMonthPicker(
@@ -368,18 +440,6 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
   // ==========================================
   void insertMonthlyGeneration() async {
     try {
-      // final List<Map<String, dynamic>> dadosParaInserir = filteredList.map((item) {
-      // return {
-      //   'mes_mes_referencia': mValueNotifier.value,
-      //   'mes_ano_referencia': yValueNotifier.value,
-      //   'mes_pfl_id': item.pfl_id,
-      //   'mes_hld_id': item.hld_id,
-      //   'mes_vpg_id': vpgValueNotifier.value,
-      //   'mes_vpg_hld_id': item.hld_id,
-      //   'mes_monthly_percent':item.pas_monthly_percent
-      //   };
-      // }).toList();
-
       final produtoEncontrado = listaFormas.firstWhere(
         (fpg) => fpg.vpg_id == vpgValueNotifier.value,
       );
@@ -390,24 +450,26 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
         int.parse(yValueNotifier.value.toString()),
         int.parse(mValueNotifier.value.toString()),
       );
-      final double tmpValor = double.parse( produtoEncontrado.vpg_valor_normal );
+      final double tmpValor = double.parse(
+        produtoEncontrado.vpg_valor_normal,
+      );
 
       final List<Map<String, dynamic>> dadosParaInserir = filteredList.map((
         item,
       ) {
-        double percentValue = double.parse( item.pas_monthly_percent.toString() );
-        percentValue = tmpValor * (percentValue/100);
-        
+        double percentValue = double.parse(item.pas_monthly_percent.toString());
+        percentValue = tmpValor * (percentValue / 100);
+
         return {
           'p_hld_id': item.hld_id,
           'p_pfl_id': item.pfl_id,
           'p_pfl_name': item.pfl_full_name,
-          'p_date_start': tmpDT, // Formato YYYY-MM-DD ou DateTime
+          'p_date_start': tmpDT,
           'p_desc': '$desc consid. ${item.pas_monthly_percent}%',
-          'p_tss_id': 2, // Removidas as aspas (int)
-          'p_table_number': -1, // Removidas as aspas (int)
-          'p_pdt_id': 33, // Removidas as aspas (int)
-          'p_pdt_quant': 1, // Removidas as aspas (int)
+          'p_tss_id': 2,
+          'p_table_number': -1,
+          'p_pdt_id': 33,
+          'p_pdt_quant': 1,
           'p_valor': percentValue.toString(),
           'p_tkt_vpg_id': vpgValueNotifier.value.toString(),
           'p_tkt_pas_id': item.pas_id.toString(),
@@ -417,29 +479,37 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
       await bdMonthlyPaymentsController.insertMonthlyGeneration(
         dadosParaInserir,
       );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error dados não atualizados!'),
-            backgroundColor: Colors.redAccent,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
+
+      final currentError = bdMonthlyPaymentsController.errorNotifier.value;
+
+      // Confirmação de sucesso e navegação apenas se não houver erros
+      if (mounted && (currentError == null || currentError.isEmpty)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Dados atualizados com sucesso!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
           ),
         );
+
+        await bdVMensalidadesDistinctController.loadMensalidadesDistincts();
+
+        if (mounted) {
+          context.pop();
+        }
       }
-      await bdVMensalidadesDistinctController.loadMensalidadesDistincts();
+    } catch (e) {
+      // Erros genéricos de runtime são capturados aqui caso ocorram fora da Controller
       if (mounted) {
-        context.pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro no processamento: $e'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }

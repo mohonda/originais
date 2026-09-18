@@ -9,46 +9,49 @@ class SanctionsController {
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
   late SupabaseClient supabaseClient;
 
-  final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
-  final ValueNotifier<List<SanctionsModel>> sanctionsNotifier = ValueNotifier<List<SanctionsModel>>([]);
+  final ValueNotifier<List<SanctionsModel>>
+    sanctionsNotifier = ValueNotifier<List<SanctionsModel>>([]);
   
+  final ValueNotifier<bool>
+    loadingNotifier = ValueNotifier<bool>(false);
+  
+  final ValueNotifier<String?>
+    errorNotifier = ValueNotifier<String?>(null);
+
+  
+  // ==========================================
   SanctionsController(){
     supabaseClient = mySupabaseClient.getSupabaseClient();
   }
   
-  /// Carrega as sanções cadastradas para a Holding (hld_id)
-  Future<void> loadSanctions(String hldId) async {
-    if (hldId.trim().isEmpty) {
-      sanctionsNotifier.value = [];
-      return;
-    }
+  // ==========================================
+  void dispose() {
+    loadingNotifier.dispose();
+    sanctionsNotifier.dispose();
+  }
 
+  // ==========================================
+  Future<void> loadSanctions(String hldId) async {
     try {
       loadingNotifier.value = true;
+      errorNotifier.value = null;
 
-      // 🟢 Execute a consulta no seu Banco de Dados / Supabase / API aqui.
-      // Exemplo com Supabase:
+
       final resposta = await mySupabaseClient.safePostgrestCall(
         () => supabaseClient
           .from('sanctions')
           .select()
           .eq('san_hld_id', hldId)
-          // .order('san_name', ascending: true)
       );
 
       sanctionsNotifier.value =  resposta.map((item) =>
         SanctionsModel.fromJson(item)).toList();
-    } catch (e) {
-      debugPrint('❌ Erro ao carregar sanções: $e');
+    } catch (e, stackTrace) {
       sanctionsNotifier.value = [];
+      errorNotifier.value = 'loadSanctions: $e \n$stackTrace';
     } finally {
       loadingNotifier.value = false;
     }
   }
 
-  /// Limpa as instâncias dos ValueNotifiers da memória ao encerrar o controller
-  void dispose() {
-    loadingNotifier.dispose();
-    sanctionsNotifier.dispose();
-  }
 }

@@ -1,17 +1,18 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sidebarx/sidebarx.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:originais/services/my_supabase_client_service.dart';
+
 import 'package:originais/controllers/auth_controller.dart';
-import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/controllers/journey_riding_controller.dart';
+import 'package:originais/controllers/monthly_distinct_controller.dart';
 import 'package:originais/controllers/monthly_payments_controller.dart';
 import 'package:originais/controllers/profile_associate_status_controller.dart';
-import 'package:originais/controllers/monthly_distinct_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/controllers/profile_image_service.dart';
+import 'package:originais/services/my_supabase_client_service.dart';
 
 class MainWindow extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -19,10 +20,10 @@ class MainWindow extends StatefulWidget {
   const MainWindow({super.key, required this.navigationShell});
 
   @override
-  State<MainWindow> createState() => _MainWindow();
+  State<MainWindow> createState() => _MainWindowState();
 }
 
-class _MainWindow extends State<MainWindow> {
+class _MainWindowState extends State<MainWindow> {
   late final SidebarXController _sidebarController;
 
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
@@ -39,9 +40,8 @@ class _MainWindow extends State<MainWindow> {
       getItBdVMensalidadesDistinctController<
         BdVMensalidadesDistinctController
       >();
-  
-  final paymentService = ProfileImageService();
 
+  final paymentService = ProfileImageService();
 
   int win = 0;
 
@@ -52,6 +52,7 @@ class _MainWindow extends State<MainWindow> {
   String pfl_id = '';
   String hld_id = '';
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
@@ -61,22 +62,71 @@ class _MainWindow extends State<MainWindow> {
       extended: true,
     );
 
-    pfl_id = mySupabaseClient.getUserId();
+    bdProfileController.errorNotifier.addListener(_onErrorProfileChanged);
+    bdJourneyRidingController.errorNotifier.addListener(_onErrorJourneyChanged);
 
-    bdProfileController.checkUserProfileExist(pfl_id);
-    
-    hld_id = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '1';
-    bdProfileController.fetchProfilesById( pfl_id, hld_id);
-
-    bdProfileController.loadProfiles( hld_id );
-    
-    bdJourneyRidingController.loadJourneyRiding( hld_id );
-    
-    bdMonthlyPaymentsController.loadCurrentMonthlyPayment();
-
-    bdVMensalidadesDistinctController.loadMensalidadesDistincts();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _inicializarDados();
+    });
   }
 
+  // ==========================================
+  @override
+  void dispose() {
+    bdProfileController.errorNotifier.removeListener(_onErrorProfileChanged);
+    bdJourneyRidingController.errorNotifier.removeListener(_onErrorJourneyChanged);
+    _sidebarController.dispose();
+    super.dispose();
+  }
+
+  // ==========================================
+  void _onErrorProfileChanged() {
+    final erro = bdProfileController.errorNotifier.value;
+    if (erro != null && erro.isNotEmpty && mounted) {
+      _exibirSnackBarErro(erro);
+    }
+  }
+
+  // ==========================================
+  void _onErrorJourneyChanged() {
+    final erro = bdJourneyRidingController.errorNotifier.value;
+    if (erro != null && erro.isNotEmpty && mounted) {
+      _exibirSnackBarErro(erro);
+    }
+  }
+
+  // ==========================================
+  void _exibirSnackBarErro(String mensagem) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensagem),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  // ==========================================
+  Future<void> _inicializarDados() async {
+    pfl_id = mySupabaseClient.getUserId();
+
+    if (pfl_id.isEmpty) return;
+
+    await bdProfileController.checkUserProfileExist(pfl_id);
+
+    hld_id =
+        bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '1';
+
+    await Future.wait([
+      bdProfileController.fetchProfilesById(pfl_id, hld_id),
+      bdProfileController.loadProfiles(hld_id),
+      bdJourneyRidingController.loadJourneyRiding(hld_id),
+      bdMonthlyPaymentsController.loadCurrentMonthlyPayment(),
+      bdVMensalidadesDistinctController.loadMensalidadesDistincts(),
+    ]);
+  }
+
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     if (win == 0 &&
@@ -86,58 +136,77 @@ class _MainWindow extends State<MainWindow> {
       win++;
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 600;
+    return ValueListenableBuilder<bool>(
+      valueListenable: bdProfileController.loadingNotifier,
+      builder: (context, isLoading, child) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 600;
 
-        if (isMobile && !_sidebarController.extended) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _sidebarController.setExtended(true);
-          });
-        }
+            if (isMobile && !_sidebarController.extended) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _sidebarController.setExtended(true);
+              });
+            }
 
-        return Scaffold(
-          // No Mobile: Exibe a AppBar com ícone para abrir a gaveta (Drawer)
-          appBar: isMobile
-              ? AppBar(
-                  title: const Text('Menu'),
-                  leading: Builder(
-                    builder: (context) {
-                      return IconButton(
-                        icon: const Icon(Icons.menu),
-                        onPressed: () {
-                          Scaffold.of(context).openDrawer();
+            return Scaffold(
+              appBar: isMobile
+                  ? AppBar(
+                      title: const Text('Menu'),
+                      leading: Builder(
+                        builder: (context) {
+                          return IconButton(
+                            icon: const Icon(Icons.menu),
+                            onPressed: () {
+                              Scaffold.of(context).openDrawer();
+                            },
+                          );
                         },
-                      );
-                    },
+                      ),
+                      bottom: isLoading
+                          ? const PreferredSize(
+                              preferredSize: Size.fromHeight(2.0),
+                              child: LinearProgressIndicator(),
+                            )
+                          : null,
+                    )
+                  : null,
+
+              drawer: isMobile
+                  ? Drawer(
+                      child: SafeArea(
+                        child: _buildSidebarX(context, isMobile: true),
+                      ),
+                    )
+                  : null,
+
+              body: Stack(
+                children: [
+                  Row(
+                    children: [
+                      if (!isMobile) _buildSidebarX(context, isMobile: false),
+                      Expanded(child: widget.navigationShell),
+                    ],
                   ),
-                )
-              : null,
 
-          // No Mobile: O SidebarX fica dentro do Drawer
-          drawer: isMobile
-              ? Drawer(
-                  child: SafeArea(
-                    child: _buildSidebarX(context, isMobile: true),
-                  ),
-                )
-              : null,
-
-          body: Row(
-            children: [
-              // No Desktop/Tablet: O SidebarX fica visível diretamente na tela
-              if (!isMobile) _buildSidebarX(context, isMobile: false),
-
-              // Conteúdo da rota do GoRouter
-              Expanded(child: widget.navigationShell),
-            ],
-          ),
+                  // 🟢 Indicador visual discreto superior durante o processamento do banco
+                  if (isLoading && !isMobile)
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: LinearProgressIndicator(minHeight: 3),
+                    ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  // ================= CONSTRUTOR REUTILIZÁVEL DO SIDEBARX =================
+  // ==========================================
   SidebarX _buildSidebarX(BuildContext context, {required bool isMobile}) {
     final userEmail = mySupabaseClient.getUserEmail();
 
@@ -150,51 +219,36 @@ class _MainWindow extends State<MainWindow> {
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
         ),
-        textStyle: TextStyle(
+        textStyle: const TextStyle(
           fontFamily: 'Roboto',
           color: Colors.white70,
           fontWeight: FontWeight.w100,
-          fontSize: 12
+          fontSize: 12,
         ),
         selectedTextStyle: const TextStyle(
           fontFamily: 'Roboto',
           color: Colors.white,
           fontWeight: FontWeight.w500,
-          fontSize: 12
+          fontSize: 12,
         ),
-        // 🟢 ADICIONE ESTAS 4 LINHAS PARA CORRIGIR O ALINHAMENTO DO ÍCONE E TEXTO
         itemPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        selectedItemPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        selectedItemPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
         itemTextPadding: const EdgeInsets.only(left: 16),
         selectedItemTextPadding: const EdgeInsets.only(left: 16),
-        
         itemDecoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
         selectedItemDecoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
-          border: Border.all(
-            // color: Theme.of(context).primaryColor,
-            color: Colors.white,
-          ),
+          border: Border.all(color: Colors.white),
         ),
         iconTheme: const IconThemeData(color: Colors.white70, size: 20),
-        selectedIconTheme: IconThemeData(color: Colors.white, size: 22),
-        // ==========================================
-        // ADICIONE ESTAS 3 PROPRIEDADES PARA O HOVER
-        // ==========================================
-        hoverColor: Colors.white.withValues(
-          alpha: 0.1,
-        ), // Cor de fundo ao passar o mouse
-        hoverTextStyle: const TextStyle(
-          color: Colors.white, // Cor do texto no hover
-        ),
-        hoverIconTheme: const IconThemeData(
-          color: Colors.white, // Cor do ícone no hover
-          size: 20,
-        ),
-        
-        
-        
+        selectedIconTheme: const IconThemeData(color: Colors.white, size: 22),
+        hoverColor: Colors.white.withValues(alpha: 0.1),
+        hoverTextStyle: const TextStyle(color: Colors.white),
+        hoverIconTheme: const IconThemeData(color: Colors.white, size: 20),
       ),
       extendedTheme: SidebarXTheme(width: isMobile ? double.infinity : 220),
 
@@ -243,30 +297,16 @@ class _MainWindow extends State<MainWindow> {
         if (_isCommerceExpanded) ...[
           SidebarXItem(
             iconBuilder: (selected, hovered) {
-              return Icon(
+              return const Icon(
                 Icons.subdirectory_arrow_right_rounded,
-                color: Colors.orangeAccent, 
+                color: Colors.orangeAccent,
                 size: 20,
               );
             },
-            // icon: Icons.subdirectory_arrow_right_rounded,
             label: '   Headquarters Bar',
-            
             onTap: () => _onItemTapped('headquartersbar', isMobile: isMobile),
           ),
-          // SidebarXItem(
-          //   iconBuilder: (selected, hovered) {
-          //     return Icon(
-          //       Icons.subdirectory_arrow_right_rounded,
-          //       color: Colors.orangeAccent, 
-          //       size: 20,
-          //     );
-          //   },
-          //   label: '   Outfit',
-          //   onTap: () => _onItemTapped('monthlygeneration', isMobile: isMobile),
-          // ),
         ],
-
         SidebarXItem(
           icon: Icons.person_outline,
           label: ' Profile',
@@ -287,34 +327,29 @@ class _MainWindow extends State<MainWindow> {
             });
           },
         ),
-        // ================= SUBITENS DE MENSALIDADES =================
         if (_isMensalidadesExpanded) ...[
           SidebarXItem(
             iconBuilder: (selected, hovered) {
-              return Icon(
+              return const Icon(
                 Icons.subdirectory_arrow_right_rounded,
-                color: Colors.orangeAccent, 
+                color: Colors.orangeAccent,
                 size: 20,
               );
             },
             label: '   Monthly Paiment',
             onTap: () => _onItemTapped('mensalidades', isMobile: isMobile),
           ),
-          // SidebarXItem(
-          //   icon: Icons.subdirectory_arrow_right_rounded,
-          //   label: '   Pagas e Pendentes',
-          //   onTap: () => _onItemTapped('mensalidades_lista', isMobile: isMobile),
-          // ),
           SidebarXItem(
             iconBuilder: (selected, hovered) {
-              return Icon(
+              return const Icon(
                 Icons.subdirectory_arrow_right_rounded,
-                color: Colors.orangeAccent, 
+                color: Colors.orangeAccent,
                 size: 20,
               );
             },
             label: '   Monthly Generation',
-            onTap: () => _onItemTapped('monthlygeneration', isMobile: isMobile),
+            onTap: () =>
+                _onItemTapped('monthlygeneration', isMobile: isMobile),
           ),
         ],
         SidebarXItem(
@@ -327,13 +362,12 @@ class _MainWindow extends State<MainWindow> {
             });
           },
         ),
-        // ================= SUBITENS DE MENSALIDADES =================
         if (_isAssemblersExpanded) ...[
           SidebarXItem(
             iconBuilder: (selected, hovered) {
-              return Icon(
+              return const Icon(
                 Icons.subdirectory_arrow_right_rounded,
-                color: Colors.orangeAccent, 
+                color: Colors.orangeAccent,
                 size: 20,
               );
             },
@@ -341,7 +375,6 @@ class _MainWindow extends State<MainWindow> {
             onTap: () => _onItemTapped('journalriding', isMobile: isMobile),
           ),
         ],
-
       ],
 
       footerBuilder: (context, extended) {
@@ -350,7 +383,6 @@ class _MainWindow extends State<MainWindow> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 1. BOTÃO SOBRE
               extended
                   ? TextButton.icon(
                       onPressed: () => context.go('/about'),
@@ -372,10 +404,8 @@ class _MainWindow extends State<MainWindow> {
                       tooltip: 'Sobre',
                     ),
 
-              // 2. LINHA DIVISÓRIA DE SEPARAÇÃO
               const Divider(color: Colors.white24, height: 16, thickness: 1),
 
-              // 3. BOTÃO DE LOGOUT
               extended
                   ? TextButton.icon(
                       onPressed: () => confirmLogout(),
@@ -383,9 +413,9 @@ class _MainWindow extends State<MainWindow> {
                       label: Text(
                         'Sair do App',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Colors.redAccent,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                              color: Colors.redAccent,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                     )
                   : IconButton(
@@ -400,17 +430,15 @@ class _MainWindow extends State<MainWindow> {
     );
   }
 
-  // ================= NAVEGAÇÃO =================
+  // ==========================================
   void _onItemTapped(String routeName, {required bool isMobile}) {
     if (isMobile) {
       Navigator.pop(context);
     }
-
-    // Navega diretamente pelo nome registrado no GoRouter
     context.goNamed(routeName);
   }
 
-  // ================= WIDGETS E MÉTODOS AUXILIARES =================
+  // ==========================================
   Widget buildNameEmail(String nome, String email) {
     return Column(
       children: [
@@ -419,7 +447,7 @@ class _MainWindow extends State<MainWindow> {
           child: Text(
             nome,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
@@ -435,6 +463,7 @@ class _MainWindow extends State<MainWindow> {
     );
   }
 
+  // ==========================================
   Widget buildAvatar(String avatarUrl) {
     return Stack(
       children: [
@@ -466,15 +495,22 @@ class _MainWindow extends State<MainWindow> {
                 color: Colors.white70,
               ),
               onPressed: () async {
-                // final newUrl =
-                await paymentService.selecionarAnexoEEnviar(
-                                                context: context,
-                                                payload: {
-                                                  'pfl_id': pfl_id,
-                                                  'hld_id': hld_id,                                                  
-                                                },
-                                                isDocumentoOuComprovanteLocal: false,
-                                              );
+                try {
+                  await paymentService.selecionarAnexoEEnviar(
+                    context: context,
+                    payload: {
+                      'pfl_id': pfl_id,
+                      'hld_id': hld_id,
+                    },
+                    isDocumentoOuComprovanteLocal: false,
+                  );
+                  // Atualiza perfil após alterar avatar
+                  await bdProfileController.fetchProfilesById(pfl_id, hld_id);
+                } catch (e) {
+                  if (mounted) {
+                    _exibirSnackBarErro('Erro ao atualizar imagem de perfil.');
+                  }
+                }
               },
             ),
           ),
@@ -483,6 +519,7 @@ class _MainWindow extends State<MainWindow> {
     );
   }
 
+  // ==========================================
   void confirmLogout() async {
     final bool? confirmar = await showDialog<bool>(
       context: context,

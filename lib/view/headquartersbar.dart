@@ -48,11 +48,12 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     pflId = bdProfileController.pessoaSelecionadaNotifier.value?.pfl_id ?? '';
     hldId = bdProfileController.pessoaSelecionadaNotifier.value?.hld_id ?? '';
 
-    // Escuta alterações no Notifier do Controller
-    bdHeadquartersBarController.headquartersBarNotifier.addListener(_onHeadquartersBarChanged);
-
-    // 🟢 ALTERAÇÃO 1: Escuta notificações de erro do controller
+    // Escuta alterações nos notificadores de dados e erros
+    bdHeadquartersBarController.headquartersBarNotifier
+        .addListener(_onHeadquartersBarChanged);
     bdHeadquartersBarController.errorNotifier.addListener(_onErrorChanged);
+    productsController.errorNotifier.addListener(_onErrorChanged);
+    ticketController.errorNotifier.addListener(_onErrorChanged);
 
     _carregarDadosIniciais();
   }
@@ -60,26 +61,35 @@ class HeadquartersBarState extends State<HeadquartersBar> {
   // ==========================================
   @override
   void dispose() {
-    bdHeadquartersBarController.headquartersBarNotifier.removeListener(_onHeadquartersBarChanged);
+    bdHeadquartersBarController.headquartersBarNotifier
+        .removeListener(_onHeadquartersBarChanged);
 
-    // 🟢 ALTERAÇÃO 2: Remove o ouvinte de erro
-    bdHeadquartersBarController.errorNotifier.removeListener(_onErrorChanged);
+    bdHeadquartersBarController.errorNotifier
+      .removeListener(_onErrorChanged);
+
+    productsController.errorNotifier
+      .removeListener(_onErrorChanged);
+    ticketController.errorNotifier
+      .removeListener(_onErrorChanged);
 
     bdHeadquartersBarController.disposeRealtime();
-
     bar_desc.dispose();
     super.dispose();
   }
 
   // ==========================================
   void _onErrorChanged() {
-    final error = bdHeadquartersBarController.errorNotifier.value;
+    final error = bdHeadquartersBarController.errorNotifier.value ??
+        productsController.errorNotifier.value ??
+        ticketController.errorNotifier.value;
+
     if (error != null && error.isNotEmpty && mounted) {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro: $error'),
           backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 4),
         ),
       );
@@ -105,7 +115,8 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
   // ==========================================
   void _onHeadquartersBarChanged() {
-    final barrasAbertas = bdHeadquartersBarController.headquartersBarNotifier.value;
+    final barrasAbertas =
+        bdHeadquartersBarController.headquartersBarNotifier.value;
 
     List<DateTime> datas = barrasAbertas.map((bar) {
       return DateTime.parse(bar.bar_open_date.toString());
@@ -132,9 +143,18 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
     return Scaffold(
       appBar: const CustomFloatingAppBar(title: 'Headquarters Bar'),
-      body: ValueListenableBuilder<bool>(
-        valueListenable: bdHeadquartersBarController.loadingNotifier,
-        builder: (context, isLoading, child) {
+      body: ListenableBuilder(
+        listenable: Listenable.merge([
+          bdHeadquartersBarController.loadingNotifier,
+          productsController.loadingNotifier,
+          ticketController.loadingNotifier,
+        ]),
+        builder: (context, _) {
+          final bool isLoading =
+              bdHeadquartersBarController.loadingNotifier.value ||
+                  productsController.loadingNotifier.value ||
+                  ticketController.loadingNotifier.value;
+
           if (isLoading && _openDays.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -194,7 +214,8 @@ class HeadquartersBarState extends State<HeadquartersBar> {
                                   onPressed: isLoading
                                       ? null
                                       : () async {
-                                          if (_formKey.currentState!.validate()) {
+                                          if (_formKey.currentState!
+                                              .validate()) {
                                             openHeadquartersBar();
                                           }
                                         },
@@ -208,11 +229,13 @@ class HeadquartersBarState extends State<HeadquartersBar> {
                                           ),
                                         )
                                       : const Icon(Icons.save),
-                                  label: Text(isLoading ? 'Opening...' : 'Open'),
+                                  label: Text(
+                                      isLoading ? 'Processando...' : 'Open'),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.indigo,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
                                   ),
                                 ),
                               ),
@@ -224,6 +247,36 @@ class HeadquartersBarState extends State<HeadquartersBar> {
                   ),
                 ),
               ),
+
+              if (isLoading)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    child: Center(
+                      child: Card(
+                        elevation: 6,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 24.0, vertical: 16.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(width: 16),
+                              Text(
+                                'Processando requisição...',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           );
         },
@@ -252,7 +305,8 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
     final bool isReadOnly = dataSelecionada.isBefore(hojeOperacional);
 
-    final barrasAbertas = bdHeadquartersBarController.headquartersBarNotifier.value;
+    final barrasAbertas =
+        bdHeadquartersBarController.headquartersBarNotifier.value;
 
     dynamic barExistente = barrasAbertas.cast<dynamic>().firstWhere(
       (b) {
@@ -267,7 +321,6 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     dynamic barId = barExistente?.bar_id ?? barExistente?.barId;
 
     if (barExistente == null && !isReadOnly) {
-      // 🟢 ALTERAÇÃO 5: Captura e valida o resultado da abertura
       final newBarId = await bdHeadquartersBarController.openHeadquartersBar(
         pflId,
         hldId,
@@ -282,7 +335,8 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
       await bdHeadquartersBarController.loadHeadquartersBar(hldId, typeSales);
 
-      final barrasAtualizadas = bdHeadquartersBarController.headquartersBarNotifier.value;
+      final barrasAtualizadas =
+          bdHeadquartersBarController.headquartersBarNotifier.value;
       barExistente = barrasAtualizadas.cast<dynamic>().firstWhere(
         (b) {
           final bDate = DateTime.parse(b.bar_open_date.toString());
@@ -308,6 +362,7 @@ class HeadquartersBarState extends State<HeadquartersBar> {
       return;
     }
 
+    // Carregamento assíncrono dos módulos secundários
     await productsController.loadProdutos(hldId);
     await ticketController.loadTicketStatus(hldId);
     await ticketController.loadTickets(barId, openDate, hldId);

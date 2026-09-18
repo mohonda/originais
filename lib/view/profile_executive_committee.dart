@@ -32,19 +32,21 @@ class _ProfileExecutiveCommitteeState
   late String pflId = '';
   late String hldId = '';
 
+  // ==========================================
   @override
   void initState() {
     super.initState();
-    
+
     controller = widget.controller ??
         getItBdVExecutiveCommitteeTermOfOfficeMembersController
             .get<BdVExecutiveCommitteeTermOfOfficeMembersController>();
-    
+
     profileController = getItBdProfileController<BdProfileController>();
 
     _atualizarECarregarCargos();
   }
 
+  // ==========================================
   @override
   void didUpdateWidget(covariant ProfileExecutiveCommittee oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -53,22 +55,23 @@ class _ProfileExecutiveCommitteeState
     }
   }
 
+  // ==========================================
   void _atualizarECarregarCargos() {
-    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
-
-    pflId = widget.pflId ?? pessoaLogada?.pfl_id?.toString() ?? '';
-    hldId = widget.hldId ?? pessoaLogada?.hld_id?.toString() ?? '';
+    pflId = profileController.pessoaSelecionadaNotifier.value?.pfl_id.toString() ?? '';
+    hldId = profileController.pessoaSelecionadaNotifier.value?.hld_id.toString() ?? '';
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarCargosExecutivos();
     });
   }
 
+  // ==========================================
   Future<void> _carregarCargosExecutivos() async {
     if (pflId.isEmpty) return;
     await controller.loadExecutiveOrderByDateStart(pflId, hldId);
   }
 
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -76,49 +79,88 @@ class _ProfileExecutiveCommitteeState
       builder: (context, isLoading, child) {
         if (isLoading) {
           return const Padding(
-            padding: EdgeInsets.all(24.0),
+            padding: EdgeInsets.all(32.0),
             child: Center(child: CircularProgressIndicator()),
           );
         }
 
-        return ValueListenableBuilder<
-            List<VExecutiveCommitteeTermOfOfficeMembersModel>>(
-          valueListenable: controller.executiveOrderByDateStart,
-          builder: (context, listaCargos, child) {
-            if (listaCargos.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(24.0),
+        return ValueListenableBuilder<String?>(
+          valueListenable: controller.errorNotifier,
+          builder: (context, errorMessage, child) {
+            if (errorMessage != null && errorMessage.isNotEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Center(
-                  child: Text(
-                    'Nenhum cargo executivo registrado para este perfil.',
-                    style: TextStyle(color: Colors.white54, fontSize: 13),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.redAccent,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        errorMessage,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: _carregarCargosExecutivos,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Tentar Novamente'),
+                      ),
+                    ],
                   ),
                 ),
               );
             }
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 📊 Resumo do Usuário
-                  _buildResumoCargos(listaCargos),
+            return ValueListenableBuilder<
+                List<VExecutiveCommitteeTermOfOfficeMembersModel>>(
+              valueListenable: controller.executiveOrderByDateStart,
+              builder: (context, listaCargos, child) {
+                // 🟢 3. Mensagem para estado sem dados
+                if (listaCargos.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(24.0),
+                    child: Center(
+                      child: Text(
+                        'Nenhum cargo executivo registrado para este perfil.',
+                        style: TextStyle(color: Colors.white54, fontSize: 13),
+                      ),
+                    ),
+                  );
+                }
 
-                  const SizedBox(height: 12),
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Resumo do Usuário
+                      _buildResumoCargos(listaCargos),
 
-                  // 📋 Lista de Cargos Executivos
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: listaCargos.length,
-                    itemBuilder: (context, index) {
-                      return _buildCargoCard(listaCargos[index]);
-                    },
+                      const SizedBox(height: 12),
+
+                      // Lista de Cargos Executivos
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: listaCargos.length,
+                        itemBuilder: (context, index) {
+                          return _buildCargoCard(listaCargos[index]);
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             );
           },
         );
@@ -126,7 +168,7 @@ class _ProfileExecutiveCommitteeState
     );
   }
 
-  // 📊 Card de Resumo de Cargos
+  // ==========================================
   Widget _buildResumoCargos(
     List<VExecutiveCommitteeTermOfOfficeMembersModel> lista,
   ) {
@@ -134,7 +176,7 @@ class _ProfileExecutiveCommitteeState
 
     final int ativos = lista.where((c) {
       final bool isAtivoFlag = c.ectm_date_end.isEmpty;
-      final DateTime? endDate = DateTime.tryParse(c.ect_date_end ?? '');
+      final DateTime? endDate = DateTime.tryParse(c.ect_date_end);
       final bool dataValida = endDate == null || endDate.isAfter(DateTime.now());
       return isAtivoFlag && dataValida;
     }).length;
@@ -167,6 +209,7 @@ class _ProfileExecutiveCommitteeState
     );
   }
 
+  // ==========================================
   Widget _buildResumoColumn(String label, String value, Color color) {
     return Column(
       children: [
@@ -193,21 +236,21 @@ class _ProfileExecutiveCommitteeState
     );
   }
 
-  // 📋 Card Individual do Cargo/Mandato
+  // ==========================================
   Widget _buildCargoCard(VExecutiveCommitteeTermOfOfficeMembersModel cargo) {
     bool isAtivo = false;
 
     final bool isAtivoFlag = cargo.ectm_date_end.isEmpty;
     if (!isAtivoFlag) {
-      final DateTime? endDate = DateTime.tryParse(cargo.ect_date_end ?? '');
+      final DateTime? endDate = DateTime.tryParse(cargo.ect_date_end);
       isAtivo = isAtivoFlag && (endDate == null || endDate.isAfter(DateTime.now()));
     } else {
       isAtivo = isAtivoFlag;
     }
 
-    final String cargoNome = cargo.ecm_name ?? cargo.ect_name ?? 'Cargo Executivo';
-    final String inicioData = generalService.formatarDataBr(cargo.ect_date_start ?? '');
-    final String fimData = cargo.ect_date_end != null && cargo.ectm_date_end.isNotEmpty
+    final String cargoNome = cargo.ecm_name;
+    final String inicioData = generalService.formatarDataBr(cargo.ect_date_start);
+    final String fimData = cargo.ectm_date_end.isNotEmpty
         ? generalService.formatarDataBr(cargo.ectm_date_end)
         : 'Atual';
 
@@ -266,15 +309,15 @@ class _ProfileExecutiveCommitteeState
               children: [
                 _buildInfoRow(
                   'Comitê/Gestão:',
-                  cargo.ecm_name ?? cargo.ect_name ?? 'Diretoria Executiva',
+                  cargo.ecm_name,
                 ),
                 const SizedBox(height: 6),
                 _buildInfoRow('Data de Início:', inicioData),
                 const SizedBox(height: 6),
                 _buildInfoRow('Término Previsto:', fimData),
-                if (cargo.ectm_motivo_saida != null && cargo.ectm_motivo_saida!.isNotEmpty) ...[
+                if ( cargo.ectm_motivo_saida.isNotEmpty ) ...[
                   const SizedBox(height: 6),
-                  _buildInfoRow('Observações:', cargo.ectm_motivo_saida!),
+                  _buildInfoRow('Observações:', cargo.ectm_motivo_saida),
                 ],
               ],
             ),
@@ -284,6 +327,7 @@ class _ProfileExecutiveCommitteeState
     );
   }
 
+  // ==========================================
   Widget _buildInfoRow(String label, String valor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -307,6 +351,7 @@ class _ProfileExecutiveCommitteeState
     );
   }
 
+  // ==========================================
   Widget _buildStatusBadge(bool isAtivo) {
     final String label = isAtivo ? 'EM EXERCÍCIO' : 'ENCERRADO';
     final Color color = isAtivo ? Colors.greenAccent : Colors.white38;
@@ -331,4 +376,5 @@ class _ProfileExecutiveCommitteeState
       ),
     );
   }
+
 }
