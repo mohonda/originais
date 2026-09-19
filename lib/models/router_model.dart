@@ -59,7 +59,10 @@ class RouterModel {
       icon: Icons.person_2_outlined,
       selectedIcon: Icons.person_2,
       path: '/mensalidades',
-      builder: (context, state) => const MonthlyPayments(),
+      builder: (context, state) {
+        final hldId = state.uri.queryParameters['hld_id'];
+        return MonthlyPayments(hldId: hldId);
+      },
     ),
     RouterModel (
       name: 'profile_screen',

@@ -7,7 +7,6 @@ import 'package:originais/models/journeyriding_model.dart';
 final getItBdJourneyRidingController = GetIt.instance;
 
 void setupGetItBdJourneyRidingController() {
-  // getItBdJourneyRidingController.registerLazySingleton<BdJourneyRidingController>(
   getItBdJourneyRidingController.registerFactory<BdJourneyRidingController>(
     () => BdJourneyRidingController(),
   );
@@ -17,10 +16,12 @@ class BdJourneyRidingController extends ChangeNotifier {
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
   late SupabaseClient supabaseClient;
 
+  // Canal do Supabase para escuta Realtime
+  RealtimeChannel? _journeyChannel;
+
   final ValueNotifier<List<JourneyRidingModel>> bdJourneyRidingNotifier =
     ValueNotifier<List<JourneyRidingModel>>([]);
     
-  
   final ValueNotifier<List<JourneyRidingModel>> journeyRidingOrderByLevelNotifier =
     ValueNotifier<List<JourneyRidingModel>>([]);
   
@@ -36,20 +37,52 @@ class BdJourneyRidingController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadJourneyRiding( String hld_id ) async {
+  // Subscrição em Tempo Real para a tabela user_journey
+  void subscribeToRealtime(String pflId, String hldId) {
+    unsubscribeRealtime();
+
+    _journeyChannel = supabaseClient
+        .channel('public:user_journey:pfl_$pflId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all, // Ouve INSERT, UPDATE e DELETE
+          schema: 'public',
+          table: 'user_journey',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'uj_pfl_id',
+            value: pflId,
+          ),
+          callback: (payload) async {
+            // Atualiza os detalhes do percurso do perfil
+            await loadJourneyRidingDetais(pflId, hldId);
+          },
+        )
+        .subscribe();
+  }
+
+  // Cancela a subscrição do canal Realtime
+  void unsubscribeRealtime() {
+    if (_journeyChannel != null) {
+      supabaseClient.removeChannel(_journeyChannel!);
+      _journeyChannel = null;
+    }
+  }
+
+  // ==========================================
+  Future<void> loadJourneyRiding(String hld_id) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+      final resposta = await mySupabaseClient.safePostgrestCall(() =>
         supabaseClient
-        .from( 'v_journey_riding' )
+        .from('v_journey_riding')
         .select()
-        .eq( 'jr_hld_id', hld_id )
-    );
+        .eq('jr_hld_id', hld_id)
+      );
       
-        bdJourneyRidingNotifier.value = resposta.map( ( item ) =>
-          JourneyRidingModel.fromJson( item ) ).toList();
+      bdJourneyRidingNotifier.value = resposta.map((item) =>
+        JourneyRidingModel.fromJson(item)).toList();
       
     } catch (e, stackTrace) {
       bdJourneyRidingNotifier.value = [];
@@ -59,23 +92,22 @@ class BdJourneyRidingController extends ChangeNotifier {
     }
   }
 
-
   // ==========================================
-  Future<void> loadJourneyRidingOrderByLevel( String hld_id ) async {
+  Future<void> loadJourneyRidingOrderByLevel(String hld_id) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+      final resposta = await mySupabaseClient.safePostgrestCall(() =>
         supabaseClient
-        .from( 'v_journey_riding' )
+        .from('v_journey_riding')
         .select()
-        .eq( 'jr_hld_id', hld_id )
-        .order( 'jr_level', ascending: true )
+        .eq('jr_hld_id', hld_id)
+        .order('jr_level', ascending: true)
       );
       
-      journeyRidingOrderByLevelNotifier.value = resposta.map( ( item ) =>
-        JourneyRidingModel.fromJson( item ) ).toList();
+      journeyRidingOrderByLevelNotifier.value = resposta.map((item) =>
+        JourneyRidingModel.fromJson(item)).toList();
       
     } catch (e, stackTrace) {
       journeyRidingOrderByLevelNotifier.value = [];
@@ -86,24 +118,23 @@ class BdJourneyRidingController extends ChangeNotifier {
   }
 
   // ==========================================
-    Future<void> loadJourneyRidingDetais( String id, String hld ) async {
-      
+  Future<void> loadJourneyRidingDetais(String id, String hld) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+      final resposta = await mySupabaseClient.safePostgrestCall(() =>
         supabaseClient
         .from('vprofile_journeyriding')
         .select()
         .eq('pfl_id', id)
         .eq('hld_id', hld)
-        .order( 'uj_promotion_date', ascending: false )
-        .order( 'pfl_full_name',ascending: true) 
+        .order('uj_promotion_date', ascending: false)
+        .order('pfl_full_name', ascending: true) 
       );
       
-        vProfileJourneyridingDetaisNotifier.value = resposta.map( ( item ) =>
-          JourneyRidingModel.fromJson( item ) ).toList();
+      vProfileJourneyridingDetaisNotifier.value = resposta.map((item) =>
+        JourneyRidingModel.fromJson(item)).toList();
       
     } catch (e, stackTrace) {
       vProfileJourneyridingDetaisNotifier.value = [];
@@ -113,13 +144,13 @@ class BdJourneyRidingController extends ChangeNotifier {
     }
   }
 
-   // ==========================================
+  // ==========================================
   Future<void> insertProfileJourneyRiding(
     String ujPflId,
     String ujHldId,
     String ujJrId,
     String ujPromotionDate,
-    ) async {
+  ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -133,6 +164,7 @@ class BdJourneyRidingController extends ChangeNotifier {
             'uj_promotion_date': ujPromotionDate
           }); 
       
+      // O Realtime atualizará a interface em todas as instâncias
     } catch (e, stackTrace) {
       errorNotifier.value = ("insertProfileJourneyRiding: $e \n$stackTrace");
     } finally {
@@ -147,7 +179,7 @@ class BdJourneyRidingController extends ChangeNotifier {
     String ujHldId,
     String ujJrId,
     String ujPromotionDate,
-    ) async {
+  ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -155,14 +187,12 @@ class BdJourneyRidingController extends ChangeNotifier {
       await supabaseClient
           .from('user_journey')  
           .update({
-            // 'uj_id': uj_id,
-            // 'uj_pfl_id': uj_pfl_id,
-            // 'uj_hld_id': uj_hld_id,
             'uj_jr_id': ujJrId,
             'uj_promotion_date': ujPromotionDate
           })
-          .eq( 'uj_id', ujId);
+          .eq('uj_id', ujId);
 
+      // O Realtime atualizará a interface em todas as instâncias
     } catch (e, stackTrace) {
       errorNotifier.value = ("updateProfileJourneyRiding: $e \n$stackTrace");
     } finally {
@@ -170,12 +200,12 @@ class BdJourneyRidingController extends ChangeNotifier {
     }
   }
 
-   // ==========================================
+  // ==========================================
   Future<void> deleteProfileJourneyRiding(
     String ujId,
     String ujPflId,
-    String ujHldId
-    ) async {
+    String ujHldId,
+  ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -185,6 +215,7 @@ class BdJourneyRidingController extends ChangeNotifier {
           .delete()
           .eq('uj_id', ujId);
 
+      // O Realtime atualizará a interface em todas as instâncias
     } catch (e, stackTrace) {
       errorNotifier.value = ("deleteProfileJourneyRiding: $e \n$stackTrace");
     } finally {
@@ -192,4 +223,14 @@ class BdJourneyRidingController extends ChangeNotifier {
     }
   }
 
+  @override
+  void dispose() {
+    unsubscribeRealtime();
+    bdJourneyRidingNotifier.dispose();
+    journeyRidingOrderByLevelNotifier.dispose();
+    vProfileJourneyridingDetaisNotifier.dispose();
+    loadingNotifier.dispose();
+    errorNotifier.dispose();
+    super.dispose();
+  }
 }

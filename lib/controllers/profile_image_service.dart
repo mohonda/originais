@@ -25,7 +25,6 @@ class ProfileImageService extends BaseImageUploadService {
     Map<String, dynamic>? payload,
   ) async {
     final String pfl_id = payload?['pfl_id'];
-    final String hld_id = payload?['hld_id'];
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final filePath = '${pfl_id}/avatars_$timestamp.${imageData.extension}';

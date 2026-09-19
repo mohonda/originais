@@ -26,22 +26,30 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
   late final GeneralService generalService;
   late final BdVProfilesSanctionsController controller;
   late final BdProfileController profileController;
+  bool _isLocalController = false;
 
   String _pflIdResolvido = '';
   String _hldIdResolvido = '';
 
-  // ==========================================
+  bool isRealTime = false;
+
   @override
   void initState() {
     super.initState();
     generalService = GeneralService();
 
-    controller =
-        widget.controller ??
-        getItBdVProfilesSanctionsController
-            .get<BdVProfilesSanctionsController>();
-    profileController = getItBdProfileController<BdProfileController>();
+    // Se um controller foi passado pelo pai, utiliza ele.
+    // Caso contrário, solicita uma nova instância ao Factory do GetIt.
+    if (widget.controller != null) {
+      controller = widget.controller!;
+      _isLocalController = false;
+    } else {
+      controller = getItBdVProfilesSanctionsController
+          .get<BdVProfilesSanctionsController>();
+      _isLocalController = true;
+    }
 
+    profileController = getItBdProfileController<BdProfileController>();
     profileController.pessoaSelecionadaNotifier.addListener(_onPerfilAtualizado);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -49,21 +57,22 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     });
   }
 
-  // ==========================================
   @override
   void dispose() {
     profileController.pessoaSelecionadaNotifier.removeListener(_onPerfilAtualizado);
+    // Se o controller foi criado localmente via Factory, limpa a memória ao destruir o widget
+    if (_isLocalController) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
-  // ==========================================
   void _onPerfilAtualizado() {
-    if (_pflIdResolvido.isEmpty || _hldIdResolvido.isEmpty) {
+    if (widget.pflId == null || widget.pflId!.isEmpty) {
       _carregarSancoes();
     }
   }
 
-  // ==========================================
   @override
   void didUpdateWidget(covariant ProfileSanctions oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -72,7 +81,6 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     }
   }
 
-  // ==========================================
   Future<void> _carregarSancoes() async {
     final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
 
@@ -84,14 +92,20 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
         ? widget.hldId!
         : (pessoaLogada?.hld_id.toString() ?? '');
 
-    if (_pflIdResolvido.isEmpty || _hldIdResolvido.isEmpty) {      
+    if (_pflIdResolvido.isEmpty || _hldIdResolvido.isEmpty) {
+      controller.vProfilesSanctionsNotifier.value = [];
       return;
     }
 
-    await controller.loadProfileSanctionsStatus(_pflIdResolvido, _hldIdResolvido);    
+    await controller.loadProfileSanctionsStatus(_pflIdResolvido, _hldIdResolvido);
+
+    if ( isRealTime == false ){
+      controller.subscribeToRealtime(_pflIdResolvido, _hldIdResolvido);
+      isRealTime = true;
+    }
+
   }
 
-  // ==========================================
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -192,7 +206,6 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     );
   }
 
-  // ==========================================
   Widget _buildResumoSancoes(List<VProfilesSanctionsModel> lista) {
     final int total = lista.length;
 
@@ -217,7 +230,7 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
         children: [
           _buildResumoColumn('Total Registros', '$total', Colors.white70),
           Container(height: 24, width: 1, color: Colors.white24),
-          _buildResumoColumn('Em Cumpirmento', '$ativas', Colors.redAccent),
+          _buildResumoColumn('Em Cumprimento', '$ativas', Colors.redAccent),
           Container(height: 24, width: 1, color: Colors.white24),
           _buildResumoColumn(
             'Cumpridas/Encerradas',
@@ -229,7 +242,6 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     );
   }
 
-  // ==========================================
   Widget _buildResumoColumn(String label, String value, Color color) {
     return Column(
       children: [
@@ -250,7 +262,6 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     );
   }
 
-  // ==========================================
   Widget _buildSancaoCard(VProfilesSanctionsModel sancao) {
     final String dateEndStr = sancao.psan_date_end;
     final DateTime? endDate = DateTime.tryParse(dateEndStr);
@@ -321,7 +332,7 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
                 _buildInfoRow('Início da Sanção:', inicioData),
                 const SizedBox(height: 6),
                 _buildInfoRow('Término Previsto/Real:', fimData),
-                if (sancao.psan_desc.isNotEmpty && sancao.psan_desc.isNotEmpty) ...[
+                if (sancao.psan_desc.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   _buildInfoRow('Observações / Motivo:', sancao.psan_desc),
                 ],
@@ -333,7 +344,6 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     );
   }
 
-  // ==========================================
   Widget _buildInfoRow(String label, String valor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -359,7 +369,6 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
     );
   }
 
-  // ==========================================
   Widget _buildStatusBadge(bool isAtiva) {
     final String label = isAtiva ? 'ATIVA' : 'CUMPRIDA';
     final Color color = isAtiva ? Colors.redAccent : Colors.greenAccent;
@@ -384,5 +393,4 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
       ),
     );
   }
-
 }

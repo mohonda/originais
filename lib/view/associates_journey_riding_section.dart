@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:originais/controllers/journey_riding_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/journeyriding_model.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/services/general_service.dart';
@@ -20,16 +21,19 @@ class AssociatesJourneyRidingSection extends StatefulWidget {
 
 class _AssociatesJourneyRidingSectionState
     extends State<AssociatesJourneyRidingSection> {
-  final bdJourneyRidingController =
-      getItBdJourneyRidingController<BdJourneyRidingController>();
+  late final BdJourneyRidingController bdJourneyRidingController;
+  late final BdProfileController profileController;
   final generalService = getItGeneralService<GeneralService>();
 
-  int _refreshKey = 0;
+  bool isRealTime = false;
 
-  // ==========================================
   @override
   void initState() {
     super.initState();
+    // Instância nova e isolada criada pelo Factory do GetIt para esta seção
+    bdJourneyRidingController = getItBdJourneyRidingController
+        .get<BdJourneyRidingController>();
+    profileController = getItBdProfileController<BdProfileController>();
 
     bdJourneyRidingController.errorNotifier.addListener(_handleError);
 
@@ -38,7 +42,6 @@ class _AssociatesJourneyRidingSectionState
     });
   }
 
-  // ==========================================
   void _handleError() {
     final errorMessage = bdJourneyRidingController.errorNotifier.value;
     if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
@@ -52,7 +55,6 @@ class _AssociatesJourneyRidingSectionState
     }
   }
 
-  // ==========================================
   @override
   void didUpdateWidget(covariant AssociatesJourneyRidingSection oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -65,42 +67,47 @@ class _AssociatesJourneyRidingSectionState
     }
   }
 
-  // ==========================================
   @override
   void dispose() {
     bdJourneyRidingController.errorNotifier.removeListener(_handleError);
+    // Libera a instância isolada do controller
+    bdJourneyRidingController.dispose();
     super.dispose();
   }
 
-  // ==========================================
   Future<void> _carregarDados() async {
-    final pflId = widget.itemAtual.pfl_id.toString();
-    final hldId = widget.itemAtual.hld_id.toString();
+    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
+
+    final pflId = widget.itemAtual.pfl_id.toString().isNotEmpty
+        ? widget.itemAtual.pfl_id.toString()
+        : (pessoaLogada?.pfl_id.toString() ?? '');
+
+    final hldId = widget.itemAtual.hld_id.toString().isNotEmpty
+        ? widget.itemAtual.hld_id.toString()
+        : (pessoaLogada?.hld_id.toString() ?? '');
 
     if (pflId.isNotEmpty && hldId.isNotEmpty) {
-      await bdJourneyRidingController.loadJourneyRidingDetais(pflId, hldId);
-      await bdJourneyRidingController.loadJourneyRidingOrderByLevel(hldId);
-      if (mounted) {
-        setState(() {
-          _refreshKey++;
-        });
+      await Future.wait([
+        bdJourneyRidingController.loadJourneyRidingDetais(pflId, hldId),
+        bdJourneyRidingController.loadJourneyRidingOrderByLevel(hldId),
+      ]);
+      if ( isRealTime == false ){
+        bdJourneyRidingController.subscribeToRealtime(pflId, hldId);
+        isRealTime = true;
       }
     }
   }
 
-  // ==========================================
   int _parseLevel(dynamic lvl) {
     if (lvl == null) return 0;
     return int.tryParse(lvl.toString().replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
   }
 
-  // ==========================================
   bool _isInitialStage(JourneyRidingModel stage) {
     final precursory = stage.jr_id_precursory.toString().trim();
     return precursory.isEmpty || precursory == '0';
   }
 
-  // ==========================================
   List<JourneyRidingModel> _obterOpcoesProximoNivel() {
     final history =
         bdJourneyRidingController.vProfileJourneyridingDetaisNotifier.value;
@@ -140,7 +147,6 @@ class _AssociatesJourneyRidingSectionState
     return _obterOpcoesProximoNivel().isNotEmpty;
   }
 
-  // ==========================================
   void _showAddJourneyDialog() {
     final opcoesNivel = _obterOpcoesProximoNivel();
 
@@ -261,9 +267,10 @@ class _AssociatesJourneyRidingSectionState
                       nivelSelecionado!.jr_id.toString(),
                       dataSelecionada.toIso8601String(),
                     );
+
                     if (mounted) {
                       Navigator.of(dialogContext).pop();
-                      await _carregarDados();
+                      _carregarDados();
                     }
                   },
                 ),
@@ -275,7 +282,6 @@ class _AssociatesJourneyRidingSectionState
     );
   }
 
-  // ==========================================
   void _showEditJourneyDialog(JourneyRidingModel item) {
     DateTime dataSelecionada =
         DateTime.tryParse(item.uj_promotion_date) ?? DateTime.now();
@@ -380,8 +386,7 @@ class _AssociatesJourneyRidingSectionState
                     );
 
                     if (confirmar == true) {
-                      final String pjrId =
-                          item.uj_id.toString();
+                      final String pjrId = item.uj_id.toString();
                       await bdJourneyRidingController.deleteProfileJourneyRiding(
                         pjrId,
                         item.pfl_id,
@@ -390,7 +395,7 @@ class _AssociatesJourneyRidingSectionState
 
                       if (mounted) {
                         Navigator.of(dialogContext).pop();
-                        await _carregarDados();
+                        _carregarDados();
                       }
                     }
                   },
@@ -412,8 +417,7 @@ class _AssociatesJourneyRidingSectionState
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () async {
-                        final String pjrId =
-                            item.uj_id.toString();
+                        final String pjrId = item.uj_id.toString();
                         await bdJourneyRidingController.updateProfileJourneyRiding(
                           pjrId,
                           item.pfl_id,
@@ -424,7 +428,7 @@ class _AssociatesJourneyRidingSectionState
 
                         if (mounted) {
                           Navigator.of(dialogContext).pop();
-                          await _carregarDados();
+                          _carregarDados();
                         }
                       },
                     ),
@@ -438,7 +442,6 @@ class _AssociatesJourneyRidingSectionState
     );
   }
 
-  // ==========================================
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -453,7 +456,7 @@ class _AssociatesJourneyRidingSectionState
               mainAxisSize: MainAxisSize.min,
               children: [
                 ProfileJourneyRiding(
-                  key: ValueKey(_refreshKey),
+                  controller: bdJourneyRidingController,
                   pflId: widget.itemAtual.pfl_id.toString(),
                   hldId: widget.itemAtual.hld_id.toString(),
                   onEdit: _showEditJourneyDialog,
@@ -492,7 +495,6 @@ class _AssociatesJourneyRidingSectionState
                 ),
               ],
             ),
-
             if (isLoading)
               Positioned.fill(
                 child: Container(

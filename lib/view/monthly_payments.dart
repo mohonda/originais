@@ -5,7 +5,11 @@ import 'package:originais/controllers/monthly_payments_controller.dart';
 import 'package:originais/models/mensalidades_model.dart';
 
 class MonthlyPayments extends StatefulWidget {
-  const MonthlyPayments({super.key});
+  final String? hldId;
+  const MonthlyPayments({
+    super.key,
+    this.hldId
+  });
 
   @override
   State<MonthlyPayments> createState() => _MonthlyPaymentsState();
@@ -39,6 +43,7 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
   @override
   void initState() {
     super.initState();
+
     bdMonthlyPaymentsController =
         getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
 
@@ -46,7 +51,7 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
     bdMonthlyPaymentsController.errorNotifier.addListener(_onErrorChanged);
 
     // Inicializa o ouvinte em tempo real do banco de dados
-    bdMonthlyPaymentsController.initRealtime(bdMonthlyPaymentsController.hld_id);
+    bdMonthlyPaymentsController.initRealtime( widget.hldId.toString() );
   }
 
   // ==========================================
@@ -143,7 +148,7 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
           ElevatedButton.icon(
             onPressed: () {
               bdMonthlyPaymentsController.initRealtime(
-                bdMonthlyPaymentsController.hld_id,
+                widget.hldId.toString()
               );
             },
             icon: const Icon(Icons.refresh),

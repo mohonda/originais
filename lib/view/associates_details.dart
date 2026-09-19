@@ -206,26 +206,26 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                               tabs: [
                                 Tab(
                                   height: 38,
-                                  icon: Icon(Icons.explore_outlined, size: 16),
-                                  text: 'Journey of the Riding',
+                                  icon: Icon(Icons.motorcycle_sharp, size: 16),
+                                  text: 'Journey Riding',
                                   iconMargin: EdgeInsets.only(bottom: 2),
                                 ),
                                 Tab(
                                   height: 38,
                                   icon: Icon(Icons.badge_outlined, size: 16),
-                                  text: 'Status',
+                                  text: 'Associate Status',
+                                  iconMargin: EdgeInsets.only(bottom: 2),
+                                ),
+                                Tab(
+                                  height: 38,
+                                  icon: Icon(Icons.groups_outlined, size: 16),
+                                  text: 'Exec. Committee',
                                   iconMargin: EdgeInsets.only(bottom: 2),
                                 ),
                                 Tab(
                                   height: 38,
                                   icon: Icon(Icons.gavel_outlined, size: 16),
                                   text: 'Sanctions',
-                                  iconMargin: EdgeInsets.only(bottom: 2),
-                                ),
-                                Tab(
-                                  height: 38,
-                                  icon: Icon(Icons.groups_outlined, size: 16),
-                                  text: 'Executive Committee',
                                   iconMargin: EdgeInsets.only(bottom: 2),
                                 ),
                               ],
@@ -248,14 +248,14 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
                                     ),
                                   ),
                                   _buildTabSection(
-                                    labelText: 'Sanctions',
-                                    child: AssociatesSanctionsSection(
+                                    labelText: 'Executive Committee',
+                                    child: AssociatesExecutiveCommitteeSection(
                                       itemAtual: widget.itemAtual,
                                     ),
                                   ),
                                   _buildTabSection(
-                                    labelText: 'Executive Committee',
-                                    child: AssociatesExecutiveCommitteeSection(
+                                    labelText: 'Sanctions',
+                                    child: AssociatesSanctionsSection(
                                       itemAtual: widget.itemAtual,
                                     ),
                                   ),

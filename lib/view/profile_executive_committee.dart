@@ -25,53 +25,78 @@ class ProfileExecutiveCommittee extends StatefulWidget {
 
 class _ProfileExecutiveCommitteeState
     extends State<ProfileExecutiveCommittee> {
-  final GeneralService generalService = GeneralService();
+  late final GeneralService generalService;
   late final BdVExecutiveCommitteeTermOfOfficeMembersController controller;
   late final BdProfileController profileController;
+  bool _isLocalController = false;
 
-  late String pflId = '';
-  late String hldId = '';
+  String _pflIdResolvido = '';
+  String _hldIdResolvido = '';
 
-  // ==========================================
   @override
   void initState() {
     super.initState();
+    generalService = GeneralService();
 
-    controller = widget.controller ??
-        getItBdVExecutiveCommitteeTermOfOfficeMembersController
-            .get<BdVExecutiveCommitteeTermOfOfficeMembersController>();
+    // Se um controller foi passado pelo pai, utiliza ele.
+    // Caso contrário, solicita uma nova instância ao Factory do GetIt.
+    if (widget.controller != null) {
+      controller = widget.controller!;
+      _isLocalController = false;
+    } else {
+      controller = getItBdVExecutiveCommitteeTermOfOfficeMembersController
+          .get<BdVExecutiveCommitteeTermOfOfficeMembersController>();
+      _isLocalController = true;
+    }
 
     profileController = getItBdProfileController<BdProfileController>();
-
-    _atualizarECarregarCargos();
-  }
-
-  // ==========================================
-  @override
-  void didUpdateWidget(covariant ProfileExecutiveCommittee oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.pflId != widget.pflId || oldWidget.hldId != widget.hldId) {
-      _atualizarECarregarCargos();
-    }
-  }
-
-  // ==========================================
-  void _atualizarECarregarCargos() {
-    pflId = profileController.pessoaSelecionadaNotifier.value?.pfl_id.toString() ?? '';
-    hldId = profileController.pessoaSelecionadaNotifier.value?.hld_id.toString() ?? '';
+    profileController.pessoaSelecionadaNotifier.addListener(_onPerfilAtualizado);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarCargosExecutivos();
     });
   }
 
-  // ==========================================
-  Future<void> _carregarCargosExecutivos() async {
-    if (pflId.isEmpty) return;
-    await controller.loadExecutiveOrderByDateStart(pflId, hldId);
+  @override
+  void dispose() {
+    profileController.pessoaSelecionadaNotifier.removeListener(_onPerfilAtualizado);
+    // Destrói a instância apenas se foi criada localmente via Factory
+    if (_isLocalController) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
-  // ==========================================
+  void _onPerfilAtualizado() {
+    if (widget.pflId == null || widget.pflId!.isEmpty) {
+      _carregarCargosExecutivos();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileExecutiveCommittee oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pflId != widget.pflId || oldWidget.hldId != widget.hldId) {
+      _carregarCargosExecutivos();
+    }
+  }
+
+  Future<void> _carregarCargosExecutivos() async {
+    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
+
+    _pflIdResolvido = (widget.pflId != null && widget.pflId!.isNotEmpty)
+        ? widget.pflId!
+        : (pessoaLogada?.pfl_id.toString() ?? '');
+
+    _hldIdResolvido = (widget.hldId != null && widget.hldId!.isNotEmpty)
+        ? widget.hldId!
+        : (pessoaLogada?.hld_id.toString() ?? '');
+
+    if (_pflIdResolvido.isEmpty) return;
+
+    await controller.loadExecutiveOrderByDateStart(_pflIdResolvido, _hldIdResolvido);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -124,7 +149,6 @@ class _ProfileExecutiveCommitteeState
                 List<VExecutiveCommitteeTermOfOfficeMembersModel>>(
               valueListenable: controller.executiveOrderByDateStart,
               builder: (context, listaCargos, child) {
-                // 🟢 3. Mensagem para estado sem dados
                 if (listaCargos.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.all(24.0),
@@ -143,12 +167,8 @@ class _ProfileExecutiveCommitteeState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Resumo do Usuário
                       _buildResumoCargos(listaCargos),
-
                       const SizedBox(height: 12),
-
-                      // Lista de Cargos Executivos
                       ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -168,7 +188,6 @@ class _ProfileExecutiveCommitteeState
     );
   }
 
-  // ==========================================
   Widget _buildResumoCargos(
     List<VExecutiveCommitteeTermOfOfficeMembersModel> lista,
   ) {
@@ -209,7 +228,6 @@ class _ProfileExecutiveCommitteeState
     );
   }
 
-  // ==========================================
   Widget _buildResumoColumn(String label, String value, Color color) {
     return Column(
       children: [
@@ -236,7 +254,6 @@ class _ProfileExecutiveCommitteeState
     );
   }
 
-  // ==========================================
   Widget _buildCargoCard(VExecutiveCommitteeTermOfOfficeMembersModel cargo) {
     bool isAtivo = false;
 
@@ -307,15 +324,12 @@ class _ProfileExecutiveCommitteeState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildInfoRow(
-                  'Comitê/Gestão:',
-                  cargo.ecm_name,
-                ),
+                _buildInfoRow('Comitê/Gestão:', cargo.ecm_name),
                 const SizedBox(height: 6),
                 _buildInfoRow('Data de Início:', inicioData),
                 const SizedBox(height: 6),
                 _buildInfoRow('Término Previsto:', fimData),
-                if ( cargo.ectm_motivo_saida.isNotEmpty ) ...[
+                if (cargo.ectm_motivo_saida.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   _buildInfoRow('Observações:', cargo.ectm_motivo_saida),
                 ],
@@ -327,7 +341,6 @@ class _ProfileExecutiveCommitteeState
     );
   }
 
-  // ==========================================
   Widget _buildInfoRow(String label, String valor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -351,7 +364,6 @@ class _ProfileExecutiveCommitteeState
     );
   }
 
-  // ==========================================
   Widget _buildStatusBadge(bool isAtivo) {
     final String label = isAtivo ? 'EM EXERCÍCIO' : 'ENCERRADO';
     final Color color = isAtivo ? Colors.greenAccent : Colors.white38;
@@ -376,5 +388,4 @@ class _ProfileExecutiveCommitteeState
       ),
     );
   }
-
 }

@@ -23,62 +23,85 @@ class ProfileAssociateStatus extends StatefulWidget {
 }
 
 class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
-  final GeneralService generalService = GeneralService();
+  late final GeneralService generalService;
   late final BdVProfileAssociateStatusController controller;
   late final BdProfileController profileController;
+  bool _isLocalController = false;
 
-  late String pflId = '';
-  late String hldId = '';
+  String _pflIdResolvido = '';
+  String _hldIdResolvido = '';
 
-  // ==========================================
+  bool isRealTime = false;
+
   @override
   void initState() {
     super.initState();
-    controller =
-        widget.controller ??
-        getItBdVProfileAssociateStatusController
-            .get<BdVProfileAssociateStatusController>();
-    profileController = getItBdProfileController<BdProfileController>();
+    generalService = GeneralService();
 
-    pflId =
-        widget.pflId ??
-        profileController.pessoaSelecionadaNotifier.value?.pfl_id ??
-        '';
-    hldId =
-        widget.hldId ??
-        profileController.pessoaSelecionadaNotifier.value?.hld_id ??
-        '';
+    // Se um controller foi passado pelo widget pai, reutiliza a instância escopada.
+    // Caso contrário, solicita uma nova instância isolada via Factory do GetIt.
+    if (widget.controller != null) {
+      controller = widget.controller!;
+      _isLocalController = false;
+    } else {
+      controller = getItBdVProfileAssociateStatusController
+          .get<BdVProfileAssociateStatusController>();
+      _isLocalController = true;
+    }
+
+    profileController = getItBdProfileController<BdProfileController>();
+    profileController.pessoaSelecionadaNotifier.addListener(_onPerfilAtualizado);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarStatusAssociado();
     });
   }
 
-  // ==========================================
   @override
-  void didUpdateWidget(covariant ProfileAssociateStatus oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.pflId != widget.pflId || oldWidget.hldId != widget.hldId) {
-      pflId =
-          widget.pflId ??
-          profileController.pessoaSelecionadaNotifier.value?.pfl_id ??
-          '';
-      hldId =
-          widget.hldId ??
-          profileController.pessoaSelecionadaNotifier.value?.hld_id ??
-          '';
+  void dispose() {
+    profileController.pessoaSelecionadaNotifier.removeListener(_onPerfilAtualizado);
+    // Descarta o controller apenas se ele foi criado localmente via Factory
+    if (_isLocalController) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _onPerfilAtualizado() {
+    if (widget.pflId == null || widget.pflId!.isEmpty) {
       _carregarStatusAssociado();
     }
   }
 
-  // ==========================================
-  Future<void> _carregarStatusAssociado() async {
-    if (pflId.isNotEmpty && hldId.isNotEmpty) {
-      await controller.loadProfileAssociateStatus(pflId, hldId);
+  @override
+  void didUpdateWidget(covariant ProfileAssociateStatus oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pflId != widget.pflId || oldWidget.hldId != widget.hldId) {
+      _carregarStatusAssociado();
     }
   }
 
-  // ==========================================
+  Future<void> _carregarStatusAssociado() async {
+    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
+
+    _pflIdResolvido = (widget.pflId != null && widget.pflId!.isNotEmpty)
+        ? widget.pflId!
+        : (pessoaLogada?.pfl_id.toString() ?? '');
+
+    _hldIdResolvido = (widget.hldId != null && widget.hldId!.isNotEmpty)
+        ? widget.hldId!
+        : (pessoaLogada?.hld_id.toString() ?? '');
+
+    if (_pflIdResolvido.isEmpty) return;
+
+    await controller.loadProfileAssociateStatus(_pflIdResolvido, _hldIdResolvido);
+    if ( isRealTime == false ){
+      controller.subscribeToRealtime(_pflIdResolvido, _hldIdResolvido);
+      isRealTime = true;
+    }
+
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -130,7 +153,6 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
             return ValueListenableBuilder<List<VProfileAssociateStatusModel>>(
               valueListenable: controller.vProfileAssociateStatusNotifier,
               builder: (context, listaStatus, child) {
-                // 🟢 3. Trata estado de dados vazios
                 if (listaStatus.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.all(16.0),
@@ -147,11 +169,9 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
                     List<VProfileAssociateStatusModel>.from(listaStatus)
                       ..sort((a, b) {
                         final dateA =
-                            DateTime.tryParse(a.pas_date) ??
-                            DateTime(1970);
+                            DateTime.tryParse(a.pas_date) ?? DateTime(1970);
                         final dateB =
-                            DateTime.tryParse(b.pas_date) ??
-                            DateTime(1970);
+                            DateTime.tryParse(b.pas_date) ?? DateTime(1970);
                         return dateB.compareTo(dateA);
                       });
 
@@ -181,11 +201,10 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
     );
   }
 
-  // ==========================================
   Widget _buildResumoStatus(List<VProfileAssociateStatusModel> lista) {
     final int total = lista.length;
     final int ativos = lista.where((s) {
-      final bool isAtivoFlag = (s.pas_date).isNotEmpty;
+      final bool isAtivoFlag = s.pas_date.isNotEmpty;
       final DateTime? endDate = DateTime.tryParse(s.pas_date);
       return isAtivoFlag &&
           (endDate == null || endDate.isAfter(DateTime.now()));
@@ -205,15 +224,17 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildResumoColumn('Total Registros', '$total', Colors.white70),
-          Container(height: 24, width: 1, color: Colors.white24),
-          _buildResumoColumn(
-            'Status Atual',
-            statusAtualNome,
-            Colors.greenAccent,
+          Expanded(
+            child: _buildResumoColumn('Total Registros', '$total', Colors.white70),
           ),
           Container(height: 24, width: 1, color: Colors.white24),
-          _buildResumoColumn('Vigentes', '$ativos', Colors.indigoAccent),
+          Expanded(
+            child: _buildResumoColumn('Status Atual', statusAtualNome, Colors.greenAccent),
+          ),
+          Container(height: 24, width: 1, color: Colors.white24),
+          Expanded(
+            child: _buildResumoColumn('Vigentes', '$ativos', Colors.indigoAccent),
+          ),
         ],
       ),
     );
@@ -224,11 +245,17 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
       children: [
         Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 11, color: Colors.white54),
         ),
         const SizedBox(height: 2),
         Text(
           value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 14,
@@ -239,17 +266,14 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
     );
   }
 
-  // ==========================================
   Widget _buildStatusCard(VProfileAssociateStatusModel status) {
-    final bool isAtivoFlag = (status.pas_date).isNotEmpty;
+    final bool isAtivoFlag = status.pas_date.isNotEmpty;
     final DateTime? endDate = DateTime.tryParse(status.pas_date);
     final bool isAtivo =
         isAtivoFlag && (endDate == null || endDate.isAfter(DateTime.now()));
 
     final String statusNome = status.as_desc;
-    final String inicioData = generalService.formatarDataBr(
-      status.pas_date,
-    );
+    final String inicioData = generalService.formatarDataBr(status.pas_date);
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6.0),
@@ -290,13 +314,12 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
             style: const TextStyle(fontSize: 12, color: Colors.white70),
           ),
         ),
-        trailing:
-            widget.onEdit != null
-                ? IconButton(
-                  icon: const Icon(Icons.edit, size: 20, color: Colors.orange),
-                  onPressed: () => widget.onEdit!(status),
-                )
-                : null,
+        trailing: widget.onEdit != null
+            ? IconButton(
+                icon: const Icon(Icons.edit, size: 20, color: Colors.orange),
+                onPressed: () => widget.onEdit!(status),
+              )
+            : null,
         children: [
           const Divider(height: 1),
           Container(
@@ -307,7 +330,7 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
               children: [
                 _buildInfoRow('Status do Associado:', statusNome),
                 const SizedBox(height: 6),
-                _buildInfoRow('Data do Registrado:', inicioData),
+                _buildInfoRow('Data do Registro:', inicioData),
               ],
             ),
           ),
@@ -316,7 +339,6 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
     );
   }
 
-  // ==========================================
   Widget _buildInfoRow(String label, String valor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -340,17 +362,15 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
     );
   }
 
-  // ==========================================
   Widget _buildStatusBadge(bool isAtivo) {
     final String label = isAtivo ? 'ATIVO' : 'HISTÓRICO';
     final Color color = isAtivo ? Colors.greenAccent : Colors.white38;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color:
-            isAtivo
-                ? Colors.green.withValues(alpha: 0.15)
-                : Colors.grey.withValues(alpha: 0.15),
+        color: isAtivo
+            ? Colors.green.withValues(alpha: 0.15)
+            : Colors.grey.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: color.withValues(alpha: 0.5), width: 0.8),
       ),
@@ -364,5 +384,4 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
       ),
     );
   }
-
 }

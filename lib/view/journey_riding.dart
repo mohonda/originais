@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:originais/view/itens_form.dart';
 import 'package:originais/controllers/journey_riding_controller.dart';
 import 'package:originais/models/custom_app_bar.dart';
 import 'package:originais/controllers/profile_controller.dart';
@@ -153,16 +152,16 @@ class JourneyRidingState extends State<JourneyRiding> {
                             onPressed: isLoading
                                 ? null
                                 : () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ItensForm(
-                                          bdJourneyRidingController:
-                                              bdJourneyRidingController,
-                                          itemAtual: null,
-                                        ),
-                                      ),
-                                    );
+                                    // Navigator.push(
+                                    //   context,
+                                    //   MaterialPageRoute(
+                                    //     builder: (context) => ItensForm(
+                                    //       bdJourneyRidingController:
+                                    //           bdJourneyRidingController,
+                                    //       itemAtual: null,
+                                    //     ),
+                                    //   ),
+                                    // );
                                   },
                             child: const Icon(Icons.add),
                           ),
@@ -325,23 +324,24 @@ class JourneyRidingState extends State<JourneyRiding> {
                     onPressed: isLoading
                         ? null
                         : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ItensForm(
-                                  bdJourneyRidingController:
-                                      bdJourneyRidingController,
-                                  itemAtual: item,
-                                ),
-                              ),
-                            );
+                            // Navigator.push(
+                            //   context,
+                            //   MaterialPageRoute(
+                            //     builder: (context) => ItensForm(
+                            //       bdJourneyRidingController:
+                            //           bdJourneyRidingController,
+                            //       itemAtual: item,
+                            //     ),
+                            //   ),
+                            // );
                           },
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: isLoading
                         ? null
-                        : () => _confirmarExclusao(context, item.jr_id.toString()),
+                        : (){},
+                        // : () => _confirmarExclusao(context, item.jr_id.toString()),
                   ),
                 ],
               ),

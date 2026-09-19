@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -10,7 +9,7 @@ import 'package:originais/controllers/profile_controller.dart';
 final getItBdVProfileAssociateStatusController = GetIt.instance;
 
 void setupGetItBdVProfileAssociateStatusController() {
-  getItBdVProfileAssociateStatusController.registerLazySingleton<BdVProfileAssociateStatusController>(
+  getItBdVProfileAssociateStatusController.registerFactory<BdVProfileAssociateStatusController>(
     () => BdVProfileAssociateStatusController(),
   );
 }
@@ -21,6 +20,12 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
 
   final bdProfileController =
     getItBdProfileController<BdProfileController>();
+
+  // Canal do Supabase para escuta Realtime
+  RealtimeChannel? _associateStatusChannel;
+  
+  final ValueNotifier<List<AssociateStatusModel>> 
+    statusNotifier = ValueNotifier<List<AssociateStatusModel>>([]);
  
   final ValueNotifier<List<VProfileAssociateStatusModel>> vProfileAssociateStatusNotifier =
     ValueNotifier<List<VProfileAssociateStatusModel>>([]);
@@ -37,12 +42,68 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadProfileAssociateStatus( String id, String hld ) async {
+  // Inicia a escuta Realtime na tabela profile_associatestatus
+  void subscribeToRealtime(String pflId, String hldId) {
+    unsubscribeRealtime();
+
+    _associateStatusChannel = supabaseClient
+        .channel('public:profile_associatestatus:pfl_$pflId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all, // Escuta INSERT, UPDATE e DELETE
+          schema: 'public',
+          table: 'profile_associatestatus',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'pas_pfl_id',
+            value: pflId,
+          ),
+          callback: (payload) async {
+            // Recarrega o estado do perfil e a lista geral de perfis ao detetar alterações
+            await loadProfileAssociateStatus(pflId, hldId);
+            await bdProfileController.loadProfiles(hldId);
+          },
+        )
+        .subscribe();
+  }
+
+  // Cancela a subscrição do canal Realtime
+  void unsubscribeRealtime() {
+    if (_associateStatusChannel != null) {
+      supabaseClient.removeChannel(_associateStatusChannel!);
+      _associateStatusChannel = null;
+    }
+  }
+  
+  // ==========================================
+  Future<void> loadAssociateStatus(String hldId) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+      final resposta = await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from('associate_status')
+          .select()
+          .eq('as_hld_id', hldId)
+      );
+
+      statusNotifier.value = resposta.map((item) =>
+        AssociateStatusModel.fromMap(item)).toList();
+    } catch (e, stackTrace) {
+      statusNotifier.value = [];
+      errorNotifier.value = ('loadAssociateStatus:$e\n$stackTrace');
+    } finally {
+      loadingNotifier.value = false;
+    }
+  }
+
+  // ==========================================
+  Future<void> loadProfileAssociateStatus(String id, String hld) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      final resposta = await mySupabaseClient.safePostgrestCall(() =>
         supabaseClient
         .from('vprofile_associatestatus')
         .select()
@@ -51,7 +112,7 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
       );
     
       vProfileAssociateStatusNotifier.value = resposta.map(
-        ( item ) => VProfileAssociateStatusModel.fromJson( item )
+        (item) => VProfileAssociateStatusModel.fromJson(item)
       ).toList();
       
     } catch (e, stackTrace) {
@@ -62,11 +123,10 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
     }
   }
 
-    // ==========================================
+  // ==========================================
   Future<void> insertProfileAssociateStatus(
       String paspflid,
       String pashldid,
-
       String pasasid,
       String pasdate,
       String? pasmonthlypercent
@@ -75,7 +135,7 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      await mySupabaseClient.safePostgrestCall(()=>
+      await mySupabaseClient.safePostgrestCall(() =>
         supabaseClient
         .from('profile_associatestatus')
         .insert({
@@ -86,23 +146,20 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
           'pas_monthly_percent': pasmonthlypercent,
         })
       );
-      await loadProfileAssociateStatus( paspflid, pashldid );
-
-      await bdProfileController.loadProfiles(pashldid);
-
       
+      // O Realtime irá tratar da atualização automática da interface
     } catch (e, stackTrace) {
-      errorNotifier.value = ("BdItemController::loadItems: $e \n$stackTrace");
+      errorNotifier.value = "insertProfileAssociateStatus: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
   }
-    // ==========================================
+
+  // ==========================================
   Future<void> updateProfileAssociateStatus(
       String pasid,
       String paspflid,
       String pashldid,
-
       String pasdate,
       String? pasmonthlypercent
     ) async {
@@ -110,7 +167,7 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      await mySupabaseClient.safePostgrestCall(()=>
+      await mySupabaseClient.safePostgrestCall(() =>
         supabaseClient
         .from('profile_associatestatus')
         .update({
@@ -119,11 +176,10 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
         })
         .eq('pas_id', pasid)
       );
-      await loadProfileAssociateStatus( paspflid, pashldid );
-      await bdProfileController.loadProfiles(pashldid);
-      
+
+      // O Realtime irá tratar da atualização automática da interface
     } catch (e, stackTrace) {
-      errorNotifier.value = ("BdItemController::loadItems: $e \n$stackTrace");
+      errorNotifier.value = "updateProfileAssociateStatus: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -139,20 +195,29 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      await mySupabaseClient.safePostgrestCall(()=>
+      await mySupabaseClient.safePostgrestCall(() =>
         supabaseClient
         .from('profile_associatestatus')
         .delete()
         .eq('pas_id', pasid)
       );
-      await loadProfileAssociateStatus( paspflid, pashldid );
-      await bdProfileController.loadProfiles(pashldid);
-      
+
+      // O Realtime irá tratar da atualização automática da interface
     } catch (e, stackTrace) {
-      errorNotifier.value = ("BdItemController::loadItems: $e \n$stackTrace");
+      errorNotifier.value = "deleteProfileAssociateStatus: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
   }
 
+  @override
+  void dispose() {
+    unsubscribeRealtime();
+    statusNotifier.dispose();
+    vProfileAssociateStatusNotifier.dispose();
+    availableAssociateStatus.dispose();
+    loadingNotifier.dispose();
+    errorNotifier.dispose();
+    super.dispose();
+  }
 }

@@ -238,18 +238,6 @@ class _ProfileState extends State<Profile> {
                       ),
                       Tab(
                         height: 38,
-                        icon: Icon(Icons.manage_accounts, size: 16),
-                        text: 'Exec. Committee',
-                        iconMargin: EdgeInsets.only(bottom: 2),
-                      ),
-                      Tab(
-                        height: 38,
-                        icon: Icon(Icons.gavel_outlined, size: 16),
-                        text: 'Sanctions',
-                        iconMargin: EdgeInsets.only(bottom: 2),
-                      ),
-                      Tab(
-                        height: 38,
                         icon: Icon(Icons.motorcycle_sharp, size: 16),
                         text: 'Journey Riding',
                         iconMargin: EdgeInsets.only(bottom: 2),
@@ -260,6 +248,19 @@ class _ProfileState extends State<Profile> {
                         text: 'Associate Status',
                         iconMargin: EdgeInsets.only(bottom: 2),
                       ),
+                      Tab(
+                        height: 38,
+                        icon: Icon(Icons.manage_accounts, size: 16),
+                        text: 'Exec. Committee',
+                        iconMargin: EdgeInsets.only(bottom: 2),
+                      ),
+                      Tab(
+                        height: 38,
+                        icon: Icon(Icons.gavel_outlined, size: 16),
+                        text: 'Sanctions',
+                        iconMargin: EdgeInsets.only(bottom: 2),
+                      ),
+                     
                     ],
                   ),
                   Expanded(
@@ -270,19 +271,11 @@ class _ProfileState extends State<Profile> {
                           child: _buildProfileForm(),
                         ),
                         _buildTabSection(
-                          labelText: 'Headquarters Bar',
+                          labelText: 'Financial',
                           child: ProfileHeadquartersBar(
                             pflId: idController.text,
                             hldId: hld_id,
                           ),
-                        ),
-                        _buildTabSection(
-                          labelText: 'Executive Committee',
-                          child: ProfileExecutiveCommittee(),
-                        ),
-                        _buildTabSection(
-                          labelText: 'Sanctions',
-                          child: ProfileSanctions(),
                         ),
                         _buildTabSection(
                           labelText: 'Journey of the Riding',
@@ -294,6 +287,14 @@ class _ProfileState extends State<Profile> {
                         _buildTabSection(
                           labelText: 'Associate Status',
                           child: ProfileAssociateStatus(),
+                        ),
+                        _buildTabSection(
+                          labelText: 'Executive Committee',
+                          child: ProfileExecutiveCommittee(),
+                        ),
+                        _buildTabSection(
+                          labelText: 'Sanctions',
+                          child: ProfileSanctions(),
                         ),
                       ],
                     ),

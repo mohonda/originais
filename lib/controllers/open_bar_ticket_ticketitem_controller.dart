@@ -64,9 +64,7 @@ class OpenBarTicketTicketitemController extends ChangeNotifier {
       );
 
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("OpenBarTicketTicketitemController::openBarTicketTicketitem: $e \n$stackTrace");
-      debugPrint( errorNotifier.value.toString() );
+      errorNotifier.value ="openBarTicketTicketitem: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }

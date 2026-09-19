@@ -27,10 +27,12 @@ class _AssociatesSanctionsSectionState
   late final SanctionsController sanctionsController;
   final GeneralService generalService = GeneralService();
 
-  // ==========================================
+  bool isRealTime = false;
+
   @override
   void initState() {
     super.initState();
+    // Instancia um controller novo e isolado do Factory para este fluxo
     controller = getItBdVProfilesSanctionsController
         .get<BdVProfilesSanctionsController>();
 
@@ -44,7 +46,6 @@ class _AssociatesSanctionsSectionState
     });
   }
 
-  // ==========================================
   void _handleError() {
     final errorMessage = controller.errorNotifier.value ??
         sanctionsController.errorNotifier.value;
@@ -60,7 +61,6 @@ class _AssociatesSanctionsSectionState
     }
   }
 
-  // ==========================================
   @override
   void didUpdateWidget(covariant AssociatesSanctionsSection oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -73,26 +73,29 @@ class _AssociatesSanctionsSectionState
     }
   }
 
-  // ==========================================
   @override
   void dispose() {
     controller.errorNotifier.removeListener(_handleError);
     sanctionsController.errorNotifier.removeListener(_handleError);
+    controller.dispose();
     sanctionsController.dispose();
     super.dispose();
   }
 
-  // ==========================================
-  void _carregarDados() {
+  Future<void> _carregarDados() async {
     final pflId = widget.itemAtual.pfl_id.toString();
     final hldId = widget.itemAtual.hld_id.toString();
 
     if (pflId.isNotEmpty && hldId.isNotEmpty) {
-      controller.loadProfileSanctionsStatus(pflId, hldId);
+      await controller.loadProfileSanctionsStatus(pflId, hldId);
+      
+      if ( isRealTime == false ){
+        controller.subscribeToRealtime(pflId, hldId);
+        isRealTime = true;
+      }
     }
   }
 
-  // ==========================================
   void _showAddSanctionDialog() async {
     await sanctionsController.loadSanctions(
       widget.itemAtual.hld_id.toString(),
@@ -149,7 +152,6 @@ class _AssociatesSanctionsSectionState
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // 📋 COMBOBOX DE TIPO DE SANÇÃO
                       DropdownButtonFormField<SanctionsModel>(
                         value: sancaoSelecionada,
                         isExpanded: true,
@@ -177,10 +179,7 @@ class _AssociatesSanctionsSectionState
                           });
                         },
                       ),
-
                       const SizedBox(height: 16),
-
-                      // 📅 Data de Início
                       TextFormField(
                         controller: startDateController,
                         readOnly: true,
@@ -211,10 +210,7 @@ class _AssociatesSanctionsSectionState
                           }
                         },
                       ),
-
                       const SizedBox(height: 16),
-
-                      // 📅 Data de Término
                       TextFormField(
                         controller: endDateController,
                         readOnly: true,
@@ -263,10 +259,7 @@ class _AssociatesSanctionsSectionState
                           }
                         },
                       ),
-
                       const SizedBox(height: 16),
-
-                      // 💵 Valor
                       TextFormField(
                         controller: valueController,
                         maxLines: 1,
@@ -297,10 +290,7 @@ class _AssociatesSanctionsSectionState
                           return null;
                         },
                       ),
-
                       const SizedBox(height: 16),
-
-                      // 📝 Observações / Motivo
                       TextFormField(
                         controller: obsController,
                         maxLines: 2,
@@ -328,7 +318,6 @@ class _AssociatesSanctionsSectionState
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () async {
-                    // 🟢 SUBMISSÃO COM VALIDAÇÃO
                     if (!formKey.currentState!.validate()) return;
                     if (sancaoSelecionada == null) return;
 
@@ -357,7 +346,6 @@ class _AssociatesSanctionsSectionState
     );
   }
 
-  // ==========================================
   void _showEditSanctionDialog(VProfilesSanctionsModel item) async {
     await sanctionsController.loadSanctions(
       widget.itemAtual.hld_id.toString(),
@@ -424,7 +412,6 @@ class _AssociatesSanctionsSectionState
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // 📋 COMBOBOX DE SANÇÃO
                       DropdownButtonFormField<SanctionsModel>(
                         value: sancaoSelecionada,
                         isExpanded: true,
@@ -452,10 +439,7 @@ class _AssociatesSanctionsSectionState
                           });
                         },
                       ),
-
                       const SizedBox(height: 16),
-
-                      // 📅 Data de Início
                       TextFormField(
                         controller: startDateController,
                         readOnly: true,
@@ -486,10 +470,7 @@ class _AssociatesSanctionsSectionState
                           }
                         },
                       ),
-
                       const SizedBox(height: 16),
-
-                      // 📅 Data de Término
                       TextFormField(
                         controller: endDateController,
                         readOnly: true,
@@ -538,10 +519,7 @@ class _AssociatesSanctionsSectionState
                           }
                         },
                       ),
-
                       const SizedBox(height: 16),
-
-                      // 💵 Valor
                       TextFormField(
                         controller: valueController,
                         maxLines: 1,
@@ -572,10 +550,7 @@ class _AssociatesSanctionsSectionState
                           return null;
                         },
                       ),
-
                       const SizedBox(height: 16),
-
-                      // 📝 Observações / Motivo
                       TextFormField(
                         controller: obsController,
                         maxLines: 2,
@@ -591,7 +566,6 @@ class _AssociatesSanctionsSectionState
               ),
               actionsAlignment: MainAxisAlignment.spaceBetween,
               actions: [
-                // Botão de Exclusão
                 TextButton.icon(
                   icon: const Icon(Icons.delete_outline,
                       size: 20, color: Colors.red),
@@ -634,8 +608,6 @@ class _AssociatesSanctionsSectionState
                     }
                   },
                 ),
-
-                // Salvar e Cancelar
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -653,7 +625,6 @@ class _AssociatesSanctionsSectionState
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () async {
-                        // 🟢 SUBMISSÃO COM VALIDAÇÃO
                         if (!formKey.currentState!.validate()) return;
                         if (sancaoSelecionada == null) return;
 
@@ -684,7 +655,6 @@ class _AssociatesSanctionsSectionState
     );
   }
 
-  // ==========================================
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -726,7 +696,6 @@ class _AssociatesSanctionsSectionState
                 ),
               ],
             ),
-
             if (isLoading)
               Positioned.fill(
                 child: Container(
@@ -760,5 +729,4 @@ class _AssociatesSanctionsSectionState
       },
     );
   }
-
 }

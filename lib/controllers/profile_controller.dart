@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:originais/models/profile_model.dart';
 import 'package:originais/models/vprofile_model.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
 
@@ -59,7 +58,7 @@ class BdProfileController extends ChangeNotifier {
     
     } catch ( e, stackTrace ) {
       profilesNotifier.value = [];
-      errorNotifier.value = "BdProfileController::loadProfiles: $e \n$stackTrace";
+      errorNotifier.value = "loadProfiles: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -84,12 +83,12 @@ class BdProfileController extends ChangeNotifier {
         pessoaSelecionadaNotifier.value = VProfileModel.fromJson(resposta);
       } else {
         pessoaSelecionadaNotifier.value = null;
-        errorNotifier.value = 'BdProfileController::fetchProfilesById: Registro não encontrado.';
+        errorNotifier.value = 'fetchProfilesById: Registro não encontrado.';
       }
 
     } catch ( e, stackTrace ) {
       pessoaSelecionadaNotifier.value = null;
-      errorNotifier.value = "BdProfileController::fetchProfilesById: $e \n$stackTrace";
+      errorNotifier.value = "fetchProfilesById: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -130,7 +129,7 @@ class BdProfileController extends ChangeNotifier {
       }
     } catch ( e, stackTrace ) {
       pessoaSelecionadaNotifier.value = null;
-      errorNotifier.value = "BdProfileController::checkUserProfileExist: $e \n$stackTrace";
+      errorNotifier.value = "checkUserProfileExist: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -167,7 +166,7 @@ class BdProfileController extends ChangeNotifier {
 
     } catch ( e, stackTrace ) {
       pessoaSelecionadaNotifier.value = null;
-      errorNotifier.value = "BdProfileController::updateProfile: $e \n$stackTrace";
+      errorNotifier.value = "updateProfile: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -191,7 +190,7 @@ class BdProfileController extends ChangeNotifier {
 
     } catch ( e, stackTrace ) {
       pessoaSelecionadaNotifier.value = null;
-      errorNotifier.value = "BdProfileController::updateAvatar: $e \n$stackTrace";
+      errorNotifier.value = "updateAvatar: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }

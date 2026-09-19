@@ -4,17 +4,13 @@ import 'package:originais/models/profiles_sanctions_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
 import 'package:originais/models/sanction_model.dart';
-
-import 'package:originais/controllers/headquarters_bar_controller.dart';
-import 'package:originais/controllers/ticket_controller.dart';
-import 'package:originais/models/ticket_model.dart';
 import 'package:originais/controllers/open_bar_ticket_ticketitem_controller.dart';
 
 final getItBdVProfilesSanctionsController = GetIt.instance;
 
 void setupGetItBdVProfilesSanctionsController() {
   getItBdVProfilesSanctionsController
-      .registerLazySingleton<BdVProfilesSanctionsController>(
+      .registerFactory<BdVProfilesSanctionsController>(
         () => BdVProfilesSanctionsController(),
       );
 }
@@ -22,6 +18,9 @@ void setupGetItBdVProfilesSanctionsController() {
 class BdVProfilesSanctionsController extends ChangeNotifier {
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
   late SupabaseClient supabaseClient;
+
+  // Canal do Supabase para escuta em tempo real
+  RealtimeChannel? _sanctionsChannel;
 
   final ValueNotifier<List<VProfilesSanctionsModel>>
   vProfilesSanctionsNotifier = ValueNotifier<List<VProfilesSanctionsModel>>([]);
@@ -38,7 +37,40 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadProfileSanctionsStatus(String id, String hld) async {
+  // Inicia a escuta Realtime para alterações na tabela profiles_sanctions
+  void subscribeToRealtime(String pflId, String hldId) {
+    // Remove inscrição anterior se houver
+    unsubscribeRealtime();
+
+    _sanctionsChannel = supabaseClient
+        .channel('public:profiles_sanctions:pfl_$pflId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all, // Ouve INSERT, UPDATE e DELETE
+          schema: 'public',
+          table: 'profiles_sanctions',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'psan_pfl_id',
+            value: pflId,
+          ),
+          callback: (payload) {
+            // Sempre que houver mudança feita por QUALQUER instância, recarrega a View
+            loadProfileSanctionsStatus(pflId, hldId);
+          },
+        )
+        .subscribe();
+  }
+
+  // Cancela a inscrição do canal
+  void unsubscribeRealtime() {
+    if (_sanctionsChannel != null) {
+      supabaseClient.removeChannel(_sanctionsChannel!);
+      _sanctionsChannel = null;
+    }
+  }
+
+  // ==========================================
+  Future<void> loadProfileSanctionsStatus(String pflId, String hldId) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -47,8 +79,8 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
         () => supabaseClient
             .from('vprofiles_sanctions')
             .select()
-            .eq('psan_pfl_id', id)
-            .eq('psan_hld_id', hld),
+            .eq('psan_pfl_id', pflId)
+            .eq('psan_hld_id', hldId),
       );
 
       vProfilesSanctionsNotifier.value = resposta
@@ -56,7 +88,7 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
           .toList();
     } catch (e, stackTrace) {
       vProfilesSanctionsNotifier.value = [];
-      errorNotifier.value = ("loadProfileSanctionsStatus: $e \n$stackTrace");
+      errorNotifier.value = "loadProfileSanctionsStatus: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -69,7 +101,10 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
       errorNotifier.value = null;
 
       final resposta = await mySupabaseClient.safePostgrestCall(
-        () => supabaseClient.from('sanctions').select().eq('san_hld_id', hld),
+        () => supabaseClient
+          .from('sanctions')
+          .select()
+          .eq('san_hld_id', hld),
       );
 
       sanctionsNotifier.value = resposta
@@ -78,8 +113,7 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
 
       return sanctionsNotifier.value;
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
+      errorNotifier.value = "loadAvailableSanctions: $e \n$stackTrace";
       return sanctionsNotifier.value = [];
     } finally {
       loadingNotifier.value = false;
@@ -88,12 +122,10 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
 
   // ==========================================
   Future<void> insertProfileSanction(
-    String psanPflIid,
+    String psanPflId,
     String pflName,
-    String psanHldIid,
-
+    String psanHldId,
     String psanSanId,
-
     String psanValor,
     String psanDateStart,
     String psanDateEnd,
@@ -103,49 +135,40 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await mySupabaseClient.safePostgrestCall(
+      await mySupabaseClient.safePostgrestCall(
         () => supabaseClient
         .from('profiles_sanctions')
         .insert({
-          'psan_pfl_id': psanPflIid,
-          'psan_hld_id': psanHldIid,
-
+          'psan_pfl_id': psanPflId,
+          'psan_hld_id': psanHldId,
           'psan_san_id': psanSanId,
-
           'psan_valor': psanValor,
           'psan_date_start': psanDateStart,
           'psan_date_end': psanDateEnd,
           'psan_desc': psanDesc,
         })
-        .select()
       );
-
-      sanctionsNotifier.value = resposta
-          .map((item) => SanctionModel.fromMap(item))
-          .toList();
       
       final openTicket = OpenBarTicketTicketitemController();
       openTicket.openBarTicketTicketitem(
-        p_hld_id: psanHldIid,
-        p_pfl_id: psanPflIid,
+        p_hld_id: psanHldId,
+        p_pfl_id: psanPflId,
         p_pfl_name: pflName,
         p_date_start: psanDateStart,
         p_desc: psanDesc,
-        p_tss_id: '3', // table type_sales
+        p_tss_id: '3',
         p_table_number: '-1',
-        p_pdt_id: '32', // table produtos
+        p_pdt_id: '32',
         p_pdt_quant: '1',
         p_valor: psanValor,
         p_tkt_vpg_id: '',
         p_tkt_pas_id: '',
       );
-      
-      // return sanctionsNotifier.value;
+
+      // Não é necessário chamar loadProfileSanctionsStatus aqui, pois o Realtime reage ao INSERT
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
-      // return sanctionsNotifier.value = [];
-      debugPrint( errorNotifier.value.toString() );
+      errorNotifier.value = "insertProfileSanction: $e \n$stackTrace";
+      debugPrint(errorNotifier.value.toString());
     } finally {
       loadingNotifier.value = false;
     }
@@ -156,9 +179,7 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
     String psanid,
     String psanPflId,
     String psanHldIid,
-
     String psanSanId,
-
     String psanValor,
     String psanDateStart,
     String psanDateEnd,
@@ -175,15 +196,12 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
             'psan_valor': psanValor,
             'psan_date_start': psanDateStart,
             'psan_date_end': psanDateEnd,
-            'psan_desc': psanDesc})
+            'psan_desc': psanDesc
+          })
           .eq('psan_id', psanid)
       );
-
-      await loadProfileSanctionsStatus( psanPflId, psanHldIid);
-
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
+      errorNotifier.value = "updateProfileSanction: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -204,14 +222,20 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
           .delete()
           .eq('psan_id', psanid)
       );
-
-      await loadProfileSanctionsStatus( psanPflId, psanHldIid);
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
+      errorNotifier.value = "deleteProfileSanction: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
   }
 
+  @override
+  void dispose() {
+    unsubscribeRealtime();
+    vProfilesSanctionsNotifier.dispose();
+    sanctionsNotifier.dispose();
+    loadingNotifier.dispose();
+    errorNotifier.dispose();
+    super.dispose();
+  }
 }

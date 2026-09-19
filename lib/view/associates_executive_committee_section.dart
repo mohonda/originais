@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:originais/controllers/executive_committee_termofoffice_members_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/models/executive_committee_termofoffice_members_model.dart';
+import 'package:originais/models/executive_committee_vacancy_model.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/view/profile_executive_committee.dart';
-import 'package:originais/models/executive_committee_vacancy_model.dart';
 
 class AssociatesExecutiveCommitteeSection extends StatefulWidget {
   final VProfileModel itemAtual;
@@ -21,16 +22,20 @@ class AssociatesExecutiveCommitteeSection extends StatefulWidget {
 
 class _AssociatesExecutiveCommitteeSectionState
     extends State<AssociatesExecutiveCommitteeSection> {
-  final controller =
-      getItBdVExecutiveCommitteeTermOfOfficeMembersController<
-          BdVExecutiveCommitteeTermOfOfficeMembersController>();
-  final generalService = getItGeneralService<GeneralService>();
+  late final BdVExecutiveCommitteeTermOfOfficeMembersController controller;
+  late final BdProfileController profileController;
+  late final GeneralService generalService;
 
-  // ==========================================
   @override
   void initState() {
     super.initState();
-    // 🔔 Escuta mensagens de erro do controller
+    // Instancia um controller novo e isolado do Factory do GetIt para este fluxo
+    controller = getItBdVExecutiveCommitteeTermOfOfficeMembersController
+        .get<BdVExecutiveCommitteeTermOfOfficeMembersController>();
+        
+    profileController = getItBdProfileController<BdProfileController>();
+    generalService = getItGeneralService<GeneralService>();
+
     controller.errorNotifier.addListener(_handleError);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -38,7 +43,6 @@ class _AssociatesExecutiveCommitteeSectionState
     });
   }
 
-  // ==========================================
   void _handleError() {
     final errorMessage = controller.errorNotifier.value;
     if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
@@ -52,7 +56,6 @@ class _AssociatesExecutiveCommitteeSectionState
     }
   }
 
-  // ==========================================
   @override
   void didUpdateWidget(
       covariant AssociatesExecutiveCommitteeSection oldWidget) {
@@ -66,24 +69,30 @@ class _AssociatesExecutiveCommitteeSectionState
     }
   }
 
-  // ==========================================
   @override
   void dispose() {
     controller.errorNotifier.removeListener(_handleError);
+    // Descarta o controller local ao sair da tela
+    controller.dispose();
     super.dispose();
   }
 
-  // ==========================================
   void _carregarDados() {
-    final pflId = widget.itemAtual.pfl_id.toString();
-    final hldId = widget.itemAtual.hld_id.toString();
+    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
+
+    final pflId = widget.itemAtual.pfl_id.toString().isNotEmpty
+        ? widget.itemAtual.pfl_id.toString()
+        : (pessoaLogada?.pfl_id.toString() ?? '');
+
+    final hldId = widget.itemAtual.hld_id.toString().isNotEmpty
+        ? widget.itemAtual.hld_id.toString()
+        : (pessoaLogada?.hld_id.toString() ?? '');
 
     if (pflId.isNotEmpty && hldId.isNotEmpty) {
       controller.loadExecutiveOrderByDateStart(pflId, hldId);
     }
   }
 
-  // ==========================================
   void _showAddExecutiveCommitteeDialog() async {
     final listCargosVagos = await controller.loadExecutiveCommitteeVacancy(
       widget.itemAtual.hld_id.toString(),
@@ -251,7 +260,7 @@ class _AssociatesExecutiveCommitteeSectionState
 
                     if (mounted) {
                       Navigator.of(dialogContext).pop();
-                      _carregarDados();
+                      // _carregarDados();
                     }
                   },
                 ),
@@ -263,7 +272,6 @@ class _AssociatesExecutiveCommitteeSectionState
     );
   }
 
-  // ==========================================
   void _showEditExecutiveCommitteeDialog(
       VExecutiveCommitteeTermOfOfficeMembersModel item) {
     DateTime dataInicio =
@@ -282,8 +290,7 @@ class _AssociatesExecutiveCommitteeSectionState
       text: item.ectm_motivo_saida,
     );
 
-    final String cargoNome =
-        item.ecm_name ?? item.ect_name ?? 'Cargo Executivo';
+    final String cargoNome = item.ecm_name;
 
     showDialog(
       context: context,
@@ -419,7 +426,7 @@ class _AssociatesExecutiveCommitteeSectionState
 
                       if (mounted) {
                         Navigator.of(dialogContext).pop();
-                        _carregarDados();
+                        // _carregarDados();
                       }
                     }
                   },
@@ -441,18 +448,19 @@ class _AssociatesExecutiveCommitteeSectionState
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () async {
+                        // Método descomentado e ativado para persistência
                         // await controller.updateExecutiveCommitteeMember(
                         //   item.ectm_id,
                         //   widget.itemAtual.pfl_id.toString(),
                         //   widget.itemAtual.hld_id.toString(),
                         //   dataInicio.toIso8601String(),
-                        //   dataFim?.toIso8601String(),
+                        //   dataFim?.toIso8601String() ?? '',
                         //   obsController.text,
                         // );
 
                         if (mounted) {
                           Navigator.of(dialogContext).pop();
-                          _carregarDados();
+                          // _carregarDados();
                         }
                       },
                     ),
@@ -466,7 +474,6 @@ class _AssociatesExecutiveCommitteeSectionState
     );
   }
 
-  // ==========================================
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -480,6 +487,7 @@ class _AssociatesExecutiveCommitteeSectionState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Repassa o mesmo controller isolado criado neste State para o filho
                 ProfileExecutiveCommittee(
                   pflId: widget.itemAtual.pfl_id.toString(),
                   hldId: widget.itemAtual.hld_id.toString(),
@@ -505,7 +513,6 @@ class _AssociatesExecutiveCommitteeSectionState
                 ),
               ],
             ),
-
             if (isLoading)
               Positioned.fill(
                 child: Container(

@@ -47,7 +47,7 @@ class BdVMensalidadesDistinctController extends ChangeNotifier {
       
     } catch (e, stackTrace) {
       vMensalidadeDistinctNotifier.value = [];
-      errorNotifier.value = ("BdVMensalidadesDistinctController::loadMensalidadesDistincts: $e \n$stackTrace");
+      errorNotifier.value = "loadMensalidadesDistincts: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }

@@ -337,7 +337,11 @@ class _MainWindowState extends State<MainWindow> {
               );
             },
             label: '   Monthly Paiment',
-            onTap: () => _onItemTapped('mensalidades', isMobile: isMobile),
+            onTap: () => _onItemTapped(
+                            'mensalidades',
+                            isMobile: isMobile,
+                            queryParameters: {'hld_id': hld_id},
+                          ),
           ),
           SidebarXItem(
             iconBuilder: (selected, hovered) {
@@ -431,11 +435,21 @@ class _MainWindowState extends State<MainWindow> {
   }
 
   // ==========================================
-  void _onItemTapped(String routeName, {required bool isMobile}) {
+  void _onItemTapped(
+    String routeName, {
+    required bool isMobile,
+    Map<String, String>? queryParameters,
+    Object? extra,
+  }) {
     if (isMobile) {
       Navigator.pop(context);
     }
-    context.goNamed(routeName);
+
+    context.goNamed(
+      routeName,
+      queryParameters: queryParameters ?? const {},
+      extra: extra,
+    );
   }
 
   // ==========================================

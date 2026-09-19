@@ -63,7 +63,6 @@ class BdHeadquartersBarController extends ChangeNotifier {
   }
 
   // ==========================================
-  // 2. Adicione o parâmetro opcional 'showLoading' no seu método
   Future<void> loadHeadquartersBar(
     String hldId,
     String tssId,
@@ -115,7 +114,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
           'bar_desc': barDesc,
           'bar_tss_id': tssId,
         })
-        .select('bar_id') // 🟢 Solicita o retorno da coluna bar_id
+        .select('bar_id')
         .single(),
       );
 

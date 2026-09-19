@@ -7,12 +7,14 @@ import 'package:originais/services/general_service.dart';
 class ProfileJourneyRiding extends StatefulWidget {
   final String? pflId;
   final String? hldId;
+  final BdJourneyRidingController? controller;
   final void Function(JourneyRidingModel)? onEdit;
 
   const ProfileJourneyRiding({
     super.key,
-    required this.pflId,
-    required this.hldId,
+    this.pflId,
+    this.hldId,
+    this.controller,
     this.onEdit,
   });
 
@@ -24,19 +26,30 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
   late final GeneralService generalService;
   late final BdJourneyRidingController controller;
   late final BdProfileController profileController;
+  bool _isLocalController = false;
 
   String _pflIdResolvido = '';
   String _hldIdResolvido = '';
 
-  // ==========================================
+  bool isRealTime = false;
+
   @override
   void initState() {
     super.initState();
     generalService = GeneralService();
-    controller =
-        getItBdJourneyRidingController.get<BdJourneyRidingController>();
-    profileController = getItBdProfileController<BdProfileController>();
 
+    // Se um controller foi passado pelo widget pai, reutiliza a instância escopada.
+    // Caso contrário, solicita uma nova instância isolada via Factory do GetIt.
+    if (widget.controller != null) {
+      controller = widget.controller!;
+      _isLocalController = false;
+    } else {
+      controller = getItBdJourneyRidingController
+          .get<BdJourneyRidingController>();
+      _isLocalController = true;
+    }
+
+    profileController = getItBdProfileController<BdProfileController>();
     profileController.pessoaSelecionadaNotifier.addListener(_onPessoaChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,21 +57,22 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     });
   }
 
-  // ==========================================
   @override
   void dispose() {
     profileController.pessoaSelecionadaNotifier.removeListener(_onPessoaChanged);
+    // Descarta o controller apenas se ele foi criado localmente via Factory
+    if (_isLocalController) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
-  // ==========================================
   void _onPessoaChanged() {
-    if (_pflIdResolvido.isEmpty || _hldIdResolvido.isEmpty) {
+    if (widget.pflId == null || widget.pflId!.isEmpty) {
       _carregarJornada();
     }
   }
 
-  // ==========================================
   @override
   void didUpdateWidget(covariant ProfileJourneyRiding oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -67,7 +81,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     }
   }
 
-  // ==========================================
   void _atualizarECarregarJornada() {
     controller.vProfileJourneyridingDetaisNotifier.value = [];
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -75,32 +88,30 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     });
   }
 
-  // ==========================================
   Future<void> _carregarJornada() async {
     final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
 
-    final String idResolvido = (widget.pflId != null && widget.pflId!.isNotEmpty)
+    _pflIdResolvido = (widget.pflId != null && widget.pflId!.isNotEmpty)
         ? widget.pflId!
         : (pessoaLogada?.pfl_id.toString() ?? '');
 
-    final String hldResolvido = (widget.hldId != null && widget.hldId!.isNotEmpty)
+    _hldIdResolvido = (widget.hldId != null && widget.hldId!.isNotEmpty)
         ? widget.hldId!
         : (pessoaLogada?.hld_id.toString() ?? '');
 
-    if (idResolvido.isEmpty || hldResolvido.isEmpty) {
-      return;
-    }
-
-    _pflIdResolvido = idResolvido;
-    _hldIdResolvido = hldResolvido;
+    if (_pflIdResolvido.isEmpty || _hldIdResolvido.isEmpty) return;
 
     await Future.wait([
       controller.loadJourneyRidingDetais(_pflIdResolvido, _hldIdResolvido),
       controller.loadJourneyRidingOrderByLevel(_hldIdResolvido),
     ]);
+
+    if ( isRealTime == false ){
+      controller.subscribeToRealtime(_pflIdResolvido, _hldIdResolvido);
+      isRealTime = true;
+    }
   }
 
-  // ==========================================
   int _parseLevel(dynamic levelValue) {
     if (levelValue == null) return 0;
     final str = levelValue.toString().trim();
@@ -116,7 +127,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     return int.tryParse(onlyDigits) ?? 0;
   }
 
-  // ==========================================
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -207,9 +217,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                             catalogoCarregado: todasEtapas.isNotEmpty,
                             isLoading: isLoading,
                           ),
-
                           const SizedBox(height: 12),
-
                           if (proximoNivel != null) ...[
                             _buildProximoNivelCard(
                               proximo: proximoNivel,
@@ -217,7 +225,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                             ),
                             const SizedBox(height: 16),
                           ],
-
                           const Text(
                             'Histórico de Graduações',
                             style: TextStyle(
@@ -227,7 +234,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                             ),
                           ),
                           const SizedBox(height: 8),
-
                           ListView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
@@ -255,7 +261,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
-  // ==========================================
   Widget _buildResumoJornada({
     required List<JourneyRidingModel> lista,
     required JourneyRidingModel? proximoNivel,
@@ -274,8 +279,7 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
 
     final String nomeProximaGraduacao;
     if (proximoNivel != null) {
-      nomeProximaGraduacao =
-          proximoNivel.jr_nome;
+      nomeProximaGraduacao = proximoNivel.jr_nome;
     } else if (isLoading || (!catalogoCarregado && totalEtapas > 0)) {
       nomeProximaGraduacao = 'Carregando...';
     } else {
@@ -320,7 +324,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
-  // ==========================================
   Widget _buildResumoColumn(String label, String value, Color color) {
     return Column(
       children: [
@@ -347,7 +350,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
-  // ==========================================
   Widget _buildProximoNivelCard({
     required JourneyRidingModel proximo,
     required JourneyRidingModel? graduacaoAtual,
@@ -470,11 +472,9 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
               _buildBadgeContagemRegressiva(diasRestantes),
             ],
           ),
-
           const SizedBox(height: 12),
           const Divider(height: 1, color: Colors.white12),
           const SizedBox(height: 10),
-
           if (minDays > 0) ...[
             _buildInfoLinhaProgresso(
               'Tempo Mínimo Exigido:',
@@ -498,7 +498,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
-  // ==========================================
   Widget _buildBadgeContagemRegressiva(int? diasRestantes) {
     if (diasRestantes == null) return const SizedBox.shrink();
 
@@ -536,7 +535,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
-  // ==========================================
   Widget _buildInfoLinhaProgresso(String rotulo, String valor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -562,7 +560,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
-  // ==========================================
   Widget _buildJornadaCard(JourneyRidingModel etapa, bool isAtual) {
     final String tituloEtapa = etapa.jr_nome;
     final String dataPromocao = generalService.formatarDataBr(
@@ -629,14 +626,14 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
                 ],
                 const SizedBox(height: 6),
                 _buildInfoRow('Data da Promoção:', dataPromocao),
-                if (etapa.jr_minimum_time_indays.isNotEmpty ) ...[
+                if (etapa.jr_minimum_time_indays.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   _buildInfoRow(
                     'Tempo Mínimo Exigido:',
                     '${etapa.jr_minimum_time_indays} dias',
                   ),
                 ],
-                if (etapa.jr_desc.isNotEmpty && etapa.jr_desc.isNotEmpty) ...[
+                if (etapa.jr_desc.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   _buildInfoRow('Observações:', etapa.jr_desc),
                 ],
@@ -648,7 +645,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
-  // ==========================================
   Widget _buildInfoRow(String label, String valor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -674,7 +670,6 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
     );
   }
 
-  // ==========================================
   Widget _buildStatusBadge(bool isAtual) {
     final String label = isAtual ? 'ATUAL' : 'CONCLUÍDA';
     final Color color = isAtual ? Colors.greenAccent : Colors.white38;
@@ -699,5 +694,4 @@ class _ProfileJourneyRidingState extends State<ProfileJourneyRiding> {
       ),
     );
   }
-
 }

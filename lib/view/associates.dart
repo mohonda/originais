@@ -322,7 +322,7 @@ class AssociatesState extends State<Associates> {
         bdJourneyRidingController.loadJourneyRidingDetais(pflId, hldId),
         bdVProfileAssociateStatusController.loadProfileAssociateStatus(pflId, hldId),
         bdVProfilesSanctionsController.loadProfileSanctionsStatus(pflId, hldId),
-        bdVExecutiveCommitteeTermOfOfficeMembersController.loadExecutiveCommitteeTermOfOfficeMembers(pflId, hldId),
+        bdVExecutiveCommitteeTermOfOfficeMembersController.loadExecutiveOrderByDateStart(pflId, hldId),
       ]);
 
       if (context.mounted) {

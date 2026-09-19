@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/controllers/profile_associate_status_controller.dart';
+// import 'package:originais/controllers/associate_status_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/models/profile_associate_status_model.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/view/profile_associate_status.dart';
-import 'package:originais/controllers/associate_status_controller.dart';
 
 class AssociatesAssociateStatusSection extends StatefulWidget {
   final VProfileModel itemAtual;
@@ -23,29 +24,33 @@ class AssociatesAssociateStatusSection extends StatefulWidget {
 class _AssociatesAssociateStatusSectionState
     extends State<AssociatesAssociateStatusSection> {
   late final BdVProfileAssociateStatusController controller;
-  late final AssociateStatusController statusController;
+  // late final AssociateStatusController statusController;
+  late final BdProfileController profileController;
   final GeneralService generalService = GeneralService();
+  bool isRealTime = false;
 
-  // ==========================================
+
   @override
   void initState() {
     super.initState();
+    // Instância nova e isolada criada pelo Factory do GetIt para esta seção
     controller = getItBdVProfileAssociateStatusController
         .get<BdVProfileAssociateStatusController>();
     
-    statusController = AssociateStatusController();
+    // statusController = AssociateStatusController();
+    profileController = getItBdProfileController<BdProfileController>();
 
     controller.errorNotifier.addListener(_handleError);
-    statusController.errorNotifier.addListener(_handleError);
+    // statusController.errorNotifier.addListener(_handleError);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarDados();
     });
   }
 
-  // ==========================================
   void _handleError() {
-    final errorMessage = controller.errorNotifier.value ?? statusController.errorNotifier.value;
+    // final errorMessage = controller.errorNotifier.value ?? statusController.errorNotifier.value;
+    final errorMessage = controller.errorNotifier.value;
     if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -57,7 +62,6 @@ class _AssociatesAssociateStatusSectionState
     }
   }
 
-  // ==========================================
   @override
   void didUpdateWidget(covariant AssociatesAssociateStatusSection oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -70,34 +74,45 @@ class _AssociatesAssociateStatusSectionState
     }
   }
 
-  // ==========================================
   @override
   void dispose() {
     controller.errorNotifier.removeListener(_handleError);
-    statusController.errorNotifier.removeListener(_handleError);
-    statusController.dispose();
+    // statusController.errorNotifier.removeListener(_handleError);
+    
+    // Libera os controllers locais
+    controller.dispose();
+    // statusController.dispose();
     super.dispose();
   }
 
-  // ==========================================
   void _carregarDados() {
-    final pflId = widget.itemAtual.pfl_id.toString();
-    final hldId = widget.itemAtual.hld_id.toString();
+    final pessoaLogada = profileController.pessoaSelecionadaNotifier.value;
+
+    final pflId = widget.itemAtual.pfl_id.toString().isNotEmpty
+        ? widget.itemAtual.pfl_id.toString()
+        : (pessoaLogada?.pfl_id.toString() ?? '');
+
+    final hldId = widget.itemAtual.hld_id.toString().isNotEmpty
+        ? widget.itemAtual.hld_id.toString()
+        : (pessoaLogada?.hld_id.toString() ?? '');
 
     if (pflId.isNotEmpty && hldId.isNotEmpty) {
       controller.loadProfileAssociateStatus(pflId, hldId);
-      statusController.loadAssociateStatus(hldId);
+      controller.loadAssociateStatus(hldId);
+      if ( isRealTime == false ){
+        controller.subscribeToRealtime(pflId, hldId);
+        isRealTime = true;
+      }
     }
   }
 
-  // ==========================================
   void _showAddStatusDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return ValueListenableBuilder<List<dynamic>>(
-          valueListenable: statusController.statusNotifier,
+          valueListenable: controller.statusNotifier,
           builder: (context, listOpcoesStatus, _) {
             if (listOpcoesStatus.isEmpty) {
               return AlertDialog(
@@ -137,6 +152,7 @@ class _AssociatesAssociateStatusSectionState
 
                 if (mounted) {
                   Navigator.of(dialogContext).pop();
+                  _carregarDados();
                 }
               },
             );
@@ -146,7 +162,6 @@ class _AssociatesAssociateStatusSectionState
     );
   }
 
-  // ==========================================
   void _showEditStatusDialog(VProfileAssociateStatusModel item) {
     showDialog(
       context: context,
@@ -166,6 +181,7 @@ class _AssociatesAssociateStatusSectionState
 
             if (mounted) {
               Navigator.of(dialogContext).pop();
+              _carregarDados();
             }
           },
           onDelete: () async {
@@ -200,6 +216,7 @@ class _AssociatesAssociateStatusSectionState
 
               if (mounted) {
                 Navigator.of(dialogContext).pop();
+                _carregarDados();
               }
             }
           },
@@ -208,17 +225,15 @@ class _AssociatesAssociateStatusSectionState
     );
   }
 
-  // ==========================================
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: Listenable.merge([
         controller.loadingNotifier,
-        statusController.loadingNotifier,
+        // statusController.loadingNotifier,
       ]),
       builder: (context, _) {
-        final bool isLoading = controller.loadingNotifier.value ||
-            statusController.loadingNotifier.value;
+        final bool isLoading = controller.loadingNotifier.value;
 
         return Stack(
           children: [
@@ -250,12 +265,10 @@ class _AssociatesAssociateStatusSectionState
                 ),
               ],
             ),
-
-            // 🌀 Indicador de carregamento enquanto o banco/controller está em processamento
             if (isLoading)
               Positioned.fill(
                 child: Container(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   child: Center(
                     child: Card(
                       elevation: 4,

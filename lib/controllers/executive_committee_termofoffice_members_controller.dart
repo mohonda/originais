@@ -19,9 +19,9 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
   late SupabaseClient supabaseClient;
 
-  final ValueNotifier<List<VExecutiveCommitteeTermOfOfficeMembersModel>>
-  vExecutiveCommitteeTermOfOfficeMembersNotifier =
-      ValueNotifier<List<VExecutiveCommitteeTermOfOfficeMembersModel>>([]);
+  // final ValueNotifier<List<VExecutiveCommitteeTermOfOfficeMembersModel>>
+  // vExecutiveCommitteeTermOfOfficeMembersNotifier =
+  //     ValueNotifier<List<VExecutiveCommitteeTermOfOfficeMembersModel>>([]);
 
   final ValueNotifier<List<VExecutiveCommitteeTermOfOfficeMembersModel>>
   executiveOrderByDateStart =
@@ -35,11 +35,40 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
     supabaseClient = mySupabaseClient.getSupabaseClient();
   }
 
+  // // ==========================================
+  // Future<void> loadExecutiveCommitteeTermOfOfficeMembers(
+  //   String id,
+  //   String hld,
+  // ) async {
+  //   try {
+  //     loadingNotifier.value = true;
+  //     errorNotifier.value = null;
+
+  //     final resposta = await mySupabaseClient.safePostgrestCall(
+  //       () => supabaseClient
+  //           .from('vexecutive_committee_termofoffice_members')
+  //           .select()
+  //           .eq('ectm_pfl_id', id)
+  //           .eq('ectm_hld_id', hld),
+  //     );
+
+  //     vExecutiveCommitteeTermOfOfficeMembersNotifier.value = resposta
+  //         .map(
+  //           (item) =>
+  //               VExecutiveCommitteeTermOfOfficeMembersModel.fromJson(item),
+  //         )
+  //         .toList();
+  //   } catch (e, stackTrace) {
+  //     vExecutiveCommitteeTermOfOfficeMembersNotifier.value = [];
+  //     errorNotifier.value =
+  //         "loadExecutiveCommitteeTermOfOfficeMembers: $e \n$stackTrace";
+  //   } finally {
+  //     loadingNotifier.value = false;
+  //   }
+  // }
+
   // ==========================================
-  Future<void> loadExecutiveCommitteeTermOfOfficeMembers(
-    String id,
-    String hld,
-  ) async {
+  Future<void> loadExecutiveOrderByDateStart(String pflId, String hldId) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -48,37 +77,8 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
         () => supabaseClient
             .from('vexecutive_committee_termofoffice_members')
             .select()
-            .eq('ectm_pfl_id', id)
-            .eq('ectm_hld_id', hld),
-      );
-
-      vExecutiveCommitteeTermOfOfficeMembersNotifier.value = resposta
-          .map(
-            (item) =>
-                VExecutiveCommitteeTermOfOfficeMembersModel.fromJson(item),
-          )
-          .toList();
-    } catch (e, stackTrace) {
-      vExecutiveCommitteeTermOfOfficeMembersNotifier.value = [];
-      errorNotifier.value =
-          ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
-    } finally {
-      loadingNotifier.value = false;
-    }
-  }
-
-  // ==========================================
-  Future<void> loadExecutiveOrderByDateStart(String id, String hld) async {
-    try {
-      loadingNotifier.value = true;
-      errorNotifier.value = null;
-
-      final resposta = await mySupabaseClient.safePostgrestCall(
-        () => supabaseClient
-            .from('vexecutive_committee_termofoffice_members')
-            .select()
-            .eq('ectm_pfl_id', id)
-            .eq('ectm_hld_id', hld)
+            .eq('ectm_pfl_id', pflId)
+            .eq('ectm_hld_id', hldId)
             .order('ectm_date_start', ascending: false),
       );
 
@@ -91,7 +91,7 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
     } catch (e, stackTrace) {
       executiveOrderByDateStart.value = [];
       errorNotifier.value =
-          ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
+          "loadExecutiveOrderByDateStart: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -114,11 +114,11 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
             .eq('ectm_id', ectmId),
       );
 
-      // await loadExecutiveOrderByDateStart( pflId, hldId );
+      await loadExecutiveOrderByDateStart( pflId, hldId );
+
     } catch (e, stackTrace) {
       errorNotifier.value =
-          ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
-      debugPrint('$e \n$stackTrace');
+          "deleteExecutiveCommitteeMember: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -150,11 +150,10 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
             })
       );
 
-      // await loadExecutiveOrderByDateStart( pflId, hldId );
+      await loadExecutiveOrderByDateStart( ectm_pfl_id, ectm_hld_id );
     } catch (e, stackTrace) {
       errorNotifier.value =
-          ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
-      debugPrint('$e \n$stackTrace');
+          "insertExecutiveCommitteeMember: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -175,29 +174,22 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
             .eq('ecm_hld_id', hldIid),
       );
 
-      if (resposta == null) return [];
-
-      // 2. Garante que a resposta é tratada como uma Lista
       final List<dynamic> rawList = resposta as List<dynamic>;
 
-      // 3. Mapeamento Seguro (Iterable -> List<ExecutiveCommitteeVacancyModel>)
-      final List<ExecutiveCommitteeVacancyModel> cargosVagos = rawList
-          .map(
-            (item) =>
-                ExecutiveCommitteeVacancyModel.fromMap(item as Map<String, dynamic>),
-          )
-          .toList(); // ⚠️ Não esqueça o .toList() ao final!
+      final List<ExecutiveCommitteeVacancyModel> 
+        cargosVagos = rawList.map(
+            (item) => ExecutiveCommitteeVacancyModel.fromMap(item as Map<String, dynamic>),
+          ).toList();
 
       return cargosVagos;
     } catch (e, stackTrace) {
-      vExecutiveCommitteeTermOfOfficeMembersNotifier.value = [];
+      // vExecutiveCommitteeTermOfOfficeMembersNotifier.value = [];
       errorNotifier.value =
-          ("BdVProfilesSanctionsController::loadProfileSanctionsStatus: $e \n$stackTrace");
+          "loadExecutiveCommitteeVacancy: $e \n$stackTrace";
       return [];
     } finally {
       loadingNotifier.value = false;
     }
   }
+
 }
-
-

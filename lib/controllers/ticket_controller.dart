@@ -37,14 +37,12 @@ class TicketController extends ChangeNotifier {
 
   // 🟢 Canais do Supabase Realtime
   RealtimeChannel? _realtimeChannel;
-  RealtimeChannel? _realtimeProfileChannel; // 👈 Canal dedicado para o perfil
+  RealtimeChannel? _realtimeProfileChannel;
 
   TicketController() {
     supabaseClient = mySupabaseClient.getSupabaseClient();
   }
 
-  // ==========================================
-  // 🟢 REALTIME DO BAR (VENDA DIÁRIA)
   // ==========================================
   void initRealtime(String barId, String openDate, String hldId) {
     disposeRealtime();
@@ -75,6 +73,7 @@ class TicketController extends ChangeNotifier {
         .subscribe();
   }
 
+  // ==========================================
   void disposeRealtime() {
     if (_realtimeChannel != null) {
       supabaseClient.removeChannel(_realtimeChannel!);
@@ -83,14 +82,11 @@ class TicketController extends ChangeNotifier {
   }
 
   // ==========================================
-  // 🟢 REALTIME DO PERFIL DO USUÁRIO
-  // ==========================================
   void initRealtimeProfile(String pflId, String hldId) {
     disposeRealtimeProfile();
 
     _realtimeProfileChannel = supabaseClient
         .channel('public:tickets_profile:$hldId:$pflId')
-        // 1. Escuta alterações em tickets vinculados ao perfil selecionado
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
@@ -101,11 +97,9 @@ class TicketController extends ChangeNotifier {
             value: pflId,
           ),
           callback: (payload) {
-            // Recarrega os dados em segundo plano sem piscar o loading na tela
             loadTicketsByProfileWithItems(pflId, hldId, showLoading: false);
           },
         )
-        // 2. Escuta inclusão/alteração/remoção de itens em comandas
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
@@ -117,6 +111,7 @@ class TicketController extends ChangeNotifier {
         .subscribe();
   }
 
+  // ==========================================
   void disposeRealtimeProfile() {
     if (_realtimeProfileChannel != null) {
       supabaseClient.removeChannel(_realtimeProfileChannel!);
@@ -124,8 +119,6 @@ class TicketController extends ChangeNotifier {
     }
   }
 
-  // ==========================================
-  // MÉTODOS DE CARREGAMENTO DE DADOS
   // ==========================================
   Future<void> loadTicketStatus(String hldId) async {
     try {
@@ -143,8 +136,7 @@ class TicketController extends ChangeNotifier {
           .map((item) => TicketStatusModel.fromJson(item))
           .toList();
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("TicketController::loadTicketStatus: $e \n$stackTrace");
+      errorNotifier.value = "loadTicketStatus: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -172,15 +164,13 @@ class TicketController extends ChangeNotifier {
           .map((item) => TicketsModel.fromJson(item))
           .toList();
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("TicketController::loadTickets: $e \n$stackTrace");
+      errorNotifier.value = "loadTickets: $e \n$stackTrace";
     } finally {
       if (showLoading) loadingNotifier.value = false;
     }
   }
 
-  // 🟢 CORRIGIDO: Removido o reset inicial (profileTicketsWithItemsNotifier.value = []) 
-  // para evitar o efeito de tela piscando durante atualizações realtime
+  // ==========================================
   Future<void> loadTicketsByProfileWithItems(
     String pfl_id,
     String hldId, {
@@ -204,13 +194,13 @@ class TicketController extends ChangeNotifier {
           .toList();
     } catch (e, stackTrace) {
       profileTicketsWithItemsNotifier.value = [];
-      errorNotifier.value =
-          ("TicketController::loadTicketsByProfileWithItems: $e \n$stackTrace");
+      errorNotifier.value = "loadTicketsByProfileWithItems: $e \n$stackTrace";
     } finally {
       if (showLoading) loadingNotifier.value = false;
     }
   }
 
+  // ==========================================
   Future<void> loadTicketsByProfile(String pflId, String hldId) async {
     try {
       loadingNotifier.value = true;
@@ -228,7 +218,7 @@ class TicketController extends ChangeNotifier {
 
     } catch (e, stackTrace) {
       profileTicketsNotifier.value = [];
-      debugPrint("TicketController::loadTicketsByProfile: $e\n$stackTrace");
+      errorNotifier.value = "loadTicketsByProfile: $e\n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -258,23 +248,19 @@ class TicketController extends ChangeNotifier {
             'tkt_pfl_id' : pflId,
             'tkt_bar_id': barId,
           })
-          .select('tkt_id') // 🟢 Solicita o retorno da coluna bar_id
+          .select('tkt_id')
           .single(),
       );
       return resposta['tkt_id'].toString();
 
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("TicketController::openTicketsFunction: $e \n$stackTrace");
-      debugPrint( '$e \n$stackTrace');
+      errorNotifier.value = "insertTickets: $e \n$stackTrace";
       return '-1';
     } finally {
       loadingNotifier.value = false;
     }
   }
 
-  // ==========================================
-  // AÇÕES DO TICKET (INSERT, UPDATE, DELETE)
   // ==========================================
   Future<void> openTicketsFunction(
     TicketsModel openTickets,
@@ -305,14 +291,13 @@ class TicketController extends ChangeNotifier {
       await loadTickets( barId, openDate, hldId );
 
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("TicketController::openTicketsFunction: $e \n$stackTrace");
-          debugPrint( "$e \n$stackTrace");
+      errorNotifier.value = "openTicketsFunction: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
   }
 
+  // ==========================================
   Future<void> closeTicketsWithoutPayment(
     String tktId,
     String tktTstId,
@@ -333,13 +318,13 @@ class TicketController extends ChangeNotifier {
       await loadTickets( barId, openDate, hldId );
 
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("TicketController::closeTicketsWithoutPayment: $e \n$stackTrace");
+      errorNotifier.value = "closeTicketsWithoutPayment: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
   }
 
+  // ==========================================
   Future<void> insertTicketsItems(
     TicketsItemsModel ticketsItems,
     String barId,
@@ -357,13 +342,13 @@ class TicketController extends ChangeNotifier {
       );
       await loadTickets( barId, openDate, hldId );
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("TicketController::insertTicketsItems: $e \n$stackTrace");
+      errorNotifier.value = "insertTicketsItems: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
   }
 
+  // ==========================================
   Future<void> updateTicketsItems(
     String tit_id,
     int tit_quantities,
@@ -378,19 +363,21 @@ class TicketController extends ChangeNotifier {
       await mySupabaseClient.safePostgrestCall(
         () => supabaseClient
           .from( 'tickets_items' )
-          .update({'tit_quantities': tit_quantities })
+          .update({
+            'tit_quantities': tit_quantities
+          })
           .eq( 'tit_id', tit_id )
       );
       await loadTickets( barId, openDate, hldId );
 
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("TicketController::updateTicketsItems: $e \n$stackTrace");
+      errorNotifier.value = "updateTicketsItems: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
   }
 
+  // ==========================================
   Future<void> deleteTicketsItems(
     String tit_id,
     String barId,
@@ -410,8 +397,7 @@ class TicketController extends ChangeNotifier {
       await loadTickets( barId, openDate, hldId );
 
     } catch (e, stackTrace) {
-      errorNotifier.value =
-          ("TicketController::deleteTicketsItems: $e \n$stackTrace");
+      errorNotifier.value = "deleteTicketsItems: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
