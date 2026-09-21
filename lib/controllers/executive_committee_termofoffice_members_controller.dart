@@ -19,9 +19,8 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
   late SupabaseClient supabaseClient;
 
-  // final ValueNotifier<List<VExecutiveCommitteeTermOfOfficeMembersModel>>
-  // vExecutiveCommitteeTermOfOfficeMembersNotifier =
-  //     ValueNotifier<List<VExecutiveCommitteeTermOfOfficeMembersModel>>([]);
+  // Canal do Supabase para escuta Realtime
+  RealtimeChannel? _executiveCommitteeChannel;
 
   final ValueNotifier<List<VExecutiveCommitteeTermOfOfficeMembersModel>>
   executiveOrderByDateStart =
@@ -35,37 +34,37 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
     supabaseClient = mySupabaseClient.getSupabaseClient();
   }
 
-  // // ==========================================
-  // Future<void> loadExecutiveCommitteeTermOfOfficeMembers(
-  //   String id,
-  //   String hld,
-  // ) async {
-  //   try {
-  //     loadingNotifier.value = true;
-  //     errorNotifier.value = null;
+  // ==========================================
+  // Inicia a escuta Realtime na tabela executive_committee_termofoffice_members
+  void subscribeToRealtime(String pflId, String hldId) {
+    unsubscribeRealtime();
 
-  //     final resposta = await mySupabaseClient.safePostgrestCall(
-  //       () => supabaseClient
-  //           .from('vexecutive_committee_termofoffice_members')
-  //           .select()
-  //           .eq('ectm_pfl_id', id)
-  //           .eq('ectm_hld_id', hld),
-  //     );
+    _executiveCommitteeChannel = supabaseClient
+        .channel('public:executive_committee_termofoffice_members:pfl_$pflId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all, // Ouve INSERT, UPDATE e DELETE
+          schema: 'public',
+          table: 'executive_committee_termofoffice_members',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'ectm_pfl_id',
+            value: pflId,
+          ),
+          callback: (payload) async {
+            // Atualiza os membros da diretoria executiva em tempo real
+            await loadExecutiveOrderByDateStart(pflId, hldId);
+          },
+        )
+        .subscribe();
+  }
 
-  //     vExecutiveCommitteeTermOfOfficeMembersNotifier.value = resposta
-  //         .map(
-  //           (item) =>
-  //               VExecutiveCommitteeTermOfOfficeMembersModel.fromJson(item),
-  //         )
-  //         .toList();
-  //   } catch (e, stackTrace) {
-  //     vExecutiveCommitteeTermOfOfficeMembersNotifier.value = [];
-  //     errorNotifier.value =
-  //         "loadExecutiveCommitteeTermOfOfficeMembers: $e \n$stackTrace";
-  //   } finally {
-  //     loadingNotifier.value = false;
-  //   }
-  // }
+  // Cancela a subscrição do canal Realtime
+  void unsubscribeRealtime() {
+    if (_executiveCommitteeChannel != null) {
+      supabaseClient.removeChannel(_executiveCommitteeChannel!);
+      _executiveCommitteeChannel = null;
+    }
+  }
 
   // ==========================================
   Future<void> loadExecutiveOrderByDateStart(String pflId, String hldId) async {
@@ -114,8 +113,7 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
             .eq('ectm_id', ectmId),
       );
 
-      await loadExecutiveOrderByDateStart( pflId, hldId );
-
+      // O Realtime atualizará a interface em todas as instâncias
     } catch (e, stackTrace) {
       errorNotifier.value =
           "deleteExecutiveCommitteeMember: $e \n$stackTrace";
@@ -150,10 +148,43 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
             })
       );
 
-      await loadExecutiveOrderByDateStart( ectm_pfl_id, ectm_hld_id );
+      // O Realtime atualizará a interface em todas as instâncias
     } catch (e, stackTrace) {
       errorNotifier.value =
           "insertExecutiveCommitteeMember: $e \n$stackTrace";
+    } finally {
+      loadingNotifier.value = false;
+    }
+  }
+  
+  // ==========================================
+  Future<void> updateExecutiveCommitteeMember(
+    String ectm_id,
+    String ectm_pfl_id,
+    String ectm_hld_id,
+    String date_start,
+    String date_end,
+    String motivo_saida,
+  ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+            .from('executive_committee_termofoffice_members')
+            .update({
+              'date_start': date_start,
+              'date_end': date_end.isNotEmpty ? date_end : null,
+              'motivo_saida': motivo_saida
+            })
+            .eq('ectm_id', ectm_id)
+      );
+
+      // O Realtime atualizará a interface em todas as instâncias
+    } catch (e, stackTrace) {
+      errorNotifier.value =
+          "updateExecutiveCommitteeMember: $e \n$stackTrace";
     } finally {
       loadingNotifier.value = false;
     }
@@ -183,7 +214,6 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
 
       return cargosVagos;
     } catch (e, stackTrace) {
-      // vExecutiveCommitteeTermOfOfficeMembersNotifier.value = [];
       errorNotifier.value =
           "loadExecutiveCommitteeVacancy: $e \n$stackTrace";
       return [];
@@ -192,4 +222,12 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
     }
   }
 
+  @override
+  void dispose() {
+    unsubscribeRealtime();
+    executiveOrderByDateStart.dispose();
+    loadingNotifier.dispose();
+    errorNotifier.dispose();
+    super.dispose();
+  }
 }

@@ -109,6 +109,7 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
         .select()
         .eq('pas_pfl_id', id)
         .eq('pas_hld_id', hld)
+        .order('pas_date', ascending: false)
       );
     
       vProfileAssociateStatusNotifier.value = resposta.map(

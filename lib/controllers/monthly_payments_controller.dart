@@ -147,7 +147,10 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
             .from('vmensalidades')
             .select()
             .eq('mes_hld_id', hldId)
-            .eq('mes_pfl_id', pflId),
+            .eq('mes_pfl_id', pflId)
+            .order('mes_ano_referencia', ascending: false)
+            .order('mes_mes_referencia', ascending: false)
+            .order('mes_pfl_full_name', ascending: false)
       );
 
       monthlyPaymentsProfileNotifier.value = resposta

@@ -165,29 +165,19 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
                   );
                 }
 
-                final listaOrdenada =
-                    List<VProfileAssociateStatusModel>.from(listaStatus)
-                      ..sort((a, b) {
-                        final dateA =
-                            DateTime.tryParse(a.pas_date) ?? DateTime(1970);
-                        final dateB =
-                            DateTime.tryParse(b.pas_date) ?? DateTime(1970);
-                        return dateB.compareTo(dateA);
-                      });
-
                 return Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildResumoStatus(listaOrdenada),
+                      _buildResumoStatus(listaStatus),
                       const SizedBox(height: 12),
                       ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: listaOrdenada.length,
+                        itemCount: listaStatus.length,
                         itemBuilder: (context, index) {
-                          return _buildStatusCard(listaOrdenada[index]);
+                          return _buildStatusCard(listaStatus[index]);
                         },
                       ),
                     ],

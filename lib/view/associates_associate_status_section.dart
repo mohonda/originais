@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/controllers/profile_associate_status_controller.dart';
-// import 'package:originais/controllers/associate_status_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/models/profile_associate_status_model.dart';
 import 'package:originais/services/general_service.dart';
@@ -24,7 +23,6 @@ class AssociatesAssociateStatusSection extends StatefulWidget {
 class _AssociatesAssociateStatusSectionState
     extends State<AssociatesAssociateStatusSection> {
   late final BdVProfileAssociateStatusController controller;
-  // late final AssociateStatusController statusController;
   late final BdProfileController profileController;
   final GeneralService generalService = GeneralService();
   bool isRealTime = false;
@@ -33,15 +31,12 @@ class _AssociatesAssociateStatusSectionState
   @override
   void initState() {
     super.initState();
-    // Instância nova e isolada criada pelo Factory do GetIt para esta seção
     controller = getItBdVProfileAssociateStatusController
         .get<BdVProfileAssociateStatusController>();
     
-    // statusController = AssociateStatusController();
     profileController = getItBdProfileController<BdProfileController>();
 
     controller.errorNotifier.addListener(_handleError);
-    // statusController.errorNotifier.addListener(_handleError);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarDados();
@@ -49,7 +44,6 @@ class _AssociatesAssociateStatusSectionState
   }
 
   void _handleError() {
-    // final errorMessage = controller.errorNotifier.value ?? statusController.errorNotifier.value;
     final errorMessage = controller.errorNotifier.value;
     if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -57,6 +51,7 @@ class _AssociatesAssociateStatusSectionState
           content: Text(errorMessage),
           backgroundColor: Colors.red.shade700,
           behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
         ),
       );
     }
@@ -77,11 +72,8 @@ class _AssociatesAssociateStatusSectionState
   @override
   void dispose() {
     controller.errorNotifier.removeListener(_handleError);
-    // statusController.errorNotifier.removeListener(_handleError);
     
-    // Libera os controllers locais
     controller.dispose();
-    // statusController.dispose();
     super.dispose();
   }
 
@@ -371,7 +363,7 @@ class _AddStatusDialogFormState extends State<_AddStatusDialogForm> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               DropdownButtonFormField<dynamic>(
-                value: _statusSelecionado,
+                initialValue: _statusSelecionado,
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Novo Status *',

@@ -33,6 +33,8 @@ class _ProfileExecutiveCommitteeState
   String _pflIdResolvido = '';
   String _hldIdResolvido = '';
 
+  bool isRealTime = false;
+
   @override
   void initState() {
     super.initState();
@@ -95,6 +97,11 @@ class _ProfileExecutiveCommitteeState
     if (_pflIdResolvido.isEmpty) return;
 
     await controller.loadExecutiveOrderByDateStart(_pflIdResolvido, _hldIdResolvido);
+
+    if ( isRealTime == false ){
+      controller.subscribeToRealtime(_pflIdResolvido, _hldIdResolvido);
+      isRealTime = true;
+    }
   }
 
   @override
@@ -302,11 +309,13 @@ class _ProfileExecutiveCommitteeState
             const SizedBox(width: 8),
             _buildStatusBadge(isAtivo),
             if (widget.onEdit != null)
-              IconButton(
-                icon: const Icon(Icons.edit, color: Colors.orange, size: 20),
-                tooltip: 'Editar Mandato',
-                onPressed: () => widget.onEdit!(cargo),
-              ),
+              if ( isAtivo ) ...[
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.orange, size: 20),
+                  tooltip: 'Editar Mandato',
+                  onPressed: () => widget.onEdit!(cargo),
+                ),
+              ]
           ],
         ),
         subtitle: Padding(

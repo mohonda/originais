@@ -157,7 +157,8 @@ class TicketController extends ChangeNotifier {
             .from('vtickets')
             .select('''*, vtickets_items(*)''')
             .eq('tkt_bar_id', barId)
-            .eq('tkt_hld_id', hldId),
+            .eq('tkt_hld_id', hldId)
+            .order('tkt_table_number', ascending: true)
       );
 
       ticketNotifier.value = resposta
@@ -187,6 +188,7 @@ class TicketController extends ChangeNotifier {
             .eq('tkt_pfl_id', pfl_id)
             .eq('tkt_hld_id', hldId)
             .order('tkt_bar_open_date', ascending: false)
+            .order('tkt_id', ascending: false)
       );
 
       profileTicketsWithItemsNotifier.value = resposta
@@ -402,4 +404,67 @@ class TicketController extends ChangeNotifier {
       loadingNotifier.value = false;
     }
   }
-}
+
+  Future<void> deleteTit(
+    String tit_id
+  ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from( 'tickets_items' )
+          .delete()
+          .eq( 'tit_id', tit_id )
+      );
+
+    } catch (e, stackTrace) {
+      errorNotifier.value = "deleteTit: $e \n$stackTrace";
+    } finally {
+      loadingNotifier.value = false;
+    }
+  }
+
+  Future<void> deleteTkt(
+    String tkt_id
+  ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from( 'tickets' )
+          .delete()
+          .eq( 'tkt_id', tkt_id )
+      );
+
+    } catch (e, stackTrace) {
+      errorNotifier.value = "deleteTkt: $e \n$stackTrace";
+    } finally {
+      loadingNotifier.value = false;
+    }
+  } 
+  Future<void> deleteBar(
+    String bar_id
+  ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from( 'headquarters_bar' )
+          .delete()
+          .eq( 'bar_id', bar_id )
+      );
+
+    } catch (e, stackTrace) {
+      errorNotifier.value = "deleteTkt: $e \n$stackTrace";
+    } finally {
+      loadingNotifier.value = false;
+    }
+  } 
+  
+  }

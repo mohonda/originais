@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:originais/controllers/sanctions_controller.dart';
 import 'package:originais/controllers/profiles_sanctions_controller.dart';
-import 'package:originais/models/sanctions_model.dart';
+import 'package:originais/models/sanction_model.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/models/profiles_sanctions_model.dart';
 import 'package:originais/services/general_service.dart';
@@ -24,7 +23,7 @@ class AssociatesSanctionsSection extends StatefulWidget {
 class _AssociatesSanctionsSectionState
     extends State<AssociatesSanctionsSection> {
   late final BdVProfilesSanctionsController controller;
-  late final SanctionsController sanctionsController;
+  // late final SanctionsController sanctionsController;
   final GeneralService generalService = GeneralService();
 
   bool isRealTime = false;
@@ -36,10 +35,10 @@ class _AssociatesSanctionsSectionState
     controller = getItBdVProfilesSanctionsController
         .get<BdVProfilesSanctionsController>();
 
-    sanctionsController = SanctionsController();
+    // sanctionsController = SanctionsController();
 
     controller.errorNotifier.addListener(_handleError);
-    sanctionsController.errorNotifier.addListener(_handleError);
+    // sanctionsController.errorNotifier.addListener(_handleError);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarDados();
@@ -47,8 +46,7 @@ class _AssociatesSanctionsSectionState
   }
 
   void _handleError() {
-    final errorMessage = controller.errorNotifier.value ??
-        sanctionsController.errorNotifier.value;
+    final errorMessage = controller.errorNotifier.value;
 
     if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -76,9 +74,7 @@ class _AssociatesSanctionsSectionState
   @override
   void dispose() {
     controller.errorNotifier.removeListener(_handleError);
-    sanctionsController.errorNotifier.removeListener(_handleError);
     controller.dispose();
-    sanctionsController.dispose();
     super.dispose();
   }
 
@@ -97,11 +93,11 @@ class _AssociatesSanctionsSectionState
   }
 
   void _showAddSanctionDialog() async {
-    await sanctionsController.loadSanctions(
+    await controller.loadAvailableSanctions(
       widget.itemAtual.hld_id.toString(),
     );
 
-    final listOpcoesSancoes = sanctionsController.sanctionsNotifier.value;
+    final listOpcoesSancoes = controller.sanctionsNotifier.value;
 
     if (!mounted) return;
 
@@ -116,7 +112,7 @@ class _AssociatesSanctionsSectionState
     }
 
     final formKey = GlobalKey<FormState>();
-    SanctionsModel? sancaoSelecionada = listOpcoesSancoes.first;
+    SanctionModel? sancaoSelecionada = listOpcoesSancoes.first;
     DateTime dataInicio = DateTime.now();
     DateTime? dataFim;
 
@@ -152,7 +148,7 @@ class _AssociatesSanctionsSectionState
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      DropdownButtonFormField<SanctionsModel>(
+                      DropdownButtonFormField<SanctionModel>(
                         value: sancaoSelecionada,
                         isExpanded: true,
                         decoration: const InputDecoration(
@@ -160,8 +156,8 @@ class _AssociatesSanctionsSectionState
                           prefixIcon: Icon(Icons.gavel_outlined),
                           border: OutlineInputBorder(),
                         ),
-                        items: listOpcoesSancoes.map((SanctionsModel itemSan) {
-                          return DropdownMenuItem<SanctionsModel>(
+                        items: listOpcoesSancoes.map((SanctionModel itemSan) {
+                          return DropdownMenuItem<SanctionModel>(
                             value: itemSan,
                             child: Text(
                               itemSan.sanName,
@@ -173,7 +169,7 @@ class _AssociatesSanctionsSectionState
                           if (value == null) return 'Selecione o tipo de sanção';
                           return null;
                         },
-                        onChanged: (SanctionsModel? novaSancao) {
+                        onChanged: (SanctionModel? novaSancao) {
                           setStateDialog(() {
                             sancaoSelecionada = novaSancao;
                           });
@@ -347,16 +343,16 @@ class _AssociatesSanctionsSectionState
   }
 
   void _showEditSanctionDialog(VProfilesSanctionsModel item) async {
-    await sanctionsController.loadSanctions(
+    await controller.loadAvailableSanctions(
       widget.itemAtual.hld_id.toString(),
     );
-    final listOpcoesSancoes = sanctionsController.sanctionsNotifier.value;
+    final listOpcoesSancoes = controller.sanctionsNotifier.value;
 
     if (!mounted) return;
 
     final formKey = GlobalKey<FormState>();
 
-    SanctionsModel? sancaoSelecionada;
+    SanctionModel? sancaoSelecionada;
     try {
       sancaoSelecionada = listOpcoesSancoes.firstWhere(
         (element) => element.sanId.toString() == item.psan_san_id.toString(),
@@ -365,6 +361,34 @@ class _AssociatesSanctionsSectionState
       sancaoSelecionada =
           listOpcoesSancoes.isNotEmpty ? listOpcoesSancoes.first : null;
     }
+
+    final isTktOpen = await controller.isSanctionOpen(item.psan_tkt_id);
+    if ( !isTktOpen ){
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800, size: 28),
+                const SizedBox(width: 8),
+                Text('Sanction has payment yet!!!'),
+              ],
+            ),
+            content: Text('Sanction has payment yet!!!'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
 
     DateTime dataInicio =
         DateTime.tryParse(item.psan_date_start) ?? DateTime.now();
@@ -412,7 +436,7 @@ class _AssociatesSanctionsSectionState
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      DropdownButtonFormField<SanctionsModel>(
+                      DropdownButtonFormField<SanctionModel>(
                         value: sancaoSelecionada,
                         isExpanded: true,
                         decoration: const InputDecoration(
@@ -420,8 +444,8 @@ class _AssociatesSanctionsSectionState
                           prefixIcon: Icon(Icons.gavel),
                           border: OutlineInputBorder(),
                         ),
-                        items: listOpcoesSancoes.map((SanctionsModel itemSan) {
-                          return DropdownMenuItem<SanctionsModel>(
+                        items: listOpcoesSancoes.map((SanctionModel itemSan) {
+                          return DropdownMenuItem<SanctionModel>(
                             value: itemSan,
                             child: Text(
                               itemSan.sanName,
@@ -433,7 +457,7 @@ class _AssociatesSanctionsSectionState
                           if (value == null) return 'Selecione o tipo de sanção';
                           return null;
                         },
-                        onChanged: (SanctionsModel? novaSancao) {
+                        onChanged: (SanctionModel? novaSancao) {
                           setStateDialog(() {
                             sancaoSelecionada = novaSancao;
                           });
@@ -599,6 +623,9 @@ class _AssociatesSanctionsSectionState
                         item.psan_id,
                         item.psan_pfl_id,
                         item.psan_hld_id,
+                        item.psan_bar_id,
+                        item.psan_tkt_id,
+                        item.psan_tit_id,
                       );
 
                       if (mounted) {
@@ -637,6 +664,9 @@ class _AssociatesSanctionsSectionState
                           dataInicio.toIso8601String(),
                           dataFim?.toIso8601String() ?? '',
                           obsController.text,
+                          item.psan_bar_id,
+                          item.psan_tkt_id,
+                          item.psan_tit_id,
                         );
 
                         if (mounted) {
@@ -660,11 +690,9 @@ class _AssociatesSanctionsSectionState
     return ListenableBuilder(
       listenable: Listenable.merge([
         controller.loadingNotifier,
-        sanctionsController.loadingNotifier,
       ]),
       builder: (context, _) {
-        final bool isLoading = controller.loadingNotifier.value ||
-            sanctionsController.loadingNotifier.value;
+        final bool isLoading = controller.loadingNotifier.value;
 
         return Stack(
           children: [

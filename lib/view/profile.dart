@@ -38,6 +38,51 @@ class _ProfileState extends State<Profile> {
     bdProfileController.pessoaSelecionadaNotifier
       .addListener(_onProfileChanged);
     _onProfileChanged();
+
+    _setupMessageListener(
+        notifier: bdProfileController.errorNotifier,
+        backgroundColor: Colors.red.shade700,
+      );
+
+      _setupMessageListener(
+        notifier: bdProfileController.successNotifier,
+        backgroundColor: Colors.green.shade800,
+      );
+  }
+
+  void _setupMessageListener({
+    required ValueNotifier<String?> notifier,
+    required Color backgroundColor,
+    IconData icon = Icons.info_outline,
+  }) {
+    notifier.addListener(() {
+      final message = notifier.value;
+
+      if (message != null && message.isNotEmpty && mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(icon, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: backgroundColor,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        notifier.value = null;
+      }
+    });
   }
 
   // ==========================================
@@ -85,38 +130,14 @@ class _ProfileState extends State<Profile> {
   Future<void> updateProfile() async {
     bdProfileController.errorNotifier.value = null;
 
-    try {
-      await bdProfileController.updateProfile(
-        idController.text,
-        hld_id,
-        fullNameController.text,
-        nickNameController.text,
-        urlController.text,
-        bioController.text,
-      );
-
-      await bdProfileController.fetchProfilesById(idController.text, hld_id);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dados atualizados com sucesso!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(bdProfileController.errorNotifier.value ?? 'Erro ao atualizar os dados!'),
-            backgroundColor: Colors.redAccent,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    }
+    await bdProfileController.updateProfile(
+      idController.text,
+      hld_id,
+      fullNameController.text,
+      nickNameController.text,
+      urlController.text,
+      bioController.text,
+    );
   }
 
   Widget _buildTabSection({

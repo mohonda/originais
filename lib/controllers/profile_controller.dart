@@ -17,7 +17,6 @@ class BdProfileController extends ChangeNotifier {
   final mySupabaseClient = getItMySupabaseClient<MySupabaseClient>();
   late SupabaseClient supabaseClient;
 
-
   final ValueNotifier<List<VProfileModel>> profilesNotifier =
       ValueNotifier<List<VProfileModel>>([]);
 
@@ -26,6 +25,10 @@ class BdProfileController extends ChangeNotifier {
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
+  
+  // Notifier para mensagens de sucesso
+  final ValueNotifier<String?> successNotifier = ValueNotifier<String?>(null);
+
   final ValueNotifier<bool> isChangedNotifier = ValueNotifier<bool>(false);
   
   // ==========================================
@@ -39,16 +42,16 @@ class BdProfileController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> loadProfiles( String hld_id ) async {
+  Future<void> loadProfiles(String hld_id) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+      final resposta = await mySupabaseClient.safePostgrestCall(() =>
         supabaseClient
         .from('vprofile')
         .select()
-        .eq('hld_id', hld_id )
+        .eq('hld_id', hld_id)
         .order('as_id', ascending: true)
         .order('pfl_full_name', ascending: true)
       );
@@ -56,7 +59,7 @@ class BdProfileController extends ChangeNotifier {
       profilesNotifier.value = resposta.map((item) =>
         VProfileModel.fromJson(item)).toList();
     
-    } catch ( e, stackTrace ) {
+    } catch (e, stackTrace) {
       profilesNotifier.value = [];
       errorNotifier.value = "loadProfiles: $e \n$stackTrace";
     } finally {
@@ -65,28 +68,28 @@ class BdProfileController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> fetchProfilesById( String id, String hld_id ) async {
+  Future<void> fetchProfilesById(String id, String hld_id) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+      final resposta = await mySupabaseClient.safePostgrestCall(() =>
         supabaseClient
-        .from( 'vprofile' )
+        .from('vprofile')
         .select()
-        .eq( 'pfl_id', id )
-        .eq('hld_id', hld_id )
+        .eq('pfl_id', id)
+        .eq('hld_id', hld_id)
         .maybeSingle()
       );
 
-      if ( resposta != null ) {
+      if (resposta != null) {
         pessoaSelecionadaNotifier.value = VProfileModel.fromJson(resposta);
       } else {
         pessoaSelecionadaNotifier.value = null;
         errorNotifier.value = 'fetchProfilesById: Registro não encontrado.';
       }
 
-    } catch ( e, stackTrace ) {
+    } catch (e, stackTrace) {
       pessoaSelecionadaNotifier.value = null;
       errorNotifier.value = "fetchProfilesById: $e \n$stackTrace";
     } finally {
@@ -95,21 +98,21 @@ class BdProfileController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> checkUserProfileExist( String id ) async {
+  Future<void> checkUserProfileExist(String id) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+      final resposta = await mySupabaseClient.safePostgrestCall(() =>
         supabaseClient
-        .from( 'vprofile' )
+        .from('vprofile')
         .select()
-        .eq( 'pfl_id', id )
+        .eq('pfl_id', id)
         .maybeSingle()
       );
 
-      if ( resposta != null ) {
-        pessoaSelecionadaNotifier.value = VProfileModel.fromJson( resposta );
+      if (resposta != null) {
+        pessoaSelecionadaNotifier.value = VProfileModel.fromJson(resposta);
       } else {
         final profileData = ProfileModel(
           pfl_id: id,
@@ -122,12 +125,12 @@ class BdProfileController extends ChangeNotifier {
         );
 
         await supabaseClient
-          .from( 'profiles' )
-          .upsert( profileData.toJson() );
+          .from('profiles')
+          .upsert(profileData.toJson());
 
-        await fetchProfilesById( id, '1' );
+        await fetchProfilesById(id, '1');
       }
-    } catch ( e, stackTrace ) {
+    } catch (e, stackTrace) {
       pessoaSelecionadaNotifier.value = null;
       errorNotifier.value = "checkUserProfileExist: $e \n$stackTrace";
     } finally {
@@ -147,6 +150,7 @@ class BdProfileController extends ChangeNotifier {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
+      successNotifier.value = null; // Reseta o estado de sucesso anterior
 
       final profileData = ProfileModel(
         pfl_id: id,
@@ -159,12 +163,15 @@ class BdProfileController extends ChangeNotifier {
       );
 
       await supabaseClient
-        .from( 'profiles' )
-        .upsert( profileData.toJson() );
+        .from('profiles')
+        .upsert(profileData.toJson());
       
-      await fetchProfilesById( id, hld_id );
+      await fetchProfilesById(id, hld_id);
 
-    } catch ( e, stackTrace ) {
+      // Emite a mensagem de sucesso
+      successNotifier.value = "Perfil atualizado com sucesso!";
+
+    } catch (e, stackTrace) {
       pessoaSelecionadaNotifier.value = null;
       errorNotifier.value = "updateProfile: $e \n$stackTrace";
     } finally {
@@ -173,22 +180,27 @@ class BdProfileController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> updateAvatar( String pfl_id, String hld_id, String avatarUrl ) async {
+  Future<void> updateAvatar(String pfl_id, String hld_id, String avatarUrl) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
+      successNotifier.value = null; // Reseta o estado de sucesso anterior
 
       await supabaseClient
-        .from( 'profiles' )
+        .from('profiles')
         .update({
           'pfl_updated_at': DateTime.now().toIso8601String(),
-          'pfl_avatar_url': avatarUrl })
+          'pfl_avatar_url': avatarUrl,
+        })
         .eq('pfl_id', pfl_id)
         .eq('hld_id', hld_id);
 
-      await fetchProfilesById( pfl_id, hld_id );
+      await fetchProfilesById(pfl_id, hld_id);
 
-    } catch ( e, stackTrace ) {
+      // Emite a mensagem de sucesso
+      successNotifier.value = "Foto de perfil alterada com sucesso!";
+
+    } catch (e, stackTrace) {
       pessoaSelecionadaNotifier.value = null;
       errorNotifier.value = "updateAvatar: $e \n$stackTrace";
     } finally {
@@ -196,4 +208,14 @@ class BdProfileController extends ChangeNotifier {
     }
   }
 
+  @override
+  void dispose() {
+    profilesNotifier.dispose();
+    pessoaSelecionadaNotifier.dispose();
+    loadingNotifier.dispose();
+    errorNotifier.dispose();
+    successNotifier.dispose();
+    isChangedNotifier.dispose();
+    super.dispose();
+  }
 }

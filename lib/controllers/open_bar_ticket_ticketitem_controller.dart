@@ -25,7 +25,7 @@ class OpenBarTicketTicketitemController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<void> openBarTicketTicketitem({
+  Future<Map<String, dynamic>> openBarTicketTicketitem({
       required String p_hld_id,
       required String p_pfl_id,
       required String p_pfl_name,
@@ -43,7 +43,7 @@ class OpenBarTicketTicketitemController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      await mySupabaseClient.safePostgrestCall(
+      final resposta = await mySupabaseClient.safePostgrestCall(
         () => supabaseClient.rpc(
           'open_bar_ticket_item',
           params: {
@@ -63,8 +63,10 @@ class OpenBarTicketTicketitemController extends ChangeNotifier {
         ),
       );
 
+      return resposta;
     } catch (e, stackTrace) {
       errorNotifier.value ="openBarTicketTicketitem: $e \n$stackTrace";
+      return {};
     } finally {
       loadingNotifier.value = false;
     }

@@ -167,18 +167,6 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
         .toSet()
         .toList();
 
-    // 2. Ordena cronologicamente por Ano e Mês (mais recente para o mais antigo)
-    listaMesAno.sort((a, b) {
-      final partsA = a.split('/');
-      final partsB = b.split('/');
-
-      final dateA = DateTime(int.parse(partsA[1]), int.parse(partsA[0]));
-      final dateB = DateTime(int.parse(partsB[1]), int.parse(partsB[0]));
-
-      return dateB.compareTo(dateA);
-    });
-
-    // 3. Define a aba inicial com base no Mês/Ano atual
     final now = DateTime.now();
     final mesAnoAtual =
         '${now.month.toString().padLeft(2, '0')}/${now.year}';

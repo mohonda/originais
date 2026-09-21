@@ -129,7 +129,10 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
       errorNotifier: errorNotifier,
     );
 
-    ticketController.loadTickets(widget.barId, widget.openDate, widget.hld_id);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ticketController.loadTickets(widget.barId, widget.openDate, widget.hld_id);
+    });
+
     ticketController.initRealtime(
       widget.barId,
       widget.openDate, 
@@ -1590,22 +1593,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                   'Ticket opened',
                                 );
 
-                                final mesasOrdenadas =
-                                    List<TicketsModel>.from(listaMesas)..sort((
-                                      a,
-                                      b,
-                                    ) {
-                                      final aAberta = a.tkt_tst_id == idAberto;
-                                      final bAberta = b.tkt_tst_id == idAberto;
-
-                                      if (aAberta && !bAberta) return -1;
-                                      if (!aAberta && bAberta) return 1;
-
-                                      return (a.tkt_table_number).compareTo(
-                                        b.tkt_table_number,
-                                      );
-                                    });
-
                                 return InputDecorator(
                                   decoration: const InputDecoration(
                                     labelText: 'Tables',
@@ -1617,7 +1604,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                     ),
                                   ),
                                   child: SizedBox.expand(
-                                    child: mesasOrdenadas.isEmpty
+                                    child: listaMesas.isEmpty
                                         ? const Center(
                                             child: Column(
                                               mainAxisAlignment:
@@ -1646,9 +1633,9 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                                   crossAxisSpacing: 10,
                                                   mainAxisSpacing: 10,
                                                 ),
-                                            itemCount: mesasOrdenadas.length,
+                                            itemCount: listaMesas.length,
                                             itemBuilder: (context, index) {
-                                              final mesa = mesasOrdenadas[index];
+                                              final mesa = listaMesas[index];
                                               final bool isFechadaPaga =
                                                   mesa.tkt_tst_id ==
                                                   id_ticketStatusList(

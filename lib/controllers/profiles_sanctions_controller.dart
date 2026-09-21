@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:originais/services/my_supabase_client_service.dart';
 import 'package:originais/models/sanction_model.dart';
 import 'package:originais/controllers/open_bar_ticket_ticketitem_controller.dart';
+import 'package:originais/controllers/ticket_controller.dart';
 
 final getItBdVProfilesSanctionsController = GetIt.instance;
 
@@ -37,15 +38,24 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
   }
 
   // ==========================================
-  // Inicia a escuta Realtime para alterações na tabela profiles_sanctions
+  @override
+  void dispose() {
+    unsubscribeRealtime();
+    vProfilesSanctionsNotifier.dispose();
+    sanctionsNotifier.dispose();
+    loadingNotifier.dispose();
+    errorNotifier.dispose();
+    super.dispose();
+  }
+
+  // ==========================================
   void subscribeToRealtime(String pflId, String hldId) {
-    // Remove inscrição anterior se houver
     unsubscribeRealtime();
 
     _sanctionsChannel = supabaseClient
         .channel('public:profiles_sanctions:pfl_$pflId')
         .onPostgresChanges(
-          event: PostgresChangeEvent.all, // Ouve INSERT, UPDATE e DELETE
+          event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'profiles_sanctions',
           filter: PostgresChangeFilter(
@@ -54,14 +64,13 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
             value: pflId,
           ),
           callback: (payload) {
-            // Sempre que houver mudança feita por QUALQUER instância, recarrega a View
             loadProfileSanctionsStatus(pflId, hldId);
           },
         )
         .subscribe();
   }
 
-  // Cancela a inscrição do canal
+  // ==========================================
   void unsubscribeRealtime() {
     if (_sanctionsChannel != null) {
       supabaseClient.removeChannel(_sanctionsChannel!);
@@ -80,7 +89,9 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
             .from('vprofiles_sanctions')
             .select()
             .eq('psan_pfl_id', pflId)
-            .eq('psan_hld_id', hldId),
+            .eq('psan_hld_id', hldId)
+            .order('psan_date_start', ascending: false)
+            .order('psan_id', ascending: false)
       );
 
       vProfilesSanctionsNotifier.value = resposta
@@ -135,22 +146,8 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
-      await mySupabaseClient.safePostgrestCall(
-        () => supabaseClient
-        .from('profiles_sanctions')
-        .insert({
-          'psan_pfl_id': psanPflId,
-          'psan_hld_id': psanHldId,
-          'psan_san_id': psanSanId,
-          'psan_valor': psanValor,
-          'psan_date_start': psanDateStart,
-          'psan_date_end': psanDateEnd,
-          'psan_desc': psanDesc,
-        })
-      );
-      
       final openTicket = OpenBarTicketTicketitemController();
-      openTicket.openBarTicketTicketitem(
+      final resposta = await openTicket.openBarTicketTicketitem(
         p_hld_id: psanHldId,
         p_pfl_id: psanPflId,
         p_pfl_name: pflName,
@@ -163,6 +160,23 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
         p_valor: psanValor,
         p_tkt_vpg_id: '',
         p_tkt_pas_id: '',
+      );
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+        .from('profiles_sanctions')
+        .insert({
+          'psan_pfl_id': psanPflId,
+          'psan_hld_id': psanHldId,
+          'psan_san_id': psanSanId,
+          'psan_valor': psanValor,
+          'psan_date_start': psanDateStart,
+          'psan_date_end': psanDateEnd,
+          'psan_desc': psanDesc,
+          'psan_bar_id': resposta['bar_id'],
+          'psan_tkt_id': resposta['tkt_id'],
+          'psan_tit_id': resposta['tit_id'],
+        })
       );
 
       // Não é necessário chamar loadProfileSanctionsStatus aqui, pois o Realtime reage ao INSERT
@@ -184,6 +198,9 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
     String psanDateStart,
     String psanDateEnd,
     String psanDesc,
+    String psanBarId,
+    String psanTktId,
+    String psanTitId,
   ) async {
     try {
       loadingNotifier.value = true;
@@ -200,6 +217,25 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
           })
           .eq('psan_id', psanid)
       );
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from( 'tickets_items' )
+          .update({
+            'tit_unit_value': psanValor
+          })
+          .eq( 'tit_id', psanTitId )
+      );
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from( 'tickets' )
+          .update({
+            'tkt_bar_open_date': psanDateStart
+          })
+          .eq( 'tkt_id', psanTktId )
+      );
+
     } catch (e, stackTrace) {
       errorNotifier.value = "updateProfileSanction: $e \n$stackTrace";
     } finally {
@@ -212,11 +248,19 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
     String psanid,
     String psanPflId,
     String psanHldIid,
+    String psanBarId,
+    String psanTktId,
+    String psanTitId,
   ) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
 
+      final tkt = TicketController();
+      tkt.deleteTit( psanTitId );
+      tkt.deleteTkt( psanTktId );
+      tkt.deleteBar( psanBarId );
+      
       await mySupabaseClient.safePostgrestCall(
         () => supabaseClient.from('profiles_sanctions')
           .delete()
@@ -228,14 +272,34 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
       loadingNotifier.value = false;
     }
   }
+  // ==========================================
+  Future<bool> isSanctionOpen(
+    String psanTktId
+  ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
 
-  @override
-  void dispose() {
-    unsubscribeRealtime();
-    vProfilesSanctionsNotifier.dispose();
-    sanctionsNotifier.dispose();
-    loadingNotifier.dispose();
-    errorNotifier.dispose();
-    super.dispose();
+      final resposta = await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from( 'tickets' )
+          .select()
+          .eq( 'tkt_id', psanTktId )
+          .maybeSingle()
+      );
+
+      if (resposta != null && resposta['tkt_tst_id'] == 1) {
+        return true;
+      } else {
+        return false;
+      }
+
+    } catch (e, stackTrace) {
+      errorNotifier.value = "updateProfileSanction: $e \n$stackTrace";
+      return true;
+    } finally {
+      loadingNotifier.value = false;
+    }
   }
+
 }

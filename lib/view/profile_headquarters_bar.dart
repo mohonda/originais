@@ -229,7 +229,8 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                           final payload = {
                             'tkt_id': ticket.tkt_id,
                             'pfl_id': ticket.tkt_pfl_id,
-                            'tkt_tst_id': ticket.tkt_tst_id,
+                            // 'tkt_tst_id': ticket.tkt_tst_id,
+                            'tkt_tst_id': '3', // alterado para pago!
                             'barId': ticket.tkt_bar_id,
                             'openDate': isTipo2
                                 ? dataFormatada

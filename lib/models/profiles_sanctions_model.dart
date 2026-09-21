@@ -16,6 +16,10 @@ class VProfilesSanctionsModel {
   String psan_pg_url;
   String psan_pg_date;
 
+  String psan_bar_id;
+  String psan_tkt_id;
+  String psan_tit_id;
+
   // ==========================================
   VProfilesSanctionsModel ( {
     required this.psan_id,
@@ -33,7 +37,11 @@ class VProfilesSanctionsModel {
     required this.psan_desc,
 
     required this.psan_pg_url,
-    required this.psan_pg_date
+    required this.psan_pg_date,
+    
+    required this.psan_bar_id,
+    required this.psan_tkt_id,
+    required this.psan_tit_id,
   } );
 
   // ==========================================
@@ -57,6 +65,10 @@ class VProfilesSanctionsModel {
 
       psan_pg_url: json['psan_pg_url']?.toString() ?? '',
       psan_pg_date: json['psan_pg_date']?.toString() ?? '',
+
+      psan_bar_id: json['psan_bar_id']?.toString() ?? '',
+      psan_tkt_id: json['psan_tkt_id']?.toString() ?? '',
+      psan_tit_id: json['psan_tit_id']?.toString() ?? '',
     );
   }
 
@@ -80,6 +92,10 @@ class VProfilesSanctionsModel {
 
       'psan_pg_url': psan_pg_url,
       'psan_pg_date': psan_pg_date,
+
+      'psan_bar_id': psan_bar_id,
+      'psan_tkt_id': psan_tkt_id,
+      'psan_tit_id': psan_tit_id,
     };
   }
 

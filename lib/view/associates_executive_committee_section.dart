@@ -26,6 +26,9 @@ class _AssociatesExecutiveCommitteeSectionState
   late final BdProfileController profileController;
   late final GeneralService generalService;
 
+  bool isRealTime = false;
+
+
   @override
   void initState() {
     super.initState();
@@ -90,6 +93,11 @@ class _AssociatesExecutiveCommitteeSectionState
 
     if (pflId.isNotEmpty && hldId.isNotEmpty) {
       controller.loadExecutiveOrderByDateStart(pflId, hldId);
+
+      if ( isRealTime == false ){
+        controller.subscribeToRealtime(pflId, hldId);
+        isRealTime = true;
+      }
     }
   }
 
@@ -449,14 +457,14 @@ class _AssociatesExecutiveCommitteeSectionState
                       ),
                       onPressed: () async {
                         // Método descomentado e ativado para persistência
-                        // await controller.updateExecutiveCommitteeMember(
-                        //   item.ectm_id,
-                        //   widget.itemAtual.pfl_id.toString(),
-                        //   widget.itemAtual.hld_id.toString(),
-                        //   dataInicio.toIso8601String(),
-                        //   dataFim?.toIso8601String() ?? '',
-                        //   obsController.text,
-                        // );
+                        await controller.updateExecutiveCommitteeMember(
+                          item.ectm_id,
+                          widget.itemAtual.pfl_id.toString(),
+                          widget.itemAtual.hld_id.toString(),
+                          dataInicio.toIso8601String(),
+                          dataFim?.toIso8601String() ?? '',
+                          obsController.text,
+                        );
 
                         if (mounted) {
                           Navigator.of(dialogContext).pop();

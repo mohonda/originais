@@ -169,30 +169,19 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
                   );
                 }
 
-                final listaOrdenada =
-                    List<VProfilesSanctionsModel>.from(listaSancoes)..sort((a, b) {
-                      final dateA =
-                          DateTime.tryParse(a.psan_date_start) ??
-                          DateTime(1970);
-                      final dateB =
-                          DateTime.tryParse(b.psan_date_start) ??
-                          DateTime(1970);
-                      return dateB.compareTo(dateA);
-                    });
-
                 return Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildResumoSancoes(listaOrdenada),
+                      _buildResumoSancoes(listaSancoes),
                       const SizedBox(height: 12),
                       ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: listaOrdenada.length,
+                        itemCount: listaSancoes.length,
                         itemBuilder: (context, index) {
-                          return _buildSancaoCard(listaOrdenada[index]);
+                          return _buildSancaoCard(listaSancoes[index]);
                         },
                       ),
                     ],
@@ -288,7 +277,7 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Icon(
           Icons.gavel_outlined,
-          color: isAtiva ? Colors.redAccent : Colors.greenAccent,
+          color: isAtiva ? Colors.redAccent : Colors.brown,
         ),
         title: Row(
           children: [
@@ -296,9 +285,10 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
               child: Text(
                 sancaoNome,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
+                  color: isAtiva ? Colors.redAccent : Colors.brown,
                 ),
               ),
             ),
@@ -310,7 +300,10 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
           padding: const EdgeInsets.only(top: 4.0),
           child: Text(
             'Período: $inicioData a $fimData',
-            style: const TextStyle(fontSize: 12, color: Colors.white70),
+            style: TextStyle(
+              fontSize: 12,
+              color: isAtiva ? Colors.redAccent : Colors.brown,
+              ),
           ),
         ),
         trailing: widget.onEdit != null
@@ -371,10 +364,10 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
 
   Widget _buildStatusBadge(bool isAtiva) {
     final String label = isAtiva ? 'ATIVA' : 'CUMPRIDA';
-    final Color color = isAtiva ? Colors.redAccent : Colors.greenAccent;
+    final Color color = isAtiva ? Colors.redAccent : Colors.brown; 
     final Color bgColor = isAtiva
         ? Colors.red.withValues(alpha: 0.15)
-        : Colors.green.withValues(alpha: 0.15);
+        : Colors.brown.withValues(alpha: 0.15);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
