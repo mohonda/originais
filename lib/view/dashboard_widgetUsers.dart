@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:originais/controllers/profile_controller.dart';
+import 'package:originais/view/default_loading.dart';
 
 class DashboardWidgetUsers extends StatefulWidget {
   const DashboardWidgetUsers({super.key});
@@ -48,14 +49,15 @@ class _DashboardWidgetUsers extends State<DashboardWidgetUsers> {
               valueListenable: bdProfileController.loadingNotifier,
               builder: (context, isLoading, child) {
                 if (isLoading) {
-                  return const Padding(
-                    padding: EdgeInsets.only(top: 8.0),
-                    child: SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  );
+                  return DefaultLoading.showProgressIndicator();
+                  // return const Padding(
+                  //   padding: EdgeInsets.only(top: 8.0),
+                  //   child: SizedBox(
+                  //     height: 20,
+                  //     width: 20,
+                  //     child: CircularProgressIndicator(strokeWidth: 2),
+                  //   ),
+                  // );
                 }
 
                 return ValueListenableBuilder<List<dynamic>>(

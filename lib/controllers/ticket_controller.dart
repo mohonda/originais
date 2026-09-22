@@ -28,6 +28,7 @@ class TicketController extends ChangeNotifier {
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> successNotifier = ValueNotifier<String?>(null);
 
   final ValueNotifier<List<TicketsModel>> profileTicketsNotifier =
       ValueNotifier<List<TicketsModel>>([]);

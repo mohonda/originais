@@ -3,6 +3,8 @@ import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/controllers/profile_associate_status_controller.dart';
 import 'package:originais/models/profile_associate_status_model.dart';
 import 'package:originais/services/general_service.dart';
+import 'package:originais/view/default_loading.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class ProfileAssociateStatus extends StatefulWidget {
   final String? pflId;
@@ -51,6 +53,16 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
 
     profileController = getItBdProfileController<BdProfileController>();
     profileController.pessoaSelecionadaNotifier.addListener(_onPerfilAtualizado);
+    
+    DefaultSnackbar.attachErrorListener(
+      context,
+      controller.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      controller.successNotifier
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarStatusAssociado();
@@ -108,10 +120,11 @@ class _ProfileAssociateStatusState extends State<ProfileAssociateStatus> {
       valueListenable: controller.loadingNotifier,
       builder: (context, isLoading, child) {
         if (isLoading) {
-          return const Padding(
-            padding: EdgeInsets.all(32.0),
-            child: Center(child: CircularProgressIndicator()),
-          );
+          return DefaultLoading.showProgressIndicator();
+          // return const Padding(
+          //   padding: EdgeInsets.all(32.0),
+          //   child: Center(child: CircularProgressIndicator()),
+          // );
         }
 
         return ValueListenableBuilder<String?>(

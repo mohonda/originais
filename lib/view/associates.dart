@@ -5,8 +5,9 @@ import 'package:originais/controllers/profiles_sanctions_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/controllers/profile_controller.dart';
-import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/default_appbar.dart';
 import 'package:originais/view/associates_details.dart';
+import 'package:originais/view/default_loading.dart';
 import 'package:originais/controllers/executive_committee_termofoffice_members_controller.dart';
 
 class Associates extends StatefulWidget {
@@ -81,7 +82,7 @@ class AssociatesState extends State<Associates> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomFloatingAppBar(title: 'Associates'),
+      appBar: const DefaultAppbar(title: 'Associates'),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
         child: SizedBox.expand(
@@ -110,7 +111,8 @@ class AssociatesState extends State<Associates> {
                       }
 
                       if (isLoading && itens.isEmpty) {
-                        return const Center(child: CircularProgressIndicator());
+                        return DefaultLoading.showProgressIndicator();
+                        // return const Center(child: CircularProgressIndicator());
                       }
 
                       return RefreshIndicator(

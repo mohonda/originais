@@ -22,6 +22,7 @@ class BdHeadquartersBarController extends ChangeNotifier {
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> successNotifier = ValueNotifier<String?>(null);
 
   // 🟢 Guardará o canal ativo do Supabase
   RealtimeChannel? _realtimeChannel;

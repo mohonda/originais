@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/default_appbar.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/controllers/monthly_distinct_controller.dart';
 import 'package:originais/view/monthly_generation_details.dart';
 import 'package:originais/controllers/payment_value_controller.dart';
 import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/controllers/monthly_payments_controller.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class MonthlyGeneration extends StatefulWidget {
   const MonthlyGeneration({super.key});
@@ -35,37 +36,27 @@ class MonthlyGenerationState extends State<MonthlyGeneration> {
   String? formaPagamentoSelecionada;
 
   // ==========================================
-  void _onErrorChanged() {
-    final error = bdVMensalidadesDistinctController.errorNotifier.value;
-
-    if (error != null && error.isNotEmpty && mounted) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro: $error'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    }
-  }
-
-  // ==========================================
   @override
   void initState() {
     super.initState();
 
-    bdVMensalidadesDistinctController.errorNotifier.addListener(_onErrorChanged);
 
     bdVMensalidadesDistinctController.loadMensalidadesDistincts();
+    
+    DefaultSnackbar.attachErrorListener(
+      context,
+      bdProfileController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      bdProfileController.successNotifier
+    );
   }
 
   // ==========================================
   @override
   void dispose() {
-    // Desvincular o listener para evitar vazamentos de memória (memory leaks)
-    bdVMensalidadesDistinctController.errorNotifier.removeListener(_onErrorChanged);
     idController.dispose();
     hldController.dispose();
     fullNameController.dispose();
@@ -77,7 +68,7 @@ class MonthlyGenerationState extends State<MonthlyGeneration> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomFloatingAppBar(title: 'Monthly Generation'),
+      appBar: const DefaultAppbar(title: 'Monthly Generation'),
       body: ListenableBuilder(
         listenable: Listenable.merge([
           bdVMensalidadesDistinctController.loadingNotifier,

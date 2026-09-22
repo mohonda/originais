@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:originais/controllers/auth_controller.dart';
 import 'package:originais/controllers/profile_controller.dart';
-import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/default_appbar.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class ProfileUpdatePassword extends StatefulWidget {
   const ProfileUpdatePassword({super.key});
@@ -33,6 +34,16 @@ class ProfileUpdatePasswordState extends State<ProfileUpdatePassword> {
     authController = AuthController();
 
     authController.errorNotifier.addListener(_onErrorChanged);
+    
+    DefaultSnackbar.attachErrorListener(
+      context,
+      bdProfileController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      bdProfileController.successNotifier
+    );
 
     initValues();
   }
@@ -103,7 +114,7 @@ class ProfileUpdatePasswordState extends State<ProfileUpdatePassword> {
     const double distance = 12;
 
     return Scaffold(
-      appBar: CustomFloatingAppBar(
+      appBar: DefaultAppbar(
         title: 'Update Password - ${fullNameController.text}',
       ),
       body: ValueListenableBuilder<bool>(

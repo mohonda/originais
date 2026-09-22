@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/default_appbar.dart';
 import 'package:originais/controllers/monthly_payments_controller.dart';
 import 'package:originais/models/mensalidades_model.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class MonthlyPayments extends StatefulWidget {
   final String? hldId;
@@ -47,11 +48,18 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
     bdMonthlyPaymentsController =
         getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
 
-    // Registrar o listener de erro
-    bdMonthlyPaymentsController.errorNotifier.addListener(_onErrorChanged);
-
-    // Inicializa o ouvinte em tempo real do banco de dados
+     // Inicializa o ouvinte em tempo real do banco de dados
     bdMonthlyPaymentsController.initRealtime( widget.hldId.toString() );
+
+    DefaultSnackbar.attachErrorListener(
+      context,
+      bdMonthlyPaymentsController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      bdMonthlyPaymentsController.successNotifier
+    );
   }
 
   // ==========================================
@@ -67,7 +75,7 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomFloatingAppBar(title: 'Monthly Payments'),
+      appBar: const DefaultAppbar(title: 'Monthly Payments'),
       body: ListenableBuilder(
         listenable: Listenable.merge([
           bdMonthlyPaymentsController.loadingNotifier,

@@ -32,6 +32,7 @@ class BdMonthlyPaymentsController extends ChangeNotifier {
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> successNotifier = ValueNotifier<String?>(null);
 
   final generalService = getItGeneralService<GeneralService>();
 

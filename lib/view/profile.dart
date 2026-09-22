@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
-import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/default_appbar.dart';
 import 'package:originais/view/profile_update_password.dart';
 import 'package:originais/controllers/profile_image_service.dart';
 import 'package:originais/view/profile_headquarters_bar.dart'; 
@@ -9,6 +9,8 @@ import 'package:originais/view/profile_executive_committee.dart';
 import 'package:originais/view/profile_sanctions.dart'; 
 import 'package:originais/view/profile_journey_riding.dart'; 
 import 'package:originais/view/profile_associate_status.dart'; 
+import 'package:originais/view/default_snackbar.dart'; 
+import 'package:originais/view/default_loading.dart'; 
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -39,50 +41,15 @@ class _ProfileState extends State<Profile> {
       .addListener(_onProfileChanged);
     _onProfileChanged();
 
-    _setupMessageListener(
-        notifier: bdProfileController.errorNotifier,
-        backgroundColor: Colors.red.shade700,
-      );
-
-      _setupMessageListener(
-        notifier: bdProfileController.successNotifier,
-        backgroundColor: Colors.green.shade800,
-      );
-  }
-
-  void _setupMessageListener({
-    required ValueNotifier<String?> notifier,
-    required Color backgroundColor,
-    IconData icon = Icons.info_outline,
-  }) {
-    notifier.addListener(() {
-      final message = notifier.value;
-
-      if (message != null && message.isNotEmpty && mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(icon, color: Colors.white),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    message,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: backgroundColor,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        notifier.value = null;
-      }
-    });
+    DefaultSnackbar.attachErrorListener(
+      context,
+      bdProfileController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      bdProfileController.successNotifier
+    );
   }
 
   // ==========================================
@@ -128,18 +95,25 @@ class _ProfileState extends State<Profile> {
 
   // ==========================================
   Future<void> updateProfile() async {
-    bdProfileController.errorNotifier.value = null;
+    try {
+      DefaultLoading.showOverlay(context);
 
-    await bdProfileController.updateProfile(
-      idController.text,
-      hld_id,
-      fullNameController.text,
-      nickNameController.text,
-      urlController.text,
-      bioController.text,
-    );
+      await bdProfileController.updateProfile(
+        idController.text,
+        hld_id,
+        fullNameController.text,
+        nickNameController.text,
+        urlController.text,
+        bioController.text,
+      );
+    } finally{
+      if (mounted) {
+        DefaultLoading.hideOverlay(context);
+      }
+    }
   }
 
+  // ==========================================
   Widget _buildTabSection({
     required String labelText,
     required Widget child,
@@ -206,7 +180,7 @@ class _ProfileState extends State<Profile> {
           child: ValueListenableBuilder<VProfileModel?>(
             valueListenable: bdProfileController.pessoaSelecionadaNotifier,
             builder: (context, value, child) {
-              return CustomFloatingAppBar(
+              return DefaultAppbar(
                 title: 'Profile - ${value?.pfl_full_name ?? ''}',
               );
             },
@@ -335,12 +309,7 @@ class _ProfileState extends State<Profile> {
       valueListenable: bdProfileController.loadingNotifier,
       builder: (context, isLoading, child) {
         if (isLoading) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(32.0),
-              child: CircularProgressIndicator(),
-            ),
-          );
+          DefaultLoading.showProgressIndicator();
         }
 
         return ValueListenableBuilder<String?>(

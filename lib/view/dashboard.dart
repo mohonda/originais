@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:originais/view/dashboard_widgetItens.dart';
 import 'package:originais/view/dashboard_widgetUsers.dart';
-import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/default_appbar.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -23,7 +23,7 @@ class _Dashboard extends State<Dashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomFloatingAppBar(title: 'Dashboard'),
+      appBar: const DefaultAppbar(title: 'Dashboard'),
       body: Padding(
         padding: const EdgeInsets.only(
           left: 8.0,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
-import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/default_appbar.dart';
 import 'package:originais/controllers/products_controller.dart';
 import 'package:originais/models/products_model.dart';
 import 'package:originais/controllers/profile_controller.dart';
@@ -9,6 +9,8 @@ import 'package:originais/controllers/ticket_controller.dart';
 import 'package:originais/models/ticket_model.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/controllers/ticket_receipt_image_service.dart';
+import 'package:originais/view/default_loading.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class HeadquartersBarOpened extends StatefulWidget {
   final String barId;
@@ -120,9 +122,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
     ticketController.ticketStatusNotifier.addListener(_onTicketStatusChanged);
 
     errorNotifier.addListener(_onErrorChanged);
-    ticketController.errorNotifier.addListener(_onErrorChanged);
-    productsController.errorNotifier.addListener(_onErrorChanged);
-    bdProfileController.errorNotifier.addListener(_onErrorChanged);
 
     paymentService = TicketReceiptImageService(
       loadingNotifier: loadingNotifier,
@@ -144,6 +143,26 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
         _mostrarResumoMesa(widget.ticketSelecionado!);
       });
     }
+    
+    DefaultSnackbar.attachErrorListener(
+      context,
+      ticketController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      ticketController.successNotifier
+    );
+    
+    DefaultSnackbar.attachErrorListener(
+      context,
+      productsController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      productsController.successNotifier
+    );
   }
 
   // ==========================================
@@ -155,9 +174,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
     ticketController.ticketStatusNotifier.removeListener(_onTicketStatusChanged);
 
     errorNotifier.removeListener(_onErrorChanged);
-    ticketController.errorNotifier.removeListener(_onErrorChanged);
-    productsController.errorNotifier.removeListener(_onErrorChanged);
-    bdProfileController.errorNotifier.removeListener(_onErrorChanged);
 
     loadingNotifier.dispose();
     errorNotifier.dispose();
@@ -201,12 +217,14 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                     valueListenable: loadingNotifier,
                     builder: (context, isLoading, _) {
                       if (isLoading) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
+                        return DefaultLoading.showProgressIndicator();
+
+                        // return const Center(
+                        //   child: Padding(
+                        //     padding: EdgeInsets.all(12.0),
+                        //     child: CircularProgressIndicator(),
+                        //   ),
+                        // );
                       }
 
                       return SizedBox(
@@ -1521,7 +1539,7 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
     const double distance = 16.0;
 
     return Scaffold(
-      appBar: CustomFloatingAppBar(
+      appBar: DefaultAppbar(
         title:
             'Headquarters Bar - ${generalService.formatarDataBr(widget.openDate)}',
       ),

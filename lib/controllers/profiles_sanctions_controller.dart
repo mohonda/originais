@@ -31,6 +31,7 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> successNotifier = ValueNotifier<String?>(null);
 
   // ==========================================
   BdVProfilesSanctionsController() {

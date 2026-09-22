@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-class CustomFloatingAppBar extends StatelessWidget implements PreferredSizeWidget {
+class DefaultAppbar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
 
   // ==========================================
-  const CustomFloatingAppBar({
+  const DefaultAppbar({
     super.key,
     required this.title,
   });
@@ -52,4 +52,5 @@ class CustomFloatingAppBar extends StatelessWidget implements PreferredSizeWidge
   @override
   Size get preferredSize =>
     const Size.fromHeight(60.0);
+
 }

@@ -3,6 +3,8 @@ import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/controllers/profiles_sanctions_controller.dart';
 import 'package:originais/models/profiles_sanctions_model.dart';
 import 'package:originais/services/general_service.dart';
+import 'package:originais/view/default_loading.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class ProfileSanctions extends StatefulWidget {
   final String? pflId;
@@ -51,6 +53,16 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
 
     profileController = getItBdProfileController<BdProfileController>();
     profileController.pessoaSelecionadaNotifier.addListener(_onPerfilAtualizado);
+    
+    DefaultSnackbar.attachErrorListener(
+      context,
+      controller.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      controller.successNotifier
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarSancoes();
@@ -112,10 +124,11 @@ class _ProfileSanctionsState extends State<ProfileSanctions> {
       valueListenable: controller.loadingNotifier,
       builder: (context, isLoading, child) {
         if (isLoading) {
-          return const Padding(
-            padding: EdgeInsets.all(32.0),
-            child: Center(child: CircularProgressIndicator()),
-          );
+          return DefaultLoading.showProgressIndicator();
+          // return const Padding(
+          //   padding: EdgeInsets.all(32.0),
+          //   child: Center(child: CircularProgressIndicator()),
+          // );
         }
 
         return ValueListenableBuilder<String?>(

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/default_appbar.dart';
 import 'package:originais/controllers/profile_associate_status_controller.dart';
 import 'package:originais/controllers/profiles_sanctions_controller.dart';
 import 'package:originais/controllers/executive_committee_termofoffice_members_controller.dart';
@@ -146,7 +146,7 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
-        appBar: CustomFloatingAppBar(
+        appBar: DefaultAppbar(
           title: 'Associates - ${fullNameController.text}',
         ),
         body: ListenableBuilder(

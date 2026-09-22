@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:originais/controllers/journey_riding_controller.dart';
-import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/default_appbar.dart';
 import 'package:originais/controllers/profile_controller.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class JourneyRiding extends StatefulWidget {
   const JourneyRiding({super.key});
@@ -47,6 +48,16 @@ class JourneyRidingState extends State<JourneyRiding> {
     bdJourneyRidingController.errorNotifier.addListener(_onErrorChanged);
 
     bdJourneyRidingController.loadJourneyRiding(hldId);
+    
+    DefaultSnackbar.attachErrorListener(
+      context,
+      bdProfileController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      bdProfileController.successNotifier
+    );
   }
 
   // ==========================================
@@ -103,7 +114,7 @@ class JourneyRidingState extends State<JourneyRiding> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomFloatingAppBar(title: 'Journey Riding'),
+      appBar: const DefaultAppbar(title: 'Journey Riding'),
       body: ListenableBuilder(
         listenable: Listenable.merge([
           bdJourneyRidingController.loadingNotifier,

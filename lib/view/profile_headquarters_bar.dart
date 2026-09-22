@@ -4,6 +4,8 @@ import 'package:originais/controllers/ticket_controller.dart';
 import 'package:originais/models/ticket_model.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/controllers/ticket_receipt_image_service.dart';
+import 'package:originais/view/default_loading.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class ProfileHeadquartersBar extends StatefulWidget {
   final String pflId;
@@ -50,6 +52,16 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
     );
 
     profileController.pessoaSelecionadaNotifier.addListener(_onPessoaChanged);
+    
+    DefaultSnackbar.attachErrorListener(
+      context,
+      ticketController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      ticketController.successNotifier
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarDados();
@@ -300,10 +312,11 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
           valueListenable: ticketController.loadingNotifier,
           builder: (context, isLoading, child) {
             if (isLoading) {
-              return const Padding(
-                padding: EdgeInsets.all(32.0),
-                child: Center(child: CircularProgressIndicator()),
-              );
+              return DefaultLoading.showProgressIndicator();
+            //   return const Padding(
+            //     padding: EdgeInsets.all(32.0),
+            //     child: Center(child: CircularProgressIndicator()),
+            //   );
             }
 
             return ValueListenableBuilder<String?>(

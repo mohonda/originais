@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:originais/controllers/journey_riding_controller.dart';
+import 'package:originais/view/default_loading.dart';
+
 
 class DashboardWidgetItens extends StatefulWidget {
   const DashboardWidgetItens({super.key});
@@ -48,14 +50,15 @@ class _DashboardWidgetItens extends State<DashboardWidgetItens> {
               valueListenable: bdItemController.loadingNotifier,
               builder: (context, isLoading, child) {
                 if (isLoading) {
-                  return const Padding(
-                    padding: EdgeInsets.only(top: 8.0),
-                    child: SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  );
+                  return DefaultLoading.showProgressIndicator();
+                  // return const Padding(
+                  //   padding: EdgeInsets.only(top: 8.0),
+                  //   child: SizedBox(
+                  //     height: 20,
+                  //     width: 20,
+                  //     child: CircularProgressIndicator(strokeWidth: 2),
+                  //   ),
+                  // );
                 }
 
                 return ValueListenableBuilder<List<dynamic>>(

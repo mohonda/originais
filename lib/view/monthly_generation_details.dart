@@ -3,13 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
-import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/default_appbar.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/controllers/payment_value_controller.dart';
 import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/controllers/monthly_payments_controller.dart';
 import 'package:originais/controllers/monthly_distinct_controller.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class MonthlyGenerationDetails extends StatefulWidget {
   const MonthlyGenerationDetails({super.key});
@@ -54,23 +55,6 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
   late List listaFormas = [];
 
   // ==========================================
-  void _onErrorChanged() {
-    final error = bdMonthlyPaymentsController.errorNotifier.value;
-
-    if (error != null && error.isNotEmpty && mounted) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro: $error'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    }
-  }
-
-  // ==========================================
   @override
   void initState() {
     super.initState();
@@ -78,16 +62,20 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
 
     hldValueNotifier.value = '1';
 
-    // Registrar o ouvinte de notificações de erro do controller
-    bdMonthlyPaymentsController.errorNotifier.addListener(_onErrorChanged);
+    DefaultSnackbar.attachErrorListener(
+      context,
+      bdProfileController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      bdProfileController.successNotifier
+    );
   }
 
   // ==========================================
   @override
   void dispose() {
-    // Remover o listener para evitar vazamento de memória (memory leaks)
-    bdMonthlyPaymentsController.errorNotifier.removeListener(_onErrorChanged);
-
     // Descarte de controllers e notifiers
     myreferencia.dispose();
     hldController.dispose();
@@ -109,7 +97,7 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
     const double distance = 16.0;
 
     return Scaffold(
-      appBar: const CustomFloatingAppBar(title: 'Monthly Generation Details'),
+      appBar: const DefaultAppbar(title: 'Monthly Generation Details'),
       body: ListenableBuilder(
         listenable: Listenable.merge([
           bdMonthlyPaymentsController.loadingNotifier,

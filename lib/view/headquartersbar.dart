@@ -2,13 +2,15 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:originais/controllers/headquarters_bar_controller.dart';
 import 'package:originais/services/general_service.dart';
-import 'package:originais/models/custom_app_bar.dart';
+import 'package:originais/view/default_appbar.dart';
 import 'package:originais/view/custom_month_calendar.dart';
 import 'package:originais/view/headquartersbar_opened.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/controllers/products_controller.dart';
 import 'package:originais/controllers/ticket_controller.dart';
+import 'package:originais/view/default_loading.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class HeadquartersBar extends StatefulWidget {
   const HeadquartersBar({super.key});
@@ -51,9 +53,36 @@ class HeadquartersBarState extends State<HeadquartersBar> {
     // Escuta alterações nos notificadores de dados e erros
     bdHeadquartersBarController.headquartersBarNotifier
         .addListener(_onHeadquartersBarChanged);
-    bdHeadquartersBarController.errorNotifier.addListener(_onErrorChanged);
-    productsController.errorNotifier.addListener(_onErrorChanged);
-    ticketController.errorNotifier.addListener(_onErrorChanged);
+
+    DefaultSnackbar.attachErrorListener(
+      context,
+      productsController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      productsController.successNotifier
+    );
+
+    DefaultSnackbar.attachErrorListener(
+      context,
+      bdHeadquartersBarController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      bdHeadquartersBarController.successNotifier
+    );
+
+    DefaultSnackbar.attachErrorListener(
+      context,
+      ticketController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      ticketController.successNotifier
+    );
 
     _carregarDadosIniciais();
   }
@@ -136,13 +165,13 @@ class HeadquartersBarState extends State<HeadquartersBar> {
 
     if (!_isLocaleInitialized) {
       return const Scaffold(
-        appBar: CustomFloatingAppBar(title: 'Headquarters Bar'),
+        appBar: DefaultAppbar(title: 'Headquarters Bar'),
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: const CustomFloatingAppBar(title: 'Headquarters Bar'),
+      appBar: const DefaultAppbar(title: 'Headquarters Bar'),
       body: ListenableBuilder(
         listenable: Listenable.merge([
           bdHeadquartersBarController.loadingNotifier,
@@ -156,7 +185,8 @@ class HeadquartersBarState extends State<HeadquartersBar> {
                   ticketController.loadingNotifier.value;
 
           if (isLoading && _openDays.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return DefaultLoading.showProgressIndicator();
+            // return const Center(child: CircularProgressIndicator());
           }
 
           return Stack(
