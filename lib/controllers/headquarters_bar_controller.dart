@@ -125,8 +125,31 @@ class BdHeadquartersBarController extends ChangeNotifier {
       errorNotifier.value = ("openHeadquartersBar: $e \n$stackTrace");
       return '-1';
     } finally {
+      successNotifier.value = "Headquarter Bar opended with sucess!";
       loadingNotifier.value = false;
     }
   }
+  // ==========================================
+  Future<void> deleteBar(
+    String barId
+  ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from( 'headquarters_bar' )
+          .delete()
+          .eq( 'bar_id', barId )
+      );
+
+    } catch (e, stackTrace) {
+      errorNotifier.value = "deleteBar: $e \n$stackTrace";
+    } finally {
+      successNotifier.value = 'Headquarters Bar deleted with success.';
+      loadingNotifier.value = false;
+    }
+  } 
 
 }

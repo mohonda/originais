@@ -10,7 +10,8 @@ class AuthController {
 
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
-  
+    final ValueNotifier<String?> successNotifier = ValueNotifier<String?>(null);
+
   // ==========================================
   AuthController() {
     supabaseClient = mySupabaseClient.getSupabaseClient();
@@ -74,6 +75,7 @@ class AuthController {
       errorNotifier.value = 'updatePassword: $e';
       throw Exception( e );
     } finally{
+      successNotifier.value = 'Password updated with sucess!';
       loadingNotifier.value = false;
     }
   }

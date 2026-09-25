@@ -5,6 +5,7 @@ import 'package:originais/models/journeyriding_model.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/view/profile_journey_riding.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class AssociatesJourneyRidingSection extends StatefulWidget {
   final VProfileModel itemAtual;
@@ -35,24 +36,19 @@ class _AssociatesJourneyRidingSectionState
         .get<BdJourneyRidingController>();
     profileController = getItBdProfileController<BdProfileController>();
 
-    bdJourneyRidingController.errorNotifier.addListener(_handleError);
+    DefaultSnackbar.attachErrorListener(
+      context,
+      bdJourneyRidingController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      bdJourneyRidingController.successNotifier
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarDados();
     });
-  }
-
-  void _handleError() {
-    final errorMessage = bdJourneyRidingController.errorNotifier.value;
-    if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red.shade700,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
   }
 
   @override
@@ -69,7 +65,6 @@ class _AssociatesJourneyRidingSectionState
 
   @override
   void dispose() {
-    bdJourneyRidingController.errorNotifier.removeListener(_handleError);
     // Libera a instância isolada do controller
     bdJourneyRidingController.dispose();
     super.dispose();

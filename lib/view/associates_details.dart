@@ -10,6 +10,7 @@ import 'package:originais/view/associates_executive_committee_section.dart';
 import 'package:originais/view/associates_associate_status_section.dart';
 import 'package:originais/view/associates_sanctions_section.dart';
 import 'package:originais/view/associates_journey_riding_section.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class AssociatesDetails extends StatefulWidget {
   final VProfileModel itemAtual;
@@ -50,39 +51,40 @@ class AssociatesDetailsState extends State<AssociatesDetails> {
     fullNameController.text = widget.itemAtual.pfl_full_name.toString();
     hldController.text = widget.itemAtual.hld_name.toString();
 
-    // 🔔 Ouve notificações de erro dos controllers
-    bdVProfileAssociateStatusController.errorNotifier.addListener(_handleError);
-    bdVProfilesSanctionsController.errorNotifier.addListener(_handleError);
-    bdVExecutiveCommitteeTermOfOfficeMembersController.errorNotifier
-        .addListener(_handleError);
-  }
+    DefaultSnackbar.attachErrorListener(
+      context,
+      bdVProfileAssociateStatusController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      bdVProfileAssociateStatusController.successNotifier
+    );
 
-  // ==========================================
-  void _handleError() {
-    final errorMessage =
-        bdVProfileAssociateStatusController.errorNotifier.value ??
-        bdVProfilesSanctionsController.errorNotifier.value ??
-        bdVExecutiveCommitteeTermOfOfficeMembersController.errorNotifier.value;
+    DefaultSnackbar.attachErrorListener(
+      context,
+      bdVProfilesSanctionsController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      bdVProfilesSanctionsController.successNotifier
+    );
 
-    if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red.shade700,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    DefaultSnackbar.attachErrorListener(
+      context,
+      bdVExecutiveCommitteeTermOfOfficeMembersController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      bdVExecutiveCommitteeTermOfOfficeMembersController.successNotifier
+    );
   }
 
   // ==========================================
   @override
   void dispose() {
-    bdVProfileAssociateStatusController.errorNotifier.removeListener(_handleError);
-    bdVProfilesSanctionsController.errorNotifier.removeListener(_handleError);
-    bdVExecutiveCommitteeTermOfOfficeMembersController.errorNotifier
-        .removeListener(_handleError);
-
     idController.dispose();
     hldController.dispose();
     fullNameController.dispose();

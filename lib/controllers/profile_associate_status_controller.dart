@@ -67,12 +67,24 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
         .subscribe();
   }
 
-  // Cancela a subscrição do canal Realtime
+  // ==========================================
   void unsubscribeRealtime() {
     if (_associateStatusChannel != null) {
       supabaseClient.removeChannel(_associateStatusChannel!);
       _associateStatusChannel = null;
     }
+  }
+
+  // ==========================================
+  @override
+  void dispose() {
+    unsubscribeRealtime();
+    statusNotifier.dispose();
+    vProfileAssociateStatusNotifier.dispose();
+    availableAssociateStatus.dispose();
+    loadingNotifier.dispose();
+    errorNotifier.dispose();
+    super.dispose();
   }
   
   // ==========================================
@@ -153,6 +165,7 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "insertProfileAssociateStatus: $e \n$stackTrace";
     } finally {
+      successNotifier.value = "Associate Status inserted with sucess.";
       loadingNotifier.value = false;
     }
   }
@@ -183,6 +196,7 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "updateProfileAssociateStatus: $e \n$stackTrace";
     } finally {
+      successNotifier.value = "Associate Status updated with sucess.";
       loadingNotifier.value = false;
     }
   }
@@ -208,18 +222,9 @@ class BdVProfileAssociateStatusController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "deleteProfileAssociateStatus: $e \n$stackTrace";
     } finally {
+      successNotifier.value = "Associate Status deleted!";
       loadingNotifier.value = false;
     }
   }
 
-  @override
-  void dispose() {
-    unsubscribeRealtime();
-    statusNotifier.dispose();
-    vProfileAssociateStatusNotifier.dispose();
-    availableAssociateStatus.dispose();
-    loadingNotifier.dispose();
-    errorNotifier.dispose();
-    super.dispose();
-  }
 }

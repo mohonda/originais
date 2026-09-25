@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:originais/view/main_window.dart';
-import 'package:originais/models/router_model.dart';
+import 'package:originais/view/settings/router_model.dart';
 import 'package:flutter/material.dart';
 import 'package:originais/view/login.dart';
 

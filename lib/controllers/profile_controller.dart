@@ -168,13 +168,11 @@ class BdProfileController extends ChangeNotifier {
       
       await fetchProfilesById(id, hld_id);
 
-      // Emite a mensagem de sucesso
-      successNotifier.value = "Perfil atualizado com sucesso!";
-
     } catch (e, stackTrace) {
       pessoaSelecionadaNotifier.value = null;
       errorNotifier.value = "updateProfile: $e \n$stackTrace";
     } finally {
+      successNotifier.value = "Perfil atualizado com sucesso!";
       loadingNotifier.value = false;
     }
   }
@@ -197,13 +195,11 @@ class BdProfileController extends ChangeNotifier {
 
       await fetchProfilesById(pfl_id, hld_id);
 
-      // Emite a mensagem de sucesso
-      successNotifier.value = "Foto de perfil alterada com sucesso!";
-
     } catch (e, stackTrace) {
       pessoaSelecionadaNotifier.value = null;
       errorNotifier.value = "updateAvatar: $e \n$stackTrace";
     } finally {
+      successNotifier.value = "Foto de perfil alterada com sucesso!";
       loadingNotifier.value = false;
     }
   }

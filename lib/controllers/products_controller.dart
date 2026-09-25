@@ -20,6 +20,9 @@ class ProductsController extends ChangeNotifier {
   final ValueNotifier<List<ProductsModel>> productsNotifier =
     ValueNotifier<List<ProductsModel>>([]);
 
+  final ValueNotifier<List<ProductsModel>> productsFilteredNotifier =
+    ValueNotifier<List<ProductsModel>>([]);
+
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
   final ValueNotifier<String?> successNotifier = ValueNotifier<String?>(null);
@@ -48,6 +51,31 @@ class ProductsController extends ChangeNotifier {
     } catch (e, stackTrace) {
       productsNotifier.value = [];
       errorNotifier.value = ("ProductsController::loadProdutos: $e \n$stackTrace");
+    } finally {
+      loadingNotifier.value = false;
+    }
+  }
+  
+  // ==========================================
+  Future<void> loadProductsFiltered( String hldId, cpdtIid ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      final resposta = await mySupabaseClient.safePostgrestCall(()=>
+        supabaseClient
+        .from('vprodutos')
+        .select()
+        .eq('pdt_hld_id', hldId)
+        .eq('pdt_cpdt_id', cpdtIid)
+      );
+    
+      productsFilteredNotifier.value = resposta.map(
+        ( item ) => ProductsModel.fromJson( item )).toList();
+      
+    } catch (e, stackTrace) {
+      productsFilteredNotifier.value = [];
+      errorNotifier.value = ("loadProductsFiltered: $e \n$stackTrace");
     } finally {
       loadingNotifier.value = false;
     }

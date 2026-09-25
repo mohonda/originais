@@ -9,6 +9,7 @@ import 'package:originais/view/default_appbar.dart';
 import 'package:originais/view/associates_details.dart';
 import 'package:originais/view/default_loading.dart';
 import 'package:originais/controllers/executive_committee_termofoffice_members_controller.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class Associates extends StatefulWidget {
   const Associates({super.key});
@@ -42,8 +43,16 @@ class AssociatesState extends State<Associates> {
   @override
   void initState() {
     super.initState();
-    // 🔔 Ouve mudanças no errorNotifier do controller
-    bdProfileController.errorNotifier.addListener(_handleError);
+    
+    DefaultSnackbar.attachErrorListener(
+      context,
+      bdProfileController.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      bdProfileController.successNotifier
+    );
 
     // Carregamento inicial dos dados após a renderização da árvore
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -57,23 +66,8 @@ class AssociatesState extends State<Associates> {
   }
 
   // ==========================================
-  void _handleError() {
-    final errorMessage = bdProfileController.errorNotifier.value;
-    if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red.shade700,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  // ==========================================
   @override
   void dispose() {
-    bdProfileController.errorNotifier.removeListener(_handleError);
     isProcessingDetailsNotifier.dispose();
     super.dispose();
   }

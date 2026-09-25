@@ -110,6 +110,9 @@ class TicketsModel {
   String? tkt_pas_id;
   String? pas_monthly_percent;
 
+  String? bar_desc;
+  String? bar_open_date;
+
   List<TicketsItemsModel> ticketsItems;
 
   TicketsModel({
@@ -139,6 +142,9 @@ class TicketsModel {
 
     this.tkt_pas_id,
     this.pas_monthly_percent,
+
+    this.bar_desc,
+    this.bar_open_date,
 
     List<TicketsItemsModel>? ticketsItems,
   }) : ticketsItems = ticketsItems ?? [];
@@ -185,6 +191,9 @@ class TicketsModel {
       tkt_pas_id: json['tkt_pas_id']?.toString() ?? '',
       pas_monthly_percent: json['pas_monthly_percent']?.toString() ?? '',
 
+      bar_desc: json['bar_desc']?.toString() ?? '',
+      bar_open_date: json['bar_open_date']?.toString() ?? '',
+
       ticketsItems: itens,
     );
   }
@@ -212,6 +221,9 @@ class TicketsModel {
 
       'tkt_pas_id': tkt_pas_id,
       'pas_monthly_percent': pas_monthly_percent,
+
+      'bar_desc': bar_desc,
+      'bar_open_date': bar_open_date,
     };
   }
 }

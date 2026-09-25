@@ -355,6 +355,25 @@ class _MainWindowState extends State<MainWindow> {
             onTap: () =>
                 _onItemTapped('monthlygeneration', isMobile: isMobile),
           ),
+          SidebarXItem(
+            iconBuilder: (selected, hovered) {
+              return const Icon(
+                Icons.subdirectory_arrow_right_rounded,
+                color: Colors.orangeAccent,
+                size: 20,
+              );
+            },
+            label: '   Monthly Operating Expenses',
+            onTap: () => _onItemTapped(
+                'monthlyOperatingExpenses',
+                isMobile: isMobile,
+                queryParameters: {
+                  'pfl_id': pfl_id,
+                  'hld_id': hld_id,
+                  'tss_id': '5'
+                },
+              ),
+          ),
         ],
         SidebarXItem(
           icon: Icons.payments_outlined,

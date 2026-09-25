@@ -9,7 +9,12 @@ import 'package:originais/controllers/monthly_payments_controller.dart';
 import 'package:originais/view/default_snackbar.dart'; 
 
 class MonthlyGeneration extends StatefulWidget {
-  const MonthlyGeneration({super.key});
+  final String? hldId;
+  const MonthlyGeneration({
+    super.key,
+    this.hldId
+  });
+
 
   @override
   State<MonthlyGeneration> createState() => MonthlyGenerationState();
@@ -39,7 +44,6 @@ class MonthlyGenerationState extends State<MonthlyGeneration> {
   @override
   void initState() {
     super.initState();
-
 
     bdVMensalidadesDistinctController.loadMensalidadesDistincts();
     
@@ -321,7 +325,7 @@ class MonthlyGenerationState extends State<MonthlyGeneration> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const MonthlyGenerationDetails(),
+          builder: (context) => MonthlyGenerationDetails( hldId: widget.hldId.toString() ),
         ),
       );
     }

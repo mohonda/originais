@@ -61,12 +61,24 @@ class BdJourneyRidingController extends ChangeNotifier {
         .subscribe();
   }
 
-  // Cancela a subscrição do canal Realtime
+  // ==========================================
   void unsubscribeRealtime() {
     if (_journeyChannel != null) {
       supabaseClient.removeChannel(_journeyChannel!);
       _journeyChannel = null;
     }
+  }
+
+  // ==========================================
+  @override
+  void dispose() {
+    unsubscribeRealtime();
+    bdJourneyRidingNotifier.dispose();
+    journeyRidingOrderByLevelNotifier.dispose();
+    vProfileJourneyridingDetaisNotifier.dispose();
+    loadingNotifier.dispose();
+    errorNotifier.dispose();
+    super.dispose();
   }
 
   // ==========================================
@@ -169,6 +181,7 @@ class BdJourneyRidingController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = ("insertProfileJourneyRiding: $e \n$stackTrace");
     } finally {
+      successNotifier.value = "Journey of the Riding inserted with sucess!";
       loadingNotifier.value = false;
     }
   }
@@ -197,6 +210,7 @@ class BdJourneyRidingController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = ("updateProfileJourneyRiding: $e \n$stackTrace");
     } finally {
+      successNotifier.value = "Journey of the Riding updated with sucess!";
       loadingNotifier.value = false;
     }
   }
@@ -220,18 +234,9 @@ class BdJourneyRidingController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = ("deleteProfileJourneyRiding: $e \n$stackTrace");
     } finally {
+      successNotifier.value = "Journey of the Riding deleted with sucess!";
       loadingNotifier.value = false;
     }
   }
 
-  @override
-  void dispose() {
-    unsubscribeRealtime();
-    bdJourneyRidingNotifier.dispose();
-    journeyRidingOrderByLevelNotifier.dispose();
-    vProfileJourneyridingDetaisNotifier.dispose();
-    loadingNotifier.dispose();
-    errorNotifier.dispose();
-    super.dispose();
-  }
 }

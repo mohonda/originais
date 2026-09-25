@@ -183,8 +183,8 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
       // Não é necessário chamar loadProfileSanctionsStatus aqui, pois o Realtime reage ao INSERT
     } catch (e, stackTrace) {
       errorNotifier.value = "insertProfileSanction: $e \n$stackTrace";
-      debugPrint(errorNotifier.value.toString());
     } finally {
+      successNotifier.value = 'Sanction inserted with sucess.';
       loadingNotifier.value = false;
     }
   }
@@ -240,6 +240,7 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "updateProfileSanction: $e \n$stackTrace";
     } finally {
+      successNotifier.value = 'Sanction updated with sucess.';
       loadingNotifier.value = false;
     }
   }
@@ -270,6 +271,7 @@ class BdVProfilesSanctionsController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "deleteProfileSanction: $e \n$stackTrace";
     } finally {
+      successNotifier.value = 'Sanction deleted with sucess.';
       loadingNotifier.value = false;
     }
   }

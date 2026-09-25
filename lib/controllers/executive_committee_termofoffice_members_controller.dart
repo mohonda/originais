@@ -59,12 +59,22 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
         .subscribe();
   }
 
-  // Cancela a subscrição do canal Realtime
+  // ==========================================
   void unsubscribeRealtime() {
     if (_executiveCommitteeChannel != null) {
       supabaseClient.removeChannel(_executiveCommitteeChannel!);
       _executiveCommitteeChannel = null;
     }
+  }
+
+  // ==========================================
+  @override
+  void dispose() {
+    unsubscribeRealtime();
+    executiveOrderByDateStart.dispose();
+    loadingNotifier.dispose();
+    errorNotifier.dispose();
+    super.dispose();
   }
 
   // ==========================================
@@ -119,6 +129,7 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
       errorNotifier.value =
           "deleteExecutiveCommitteeMember: $e \n$stackTrace";
     } finally {
+      successNotifier.value = "Executive Committee Member deleted with sucess!";
       loadingNotifier.value = false;
     }
   }
@@ -154,6 +165,7 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
       errorNotifier.value =
           "insertExecutiveCommitteeMember: $e \n$stackTrace";
     } finally {
+      successNotifier.value = "Executive Committee Member inserted with sucess!";
       loadingNotifier.value = false;
     }
   }
@@ -187,6 +199,7 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
       errorNotifier.value =
           "updateExecutiveCommitteeMember: $e \n$stackTrace";
     } finally {
+      successNotifier.value = "Executive Committee Member updated with sucess!";
       loadingNotifier.value = false;
     }
   }
@@ -223,12 +236,4 @@ class BdVExecutiveCommitteeTermOfOfficeMembersController
     }
   }
 
-  @override
-  void dispose() {
-    unsubscribeRealtime();
-    executiveOrderByDateStart.dispose();
-    loadingNotifier.dispose();
-    errorNotifier.dispose();
-    super.dispose();
-  }
 }

@@ -6,6 +6,7 @@ import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/models/profiles_sanctions_model.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/view/profile_sanctions.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class AssociatesSanctionsSection extends StatefulWidget {
   final VProfileModel itemAtual;
@@ -39,6 +40,16 @@ class _AssociatesSanctionsSectionState
 
     controller.errorNotifier.addListener(_handleError);
     // sanctionsController.errorNotifier.addListener(_handleError);
+    
+    DefaultSnackbar.attachErrorListener(
+      context,
+      controller.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      controller.successNotifier
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarDados();

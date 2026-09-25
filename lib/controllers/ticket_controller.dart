@@ -26,6 +26,9 @@ class TicketController extends ChangeNotifier {
   final ValueNotifier<List<TicketsModel>> ticketNotifier =
       ValueNotifier<List<TicketsModel>>([]);
 
+  final ValueNotifier<List<TicketsModel>> ticketsBarTypeSalesNotifier =
+      ValueNotifier<List<TicketsModel>>([]);
+
   final ValueNotifier<bool> loadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier<String?>(null);
   final ValueNotifier<String?> successNotifier = ValueNotifier<String?>(null);
@@ -40,6 +43,7 @@ class TicketController extends ChangeNotifier {
   RealtimeChannel? _realtimeChannel;
   RealtimeChannel? _realtimeProfileChannel;
 
+  // ==========================================
   TicketController() {
     supabaseClient = mySupabaseClient.getSupabaseClient();
   }
@@ -204,6 +208,38 @@ class TicketController extends ChangeNotifier {
   }
 
   // ==========================================
+  Future<void> loadTicketsBarTypeSales({
+    String? barId,
+    String? tssId,
+    String? hldId
+  }) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      final resposta = await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+            .from('vtickets')
+            .select('''*, vtickets_items(*)''')
+            .eq('tkt_bar_id', barId.toString() )
+            .eq('bar_tss_id', tssId.toString() )
+            .eq('tkt_hld_id', hldId.toString() )
+            .order('tkt_bar_open_date', ascending: false)
+            .order('tkt_id', ascending: false)
+      );
+
+      ticketsBarTypeSalesNotifier.value = resposta
+          .map((item) => TicketsModel.fromJson(item))
+          .toList();
+    } catch (e, stackTrace) {
+      ticketsBarTypeSalesNotifier.value = [];
+      errorNotifier.value = "loadTicketsByProfileWithItems: $e \n$stackTrace";
+    } finally {
+      loadingNotifier.value = false;
+    }
+  }
+
+  // ==========================================
   Future<void> loadTicketsByProfile(String pflId, String hldId) async {
     try {
       loadingNotifier.value = true;
@@ -228,14 +264,14 @@ class TicketController extends ChangeNotifier {
   }
 
   // ==========================================
-  Future<String> insertTickets(
-    String hldId,
-    String openDate,
-    String nTable,
-    String clienteName,
-    String pflId,
-    String barId
-    ) async {
+  Future<String> insertTickets({
+    String? hldId,
+    String? openDate,
+    String? nTable,
+    String? clienteName,
+    String? pflId,
+    String? barId
+    }) async {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
@@ -260,6 +296,7 @@ class TicketController extends ChangeNotifier {
       errorNotifier.value = "insertTickets: $e \n$stackTrace";
       return '-1';
     } finally {
+      successNotifier.value = 'Ticket inserido com sucesso.';
       loadingNotifier.value = false;
     }
   }
@@ -274,8 +311,6 @@ class TicketController extends ChangeNotifier {
     try {
       loadingNotifier.value = true;
       errorNotifier.value = null;
-
-      debugPrint(openTickets.tkt_bar_id.toString());
 
       await mySupabaseClient.safePostgrestCall(
         () => supabaseClient.rpc(
@@ -296,6 +331,7 @@ class TicketController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "openTicketsFunction: $e \n$stackTrace";
     } finally {
+      successNotifier.value = 'Ticket aberto com sucesso.';
       loadingNotifier.value = false;
     }
   }
@@ -323,6 +359,31 @@ class TicketController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "closeTicketsWithoutPayment: $e \n$stackTrace";
     } finally {
+      successNotifier.value = 'Ticket closed withou payment.';
+      loadingNotifier.value = false;
+    }
+  }
+
+  // ==========================================
+  Future<void> updateTicketsDate(
+    String tktId,
+    String openDate,
+  ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from('tickets')
+          .update({'tkt_bar_open_date': openDate})
+          .eq('tkt_id', tktId)          
+      );
+
+    } catch (e, stackTrace) {
+      errorNotifier.value = "closeTicketsWithoutPayment: $e \n$stackTrace";
+    } finally {
+      successNotifier.value = 'Ticket date updated.';
       loadingNotifier.value = false;
     }
   }
@@ -347,6 +408,7 @@ class TicketController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "insertTicketsItems: $e \n$stackTrace";
     } finally {
+      successNotifier.value = 'Item inserido com sucesso.';
       loadingNotifier.value = false;
     }
   }
@@ -366,9 +428,7 @@ class TicketController extends ChangeNotifier {
       await mySupabaseClient.safePostgrestCall(
         () => supabaseClient
           .from( 'tickets_items' )
-          .update({
-            'tit_quantities': tit_quantities
-          })
+          .update({'tit_quantities': tit_quantities})
           .eq( 'tit_id', tit_id )
       );
       await loadTickets( barId, openDate, hldId );
@@ -376,6 +436,39 @@ class TicketController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "updateTicketsItems: $e \n$stackTrace";
     } finally {
+      successNotifier.value = 'Ticket updated com sucesso.';
+      loadingNotifier.value = false;
+    }
+  }
+  
+  // ==========================================
+  Future<void> updateTicketsItems_value(
+    String tit_id,
+    int tit_quantities,
+    double titValue,
+    String barId,
+    String openDate,
+    String hldId
+  ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+          .from( 'tickets_items' )
+          .update({
+            'tit_quantities': tit_quantities,
+            'tit_unit_value': titValue,
+            })
+          .eq( 'tit_id', tit_id )
+      );
+      await loadTickets( barId, openDate, hldId );
+
+    } catch (e, stackTrace) {
+      errorNotifier.value = "updateTicketsItems: $e \n$stackTrace";
+    } finally {
+      successNotifier.value = 'Ticket updated com sucesso.';
       loadingNotifier.value = false;
     }
   }
@@ -402,10 +495,12 @@ class TicketController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "deleteTicketsItems: $e \n$stackTrace";
     } finally {
+      successNotifier.value = 'Item deleted com sucesso.';
       loadingNotifier.value = false;
     }
   }
 
+  // ==========================================
   Future<void> deleteTit(
     String tit_id
   ) async {
@@ -423,10 +518,12 @@ class TicketController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "deleteTit: $e \n$stackTrace";
     } finally {
+      successNotifier.value = 'Item deleted com sucesso.';
       loadingNotifier.value = false;
     }
   }
 
+  // ==========================================
   Future<void> deleteTkt(
     String tkt_id
   ) async {
@@ -444,9 +541,12 @@ class TicketController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "deleteTkt: $e \n$stackTrace";
     } finally {
+      successNotifier.value = 'Ticket deleted com sucesso.';
       loadingNotifier.value = false;
     }
   } 
+
+  // ==========================================
   Future<void> deleteBar(
     String bar_id
   ) async {
@@ -464,6 +564,7 @@ class TicketController extends ChangeNotifier {
     } catch (e, stackTrace) {
       errorNotifier.value = "deleteTkt: $e \n$stackTrace";
     } finally {
+      successNotifier.value = 'Opened bar deleted com sucesso.';
       loadingNotifier.value = false;
     }
   } 

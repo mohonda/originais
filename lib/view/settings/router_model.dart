@@ -8,6 +8,7 @@ import 'package:originais/view/profile.dart';
 import 'package:originais/view/monthly_payments.dart';
 import 'package:originais/view/associates.dart';
 import 'package:originais/view/monthly_generation.dart';
+import 'package:originais/view/monthly_operating_expenses.dart';
 
 class RouterModel {
   final String name;
@@ -78,7 +79,27 @@ class RouterModel {
       icon: Icons.info_outline,
       selectedIcon: Icons.info,
       path: '/monthlygeneration',
-      builder: (context, state) => const MonthlyGeneration(),
+      builder: (context, state) {
+        final hldId = state.uri.queryParameters['hld_id'];
+        return MonthlyGeneration(hldId: hldId);
+      },
+    ),
+    RouterModel (
+      name: 'monthlyOperatingExpenses',
+      label: 'monthlyOperatingExpenses',
+      icon: Icons.info_outline,
+      selectedIcon: Icons.info,
+      path: '/monthlyOperatingExpenses',
+      builder: (context, state) {
+        final pflId = state.uri.queryParameters['pfl_id'];
+        final hldId = state.uri.queryParameters['hld_id'];
+        final tssId = state.uri.queryParameters['tss_id'];
+        return MonthlyOperatingExpenses(
+          pflId: pflId,
+          hldId: hldId,
+          tssId: tssId,
+        );
+      },
     ),
     RouterModel (
       name: 'headquartersbar',

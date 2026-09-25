@@ -6,6 +6,7 @@ import 'package:originais/models/executive_committee_termofoffice_members_model.
 import 'package:originais/models/executive_committee_vacancy_model.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/view/profile_executive_committee.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class AssociatesExecutiveCommitteeSection extends StatefulWidget {
   final VProfileModel itemAtual;
@@ -40,7 +41,16 @@ class _AssociatesExecutiveCommitteeSectionState
     generalService = getItGeneralService<GeneralService>();
 
     controller.errorNotifier.addListener(_handleError);
-
+    
+    DefaultSnackbar.attachErrorListener(
+      context,
+      controller.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      controller.successNotifier
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarDados();
     });

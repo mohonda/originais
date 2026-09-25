@@ -6,6 +6,7 @@ import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/models/profile_associate_status_model.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/view/profile_associate_status.dart';
+import 'package:originais/view/default_snackbar.dart'; 
 
 class AssociatesAssociateStatusSection extends StatefulWidget {
   final VProfileModel itemAtual;
@@ -36,25 +37,19 @@ class _AssociatesAssociateStatusSectionState
     
     profileController = getItBdProfileController<BdProfileController>();
 
-    controller.errorNotifier.addListener(_handleError);
+    DefaultSnackbar.attachErrorListener(
+      context,
+      controller.errorNotifier
+    );
+    
+    DefaultSnackbar.attachSuccessListener(
+      context,
+      controller.successNotifier
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarDados();
     });
-  }
-
-  void _handleError() {
-    final errorMessage = controller.errorNotifier.value;
-    if (errorMessage != null && errorMessage.isNotEmpty && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red.shade700,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
   }
 
   @override
@@ -71,8 +66,6 @@ class _AssociatesAssociateStatusSectionState
 
   @override
   void dispose() {
-    controller.errorNotifier.removeListener(_handleError);
-    
     controller.dispose();
     super.dispose();
   }

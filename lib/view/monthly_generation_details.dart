@@ -13,7 +13,11 @@ import 'package:originais/controllers/monthly_distinct_controller.dart';
 import 'package:originais/view/default_snackbar.dart'; 
 
 class MonthlyGenerationDetails extends StatefulWidget {
-  const MonthlyGenerationDetails({super.key});
+  final String? hldId;
+  const MonthlyGenerationDetails({
+    super.key,
+    this.hldId
+  });
 
   @override
   State<MonthlyGenerationDetails> createState() =>
@@ -47,7 +51,6 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
 
   final ScrollController profilesScrollController = ScrollController();
 
-  final hldValueNotifier = ValueNotifier<String?>(null);
   final vpgValueNotifier = ValueNotifier<String?>(null);
   final mValueNotifier = ValueNotifier<String?>(null);
   final yValueNotifier = ValueNotifier<String?>(null);
@@ -59,8 +62,6 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
   void initState() {
     super.initState();
     initializeDateFormatting('pt', 'BR');
-
-    hldValueNotifier.value = '1';
 
     DefaultSnackbar.attachErrorListener(
       context,
@@ -83,7 +84,6 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
     datapagamento.dispose();
     profilesScrollController.dispose();
 
-    hldValueNotifier.dispose();
     vpgValueNotifier.dispose();
     mValueNotifier.dispose();
     yValueNotifier.dispose();
@@ -442,9 +442,7 @@ class MonthlyGenerationDetailsState extends State<MonthlyGenerationDetails> {
         produtoEncontrado.vpg_valor_normal,
       );
 
-      final List<Map<String, dynamic>> dadosParaInserir = filteredList.map((
-        item,
-      ) {
+      final List<Map<String, dynamic>> dadosParaInserir = filteredList.map((item,) {
         double percentValue = double.parse(item.pas_monthly_percent.toString());
         percentValue = tmpValor * (percentValue / 100);
 
