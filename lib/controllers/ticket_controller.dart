@@ -451,6 +451,8 @@ class TicketController extends ChangeNotifier {
     String hldId
   ) async {
     try {
+      debugPrint(titValue.toString());
+      debugPrint(tit_id.toString());
       loadingNotifier.value = true;
       errorNotifier.value = null;
 

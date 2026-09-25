@@ -874,7 +874,7 @@ class MonthlyOperatingExpensesState extends State<MonthlyOperatingExpenses> {
 
     final Set<String> registeredPeriods = {};
     for (final item in itens) {
-      if (item.bar_open_date != null) {
+      if ( item.bar_open_date.isNotEmpty ) {
         final parsed = DateTime.tryParse(item.bar_open_date.toString());
         if (parsed != null) {
           final yearMonth = '${parsed.year}-${parsed.month.toString().padLeft(2, '0')}';

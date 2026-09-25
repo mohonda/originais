@@ -1,15 +1,132 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:month_picker_dialog/month_picker_dialog.dart';
 import 'package:originais/services/general_service.dart';
 import 'package:originais/view/default_appbar.dart';
 import 'package:originais/controllers/monthly_payments_controller.dart';
+import 'package:originais/controllers/payment_value_controller.dart';
+import 'package:originais/controllers/profile_controller.dart';
+import 'package:originais/controllers/ticket_controller.dart';
 import 'package:originais/models/mensalidades_model.dart';
-import 'package:originais/view/default_snackbar.dart'; 
+import 'package:originais/models/vprofile_model.dart';
+import 'package:originais/view/default_snackbar.dart';
+
+// Estrutura auxiliar para pré-visualização das mensalidades a serem geradas
+class _PendingGenerationItem {
+  final VProfileModel profile;
+  final DateTime monthDate;
+
+  _PendingGenerationItem({
+    required this.profile,
+    required this.monthDate,
+  });
+}
+
+// Função auxiliar global para filtrar sócios sem mensalidade no mês selecionado
+List<VProfileModel> _getPendingProfilesForSelectedMonth(
+  List<VProfileModel>? profiles,
+  List<MensalidadesModel> existingPayments,
+  String? month,
+  String? year,
+) {
+  final activeProfiles =
+      profiles?.where((item) => item.as_ismonthlypayment == 'true').toList() ?? [];
+
+  if (month == null || year == null || month.isEmpty || year.isEmpty) {
+    return activeProfiles;
+  }
+
+  final int targetMonth = int.tryParse(month) ?? 0;
+  final int targetYear = int.tryParse(year) ?? 0;
+
+  final paymentsInMonth = existingPayments.where((m) {
+    final mMonth = int.tryParse(m.month.toString()) ?? 0;
+    final mYear = int.tryParse(m.year.toString()) ?? 0;
+    return mMonth == targetMonth && mYear == targetYear;
+  }).toList();
+
+  final existingProfileIds =
+      paymentsInMonth.map((m) => m.tkt_pfl_id.toString()).toSet();
+  final existingProfileNames = paymentsInMonth
+      .map((m) => m.pfl_full_name.trim().toLowerCase())
+      .toSet();
+
+  return activeProfiles.where((item) {
+    final idMatch = existingProfileIds.contains(item.pfl_id.toString());
+    final nameMatch =
+        existingProfileNames.contains(item.pfl_full_name.trim().toLowerCase());
+    return !idMatch && !nameMatch;
+  }).toList();
+}
+
+// Helper para calcular o intervalo de meses entre Início e Fim
+List<DateTime> _getMonthsInRange(
+  String startMonth,
+  String startYear,
+  String endMonth,
+  String endYear,
+) {
+  final start = DateTime(int.parse(startYear), int.parse(startMonth), 1);
+  final end = DateTime(int.parse(endYear), int.parse(endMonth), 1);
+
+  if (start.isAfter(end)) return [];
+
+  final List<DateTime> months = [];
+  DateTime current = start;
+  while (!current.isAfter(end)) {
+    months.add(current);
+    current = DateTime(current.year, current.month + 1, 1);
+  }
+  return months;
+}
+
+// Helper para montar os itens pendentes a gerar considerando o período e a pessoa selecionada
+List<_PendingGenerationItem> _getPendingItemsToGenerate(
+  List<VProfileModel>? profiles,
+  List<MensalidadesModel> existingPayments,
+  VProfileModel? selectedProfile,
+  String? mStart,
+  String? yStart,
+  String? mEnd,
+  String? yEnd,
+) {
+  if (mStart == null || yStart == null || mEnd == null || yEnd == null) {
+    return [];
+  }
+
+  final months = _getMonthsInRange(mStart, yStart, mEnd, yEnd);
+  final List<_PendingGenerationItem> itemsToGenerate = [];
+
+  for (final monthDate in months) {
+    final monthStr = monthDate.month.toString().padLeft(2, '0');
+    final yearStr = monthDate.year.toString();
+
+    final pendingForMonth = _getPendingProfilesForSelectedMonth(
+      profiles,
+      existingPayments,
+      monthStr,
+      yearStr,
+    );
+
+    for (final profile in pendingForMonth) {
+      if (selectedProfile == null || profile.pfl_id == selectedProfile.pfl_id) {
+        itemsToGenerate.add(_PendingGenerationItem(
+          profile: profile,
+          monthDate: monthDate,
+        ));
+      }
+    }
+  }
+
+  return itemsToGenerate;
+}
 
 class MonthlyPayments extends StatefulWidget {
   final String? hldId;
   const MonthlyPayments({
     super.key,
-    this.hldId
+    this.hldId,
   });
 
   @override
@@ -19,6 +136,9 @@ class MonthlyPayments extends StatefulWidget {
 class _MonthlyPaymentsState extends State<MonthlyPayments> {
   final GeneralService generalService = GeneralService();
   late final BdMonthlyPaymentsController bdMonthlyPaymentsController;
+  late final BdPaymentValueController bdPaymentValueController;
+  late final BdProfileController bdProfileController;
+  late final TicketController ticketController;
 
   final String _searchQuery = '';
   String _filtroStatus = 'Todos';
@@ -44,31 +164,221 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
   @override
   void initState() {
     super.initState();
+    initializeDateFormatting('pt', 'BR');
 
     bdMonthlyPaymentsController =
         getItbdMonthlyPaymentsController<BdMonthlyPaymentsController>();
+    bdPaymentValueController =
+        getItBdPaymentValueController<BdPaymentValueController>();
+    bdProfileController =
+        getItBdProfileController<BdProfileController>();
+    ticketController =
+        getItTicketController<TicketController>();
 
-     // Inicializa o ouvinte em tempo real do banco de dados
-    bdMonthlyPaymentsController.initRealtime( widget.hldId.toString() );
+    bdMonthlyPaymentsController.initRealtime(widget.hldId.toString());
 
     DefaultSnackbar.attachErrorListener(
       context,
-      bdMonthlyPaymentsController.errorNotifier
+      bdMonthlyPaymentsController.errorNotifier,
     );
-    
+
     DefaultSnackbar.attachSuccessListener(
       context,
-      bdMonthlyPaymentsController.successNotifier
+      bdMonthlyPaymentsController.successNotifier,
     );
+  }
+
+  void loadData() {
+    bdMonthlyPaymentsController.loadCurrentMonthlyPayment();
   }
 
   // ==========================================
   @override
   void dispose() {
-    // Desvincular listener de erro para evitar vazamento de memória
     bdMonthlyPaymentsController.errorNotifier.removeListener(_onErrorChanged);
     bdMonthlyPaymentsController.disposeRealtime();
     super.dispose();
+  }
+
+  // ==========================================
+  void _abrirDialogGerarMensalidades({String? initialMonth, String? initialYear}) async {
+    await bdPaymentValueController.loadPaymentValue();
+    await bdProfileController.loadProfiles('1');
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _AddMonthlyGenerationDialog(
+        hldId: widget.hldId.toString(),
+        bdPaymentValueController: bdPaymentValueController,
+        bdProfileController: bdProfileController,
+        bdMonthlyPaymentsController: bdMonthlyPaymentsController,
+        generalService: generalService,
+        initialMonth: initialMonth,
+        initialYear: initialYear,
+      ),
+    );
+  }
+
+  // ==========================================
+  void _confirmarExclusaoMensalidade(
+    BuildContext context,
+    MensalidadesModel mensalidade,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir Mensalidade'),
+        content: Text(
+          'Tem certeza que deseja excluir a mensalidade de ${mensalidade.pfl_full_name} '
+          '(Ref: ${mensalidade.month.toString().padLeft(2, '0')}/${mensalidade.year})?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await ticketController.deleteTit(mensalidade.tit_id);
+                await ticketController.deleteTkt(mensalidade.tkt_id);
+                await ticketController.deleteBar(mensalidade.tkt_bar_id);
+                loadData();
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Mensalidade excluída com sucesso!'),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erro ao excluir mensalidade: $e'),
+                      backgroundColor: Colors.redAccent,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  void _editarMensalidade(
+    BuildContext context,
+    MensalidadesModel mensalidade,
+  ) {
+    final valorController = TextEditingController(
+      text: mensalidade.tit_unit_value.toString(),
+    );
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Editar - ${mensalidade.pfl_full_name}'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: valorController,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Valor Final (R\$)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.attach_money),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Informe o valor da mensalidade';
+                  }
+                  if (double.tryParse(value.replaceAll(',', '.')) == null) {
+                    return 'Informe um valor válido';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              Navigator.pop(dialogContext);
+              try {
+                final String novoValorStr =
+                    valorController.text.trim().replaceAll(',', '.');
+                final double novoValorDouble = double.tryParse(novoValorStr) ?? 0.0;
+                final int quantidadeInt = int.tryParse(
+                  mensalidade.tit_quantities.toString()) ?? 1;
+                
+                await ticketController.updateTicketsItems_value(
+                  mensalidade.tit_id,
+                  quantidadeInt,
+                  novoValorDouble,
+                  mensalidade.tkt_bar_id,
+                  mensalidade.tkt_bar_open_date,
+                  mensalidade.tkt_hld_id
+                );
+                loadData();
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Mensalidade atualizada com sucesso!'),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+                
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erro ao atualizar mensalidade: $e'),
+                      backgroundColor: Colors.redAccent,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
   }
 
   // ==========================================
@@ -76,6 +386,13 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const DefaultAppbar(title: 'Monthly Payments'),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'addMonthlyPaymentsFab',
+        elevation: 2,
+        backgroundColor: Colors.indigo,
+        onPressed: () => _abrirDialogGerarMensalidades(),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: ListenableBuilder(
         listenable: Listenable.merge([
           bdMonthlyPaymentsController.loadingNotifier,
@@ -89,20 +406,15 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
 
           return Stack(
             children: [
-              // 1. Estado de Erro sem dados prévios
               if (errorMessage != null && errorMessage.isNotEmpty && lista.isEmpty)
                 _buildErrorState(errorMessage)
-              // 2. Estado Sem Dados
               else if (lista.isEmpty && !isLoading)
                 const Center(child: Text('Nenhuma mensalidade encontrada.'))
-              // 3. Carregamento Inicial
               else if (lista.isEmpty && isLoading)
                 const Center(child: CircularProgressIndicator())
-              // 4. Conteúdo Principal
               else
                 _buildTabContent(lista),
 
-              // Overlay de carregamento enquanto o banco de dados está processando
               if (isLoading && lista.isNotEmpty)
                 Positioned.fill(
                   child: Container(
@@ -156,7 +468,7 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
           ElevatedButton.icon(
             onPressed: () {
               bdMonthlyPaymentsController.initRealtime(
-                widget.hldId.toString()
+                widget.hldId.toString(),
               );
             },
             icon: const Icon(Icons.refresh),
@@ -169,7 +481,6 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
 
   // ==========================================
   Widget _buildTabContent(List<MensalidadesModel> lista) {
-    // 1. Extrai os meses/anos únicos
     final listaMesAno = lista
         .map((m) => '${m.month.toString().padLeft(2, '0')}/${m.year}')
         .toSet()
@@ -188,7 +499,6 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
         builder: (tabContext) {
           return Column(
             children: [
-              // Linha com Abas e Filtro
               Row(
                 children: [
                   Expanded(
@@ -228,8 +538,6 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
                   ),
                 ],
               ),
-
-              // Conteúdo das Listas
               Expanded(
                 child: TabBarView(
                   children: listaMesAno.map((mesAnoRef) {
@@ -260,7 +568,7 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
 
                     return Column(
                       children: [
-                        _buildBalancete(listaFiltrada),
+                        _buildBalancete(listaFiltrada, mesAnoRef),
                         Expanded(
                           child: ListView.builder(
                             itemCount: listaFiltrada.length,
@@ -279,8 +587,6 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
                   }).toList(),
                 ),
               ),
-
-              // Mensagem no Rodapé da Página
               AnimatedBuilder(
                 animation: DefaultTabController.of(tabContext),
                 builder: (context, child) {
@@ -323,7 +629,7 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
   }
 
   // ==========================================
-  Widget _buildBalancete(List<MensalidadesModel> lista) {
+  Widget _buildBalancete(List<MensalidadesModel> lista, String mesAnoRef) {
     final int totalPessoas = lista.length;
     final int quantasPagaram =
         lista.where((m) => m.tkt_paiment_path.isNotEmpty).length;
@@ -336,71 +642,135 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
       return soma;
     });
 
-    return Container(
-      margin: const EdgeInsets.all(8.0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.indigo.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.indigo.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          Column(
+    final activeProfiles = bdProfileController.profilesNotifier.value
+            ?.where((item) => item.as_ismonthlypayment == 'true')
+            .toList() ??
+        [];
+
+    final partes = mesAnoRef.split('/');
+    final int pendingCount = (activeProfiles.isNotEmpty && partes.length == 2)
+        ? _getPendingProfilesForSelectedMonth(
+            activeProfiles,
+            bdMonthlyPaymentsController.monthlyPaymentsNotifier.value,
+            partes[0],
+            partes[1],
+          ).length
+        : 0;
+
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.indigo.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.indigo.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              const Text(
-                'Total Pessoas',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
+              Column(
+                children: [
+                  const Text(
+                    'Total Pessoas',
+                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$totalPessoas',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 2),
-              Text(
-                '$totalPessoas',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
+              Container(height: 24, width: 1, color: Colors.grey.shade400),
+              Column(
+                children: [
+                  const Text(
+                    'Pagaram',
+                    style: TextStyle(fontSize: 11, color: Colors.green),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$quantasPagaram',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+              Container(height: 24, width: 1, color: Colors.grey.shade400),
+              Column(
+                children: [
+                  const Text(
+                    'Total Pago',
+                    style: TextStyle(fontSize: 11, color: Colors.green),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    generalService.currencyMoneyBr(totalValorPago.toString()),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          Container(height: 24, width: 1, color: Colors.grey.shade400),
-          Column(
-            children: [
-              const Text(
-                'Pagaram',
-                style: TextStyle(fontSize: 11, color: Colors.green),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '$quantasPagaram',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: Colors.green,
+        ),
+        if (pendingCount > 0)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.amber.shade900.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Existe(m) $pendingCount sócio(s) sem mensalidade gerada neste mês.',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.amberAccent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          Container(height: 24, width: 1, color: Colors.grey.shade400),
-          Column(
-            children: [
-              const Text(
-                'Total Pago',
-                style: TextStyle(fontSize: 11, color: Colors.green),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                generalService.currencyMoneyBr(totalValorPago.toString()),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: Colors.green,
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber.shade800,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () {
+                    _abrirDialogGerarMensalidades(
+                      initialMonth: partes[0],
+                      initialYear: partes[1],
+                    );
+                  },
+                  icon: const Icon(Icons.add, size: 14),
+                  label: const Text(
+                    'Gerar Pendente(s)',
+                    style: TextStyle(fontSize: 11),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -505,7 +875,7 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
                     ),
                     Text(
                       generalService.currencyMoneyBr(
-                        mensalidade.tit_value.toString(),
+                        mensalidade.tit_unit_value.toString(),
                       ),
                       style: const TextStyle(
                         fontSize: 13,
@@ -534,30 +904,67 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
                       )
                     else
                       const SizedBox.shrink(),
-                    if (!isPago && isMesAnoAtual)
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
+                    Wrap(
+                      spacing: 4,
+                      alignment: WrapAlignment.end,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        IconButton(
+                          tooltip: 'Editar Mensalidade',
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(8),
+                          icon: const Icon(
+                            Icons.edit_outlined,
+                            size: 20,
+                            color: Colors.blueAccent,
+                          ),
+                          onPressed: () => _editarMensalidade(
+                            context,
+                            mensalidade,
                           ),
                         ),
-                        onPressed: () {
-                          debugPrint(
-                            'Ir para pagamento do perfil: ${mensalidade.pfl_full_name}',
-                          );
-                        },
-                        icon: const Icon(Icons.payment, size: 16),
-                        label: const Text(
-                          'Pagar Agora',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                        IconButton(
+                          tooltip: 'Excluir Mensalidade',
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(8),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: Colors.redAccent,
+                          ),
+                          onPressed: () => _confirmarExclusaoMensalidade(
+                            context,
+                            mensalidade,
                           ),
                         ),
-                      ),
+                        if (!isPago && isMesAnoAtual) ...[
+                          const SizedBox(width: 4),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                            ),
+                            onPressed: () {
+                              debugPrint(
+                                'Ir para pagamento do perfil: ${mensalidade.pfl_full_name}',
+                              );
+                            },
+                            icon: const Icon(Icons.payment, size: 16),
+                            label: const Text(
+                              'Pagar Agora',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ],
@@ -635,6 +1042,564 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
             child: const Text('Fechar'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// DIALOG DE GERAR MENSALIDADE COM SUPORTE A PESSOA E PERÍODO (INÍCIO - FIM)
+// ==========================================
+class _AddMonthlyGenerationDialog extends StatefulWidget {
+  final String hldId;
+  final BdPaymentValueController bdPaymentValueController;
+  final BdProfileController bdProfileController;
+  final BdMonthlyPaymentsController bdMonthlyPaymentsController;
+  final GeneralService generalService;
+  final String? initialMonth;
+  final String? initialYear;
+
+  const _AddMonthlyGenerationDialog({
+    required this.hldId,
+    required this.bdPaymentValueController,
+    required this.bdProfileController,
+    required this.bdMonthlyPaymentsController,
+    required this.generalService,
+    this.initialMonth,
+    this.initialYear,
+  });
+
+  @override
+  State<_AddMonthlyGenerationDialog> createState() =>
+      _AddMonthlyGenerationDialogState();
+}
+
+class _AddMonthlyGenerationDialogState
+    extends State<_AddMonthlyGenerationDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final startReferencia = TextEditingController();
+  final endReferencia = TextEditingController();
+  final profilesScrollController = ScrollController();
+
+  final vpgValueNotifier = ValueNotifier<String?>(null);
+  final selectedProfileNotifier = ValueNotifier<VProfileModel?>(null);
+
+  final mStartNotifier = ValueNotifier<String?>(null);
+  final yStartNotifier = ValueNotifier<String?>(null);
+  final mEndNotifier = ValueNotifier<String?>(null);
+  final yEndNotifier = ValueNotifier<String?>(null);
+
+  List<_PendingGenerationItem> filteredItems = [];
+  List listaFormas = [];
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    final mStr = widget.initialMonth ?? now.month.toString().padLeft(2, '0');
+    final yStr = widget.initialYear ?? now.year.toString();
+
+    mStartNotifier.value = mStr;
+    yStartNotifier.value = yStr;
+    startReferencia.text = '$mStr/$yStr';
+
+    mEndNotifier.value = mStr;
+    yEndNotifier.value = yStr;
+    endReferencia.text = '$mStr/$yStr';
+  }
+
+  @override
+  void dispose() {
+    startReferencia.dispose();
+    endReferencia.dispose();
+    profilesScrollController.dispose();
+    vpgValueNotifier.dispose();
+    selectedProfileNotifier.dispose();
+    mStartNotifier.dispose();
+    yStartNotifier.dispose();
+    mEndNotifier.dispose();
+    yEndNotifier.dispose();
+    super.dispose();
+  }
+
+  void _exibirSeletorMesAno({required bool isStart}) async {
+    final now = DateTime.now();
+    DateTime initialDate = now;
+
+    if (isStart && mStartNotifier.value != null && yStartNotifier.value != null) {
+      initialDate = DateTime(
+        int.parse(yStartNotifier.value!),
+        int.parse(mStartNotifier.value!),
+      );
+    } else if (!isStart && mEndNotifier.value != null && yEndNotifier.value != null) {
+      initialDate = DateTime(
+        int.parse(yEndNotifier.value!),
+        int.parse(mEndNotifier.value!),
+      );
+    }
+
+    final DateTime? selectedDate = await showMonthPicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year - 2, 1, 1),
+      lastDate: DateTime(now.year + 5, 12, 31),
+      monthPickerDialogSettings: const MonthPickerDialogSettings(
+        dialogSettings: PickerDialogSettings(locale: Locale('pt', 'BR')),
+      ),
+    );
+
+    if (selectedDate != null) {
+      final mStr = selectedDate.month.toString().padLeft(2, '0');
+      final yStr = selectedDate.year.toString();
+
+      setState(() {
+        if (isStart) {
+          mStartNotifier.value = mStr;
+          yStartNotifier.value = yStr;
+          startReferencia.text = '$mStr/$yStr';
+
+          // Garante que a data final seja no mínimo igual à inicial
+          if (mEndNotifier.value == null || yEndNotifier.value == null) {
+            mEndNotifier.value = mStr;
+            yEndNotifier.value = yStr;
+            endReferencia.text = '$mStr/$yStr';
+          } else {
+            final endDT = DateTime(
+              int.parse(yEndNotifier.value!),
+              int.parse(mEndNotifier.value!),
+            );
+            if (endDT.isBefore(selectedDate)) {
+              mEndNotifier.value = mStr;
+              yEndNotifier.value = yStr;
+              endReferencia.text = '$mStr/$yStr';
+            }
+          }
+        } else {
+          mEndNotifier.value = mStr;
+          yEndNotifier.value = yStr;
+          endReferencia.text = '$mStr/$yStr';
+        }
+      });
+    }
+  }
+
+  Future<void> _insertMonthlyGeneration() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (filteredItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não há mensalidades pendentes para o período e pessoa selecionados.'),
+          backgroundColor: Colors.orangeAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final produtoEncontrado = listaFormas.firstWhere(
+        (fpg) => fpg.vpg_id == vpgValueNotifier.value,
+      );
+
+      String desc =
+          'Valor de: ${widget.generalService.currencyMoneyBr(produtoEncontrado.vpg_valor_normal)} até dia ${produtoEncontrado.vpg_dia_valor_normal}';
+      final double tmpValor = double.parse(
+        produtoEncontrado.vpg_valor_normal,
+      );
+
+      final List<Map<String, dynamic>> dadosParaInserir =
+          filteredItems.map((item) {
+        double percentValue =
+            double.parse(item.profile.pas_monthly_percent.toString());
+        percentValue = tmpValor * (percentValue / 100);
+
+        return {
+          'p_hld_id': item.profile.hld_id,
+          'p_pfl_id': item.profile.pfl_id,
+          'p_pfl_name': item.profile.pfl_full_name,
+          'p_date_start': item.monthDate,
+          'p_desc': '$desc consid. ${item.profile.pas_monthly_percent}%',
+          'p_tss_id': 2,
+          'p_table_number': -1,
+          'p_pdt_id': 33,
+          'p_pdt_quant': 1,
+          'p_valor': percentValue.toString(),
+          'p_tkt_vpg_id': vpgValueNotifier.value.toString(),
+          'p_tkt_pas_id': item.profile.pas_id.toString(),
+        };
+      }).toList();
+
+      await widget.bdMonthlyPaymentsController.insertMonthlyGeneration(
+        dadosParaInserir,
+      );
+
+      final currentError =
+          widget.bdMonthlyPaymentsController.errorNotifier.value;
+
+      if (mounted && (currentError == null || currentError.isEmpty)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Mensalidades geradas com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro no processamento: $e'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.90,
+          maxWidth: 600,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Gerar Mensalidades',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed:
+                          _isSaving ? null : () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                const SizedBox(height: 12),
+                
+                // 1. Dropdown para seleção de Pessoa / Sócio
+                ValueListenableBuilder<List<VProfileModel>?>(
+                  valueListenable: widget.bdProfileController.profilesNotifier,
+                  builder: (context, profiles, _) {
+                    final activeProfiles = profiles
+                            ?.where((item) => item.as_ismonthlypayment == 'true')
+                            .toList() ??
+                        [];
+
+                    return DropdownButtonFormField<VProfileModel?>(
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Selecionar Pessoa / Sócio',
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: 16,
+                          horizontal: 16,
+                        ),
+                        border: OutlineInputBorder(),
+                      ),
+                      hint: const Text(
+                        'Todas as Pessoas (Pendentes no período)',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      items: [
+                        const DropdownMenuItem<VProfileModel?>(
+                          value: null,
+                          child: Text(
+                            'Todas as Pessoas (Pendentes no período)',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        ...activeProfiles.map(
+                          (p) => DropdownMenuItem<VProfileModel?>(
+                            value: p,
+                            child: Text(
+                              p.pfl_full_name,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ),
+                      ],
+                      initialValue: selectedProfileNotifier.value,
+                      onChanged: _isSaving
+                          ? null
+                          : (value) {
+                              setState(() {
+                                selectedProfileNotifier.value = value;
+                              });
+                            },
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // 2. Seleção de Período: Início e Fim
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: startReferencia,
+                        readOnly: true,
+                        enabled: !_isSaving,
+                        onTap: () => _exibirSeletorMesAno(isStart: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Período Início',
+                          prefixIcon: Icon(Icons.calendar_today),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Início obrigatório';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: endReferencia,
+                        readOnly: true,
+                        enabled: !_isSaving,
+                        onTap: () => _exibirSeletorMesAno(isStart: false),
+                        decoration: const InputDecoration(
+                          labelText: 'Período Fim',
+                          prefixIcon: Icon(Icons.event),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Fim obrigatório';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // 3. Dropdown de Valor da Mensalidade
+                ListenableBuilder(
+                  listenable:
+                      widget.bdPaymentValueController.bdPaymentValueNotifier,
+                  builder: (context, _) {
+                    listaFormas = widget
+                        .bdPaymentValueController.bdPaymentValueNotifier.value;
+
+                    return DropdownButtonFormField2<String>(
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: 16,
+                          horizontal: 16,
+                        ),
+                        border: OutlineInputBorder(),
+                      ),
+                      hint: const Text(
+                        'Selecione o Valor da Mensalidade',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      items: listaFormas
+                          .map(
+                            (item) => DropdownItem<String>(
+                              value: item.vpg_id,
+                              child: Text(
+                                '${item.vpg_desc} valor de: ${widget.generalService.currencyMoneyBr(item.vpg_valor_normal)} até dia ${item.vpg_dia_valor_normal}',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      valueListenable: vpgValueNotifier,
+                      validator: (value) {
+                        if (value == null) {
+                          return 'Selecione o valor da mensalidade.';
+                        }
+                        return null;
+                      },
+                      onChanged: _isSaving
+                          ? null
+                          : (value) {
+                              vpgValueNotifier.value = value;
+                            },
+                      dropdownStyleData: DropdownStyleData(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(15),
+                          color: Colors.grey.shade900,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // 4. Lista / Pré-visualização das Mensalidades a Gerar
+                Expanded(
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Mensalidades a Gerar',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.all(12),
+                    ),
+                    child: ValueListenableBuilder<List<VProfileModel>?>(
+                      valueListenable: widget.bdProfileController.profilesNotifier,
+                      builder: (context, profilesHistory, _) {
+                        final existingPayments = widget
+                            .bdMonthlyPaymentsController
+                            .monthlyPaymentsNotifier
+                            .value;
+
+                        filteredItems = _getPendingItemsToGenerate(
+                          profilesHistory,
+                          existingPayments,
+                          selectedProfileNotifier.value,
+                          mStartNotifier.value,
+                          yStartNotifier.value,
+                          mEndNotifier.value,
+                          yEndNotifier.value,
+                        );
+
+                        if (startReferencia.text.isEmpty || endReferencia.text.isEmpty) {
+                          return const Center(
+                            child: Text(
+                              'Selecione o período para visualizar os itens pendentes.',
+                              style: TextStyle(color: Colors.grey),
+                              textAlign: TextAlign.center,
+                            ),
+                          );
+                        }
+
+                        if (filteredItems.isEmpty) {
+                          return const Center(
+                            child: Text(
+                              'Todas as mensalidades já foram geradas para este período/pessoa.',
+                              style: TextStyle(color: Colors.grey),
+                              textAlign: TextAlign.center,
+                            ),
+                          );
+                        }
+
+                        return Scrollbar(
+                          controller: profilesScrollController,
+                          thumbVisibility: true,
+                          child: ListView.builder(
+                            controller: profilesScrollController,
+                            itemCount: filteredItems.length,
+                            itemBuilder: (context, index) {
+                              final item = filteredItems[index];
+                              final refMonth = item.monthDate.month.toString().padLeft(2, '0');
+                              final refYear = item.monthDate.year.toString();
+
+                              return Card(
+                                elevation: 1,
+                                margin: const EdgeInsets.only(bottom: 6.0),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.profile.pfl_full_name,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            Text(
+                                              'Ref: $refMonth/$refYear • Porcentagem: ${item.profile.pas_monthly_percent}%',
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.white70,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 5. Botões do Dialog
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed:
+                            _isSaving ? null : () => Navigator.of(context).pop(),
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed:
+                            _isSaving ? null : _insertMonthlyGeneration,
+                        icon: _isSaving
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.check),
+                        label: Text(_isSaving ? 'Gerando...' : 'Confirmar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

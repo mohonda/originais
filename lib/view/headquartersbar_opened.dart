@@ -1607,10 +1607,6 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                   );
                                 }
 
-                                final idAberto = id_ticketStatusList(
-                                  'Ticket opened',
-                                );
-
                                 return InputDecorator(
                                   decoration: const InputDecoration(
                                     labelText: 'Tables',
