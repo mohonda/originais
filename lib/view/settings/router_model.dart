@@ -7,7 +7,7 @@ import 'package:originais/view/about.dart';
 import 'package:originais/view/profile.dart';
 import 'package:originais/view/monthly_payments.dart';
 import 'package:originais/view/associates.dart';
-import 'package:originais/view/monthly_generation.dart';
+import 'package:originais/view/pitching_in.dart';
 import 'package:originais/view/monthly_operating_expenses.dart';
 
 class RouterModel {
@@ -74,14 +74,14 @@ class RouterModel {
       builder: (context, state) => const Profile(),
     ),
     RouterModel (
-      name: 'monthlygeneration',
-      label: 'Monthly',
+      name: 'pitching_in',
+      label: 'Pitching in',
       icon: Icons.info_outline,
       selectedIcon: Icons.info,
-      path: '/monthlygeneration',
+      path: '/pitching_in',
       builder: (context, state) {
         final hldId = state.uri.queryParameters['hld_id'];
-        return MonthlyGeneration(hldId: hldId);
+        return PitchingIn(hldId: hldId);
       },
     ),
     RouterModel (

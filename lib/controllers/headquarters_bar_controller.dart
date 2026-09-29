@@ -130,6 +130,36 @@ class BdHeadquartersBarController extends ChangeNotifier {
     }
   }
   // ==========================================
+  Future<void> updateHeadquartersBar(
+    String barId,
+    String openDate,
+    String barDesc,
+  ) async {
+    try {
+      loadingNotifier.value = true;
+      errorNotifier.value = null;
+
+      await mySupabaseClient.safePostgrestCall(
+        () => supabaseClient
+        .from('headquarters_bar')
+        .update({
+          'bar_open_date': openDate,
+          'bar_desc': barDesc,
+        })
+        .eq('bar_id', barId)
+      );
+    }
+    catch (e, stackTrace) {
+      headquartersBarNotifier.value = [];
+      errorNotifier.value = ("updateHeadquartersBar: $e \n$stackTrace");
+    }
+    finally {
+      successNotifier.value = "Headquarter Bar updated with sucess!";
+      loadingNotifier.value = false;
+    }
+  }
+
+  // ==========================================
   Future<void> deleteBar(
     String barId
   ) async {

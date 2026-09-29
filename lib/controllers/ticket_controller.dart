@@ -7,8 +7,8 @@ import 'package:originais/models/ticket_model.dart';
 final getItTicketController = GetIt.instance;
 
 void setupGetItTicketController() {
-  getItTicketController.registerLazySingleton<TicketController>(
-  // getItTicketController.registerFactory<TicketController>(
+  // getItTicketController.registerLazySingleton<TicketController>(
+  getItTicketController.registerFactory<TicketController>(
     () => TicketController(),
   );
 }

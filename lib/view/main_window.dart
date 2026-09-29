@@ -306,6 +306,17 @@ class _MainWindowState extends State<MainWindow> {
             label: '   Headquarters Bar',
             onTap: () => _onItemTapped('headquartersbar', isMobile: isMobile),
           ),
+          SidebarXItem(
+            iconBuilder: (selected, hovered) {
+              return const Icon(
+                Icons.subdirectory_arrow_right_rounded,
+                color: Colors.orangeAccent,
+                size: 20,
+              );
+            },
+            label: '   Pitching in',
+            onTap: () => _onItemTapped('pitching_in', isMobile: isMobile, queryParameters: {'hld_id': hld_id}),
+          ),
         ],
         SidebarXItem(
           icon: Icons.person_outline,
@@ -343,18 +354,18 @@ class _MainWindowState extends State<MainWindow> {
                             queryParameters: {'hld_id': hld_id},
                           ),
           ),
-          SidebarXItem(
-            iconBuilder: (selected, hovered) {
-              return const Icon(
-                Icons.subdirectory_arrow_right_rounded,
-                color: Colors.orangeAccent,
-                size: 20,
-              );
-            },
-            label: '   Monthly Generation',
-            onTap: () =>
-                _onItemTapped('monthlygeneration', isMobile: isMobile),
-          ),
+          // SidebarXItem(
+          //   iconBuilder: (selected, hovered) {
+          //     return const Icon(
+          //       Icons.subdirectory_arrow_right_rounded,
+          //       color: Colors.orangeAccent,
+          //       size: 20,
+          //     );
+          //   },
+          //   label: '   Monthly Generation',
+          //   onTap: () =>
+          //       _onItemTapped('monthlygeneration', isMobile: isMobile),
+          // ),
           SidebarXItem(
             iconBuilder: (selected, hovered) {
               return const Icon(
