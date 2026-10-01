@@ -313,6 +313,17 @@ class _BarItemCardState extends State<_BarItemCard> {
   final ValueNotifier<bool> _uploadLoadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> _uploadErrorNotifier = ValueNotifier<String?>(null);
 
+  // Estado para controlar a expansão/retração das informações detalhadas
+  bool _isExpanded = false;
+
+  // Lista de perfis selecionados para a divisão dos gastos
+  List<VProfileModel> _participantesDivisao = [];
+
+  // Estado para controlar se os tickets da divisão foram gerados
+  bool _ticketsGerados = false;
+
+  double totalGastos = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -321,7 +332,12 @@ class _BarItemCardState extends State<_BarItemCard> {
       loadingNotifier: _uploadLoadingNotifier,
       errorNotifier: _uploadErrorNotifier,
     );
-    _carregarTickets();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _carregarTickets();
+        _inicializarParticipanteCriador();
+      }
+    });
   }
 
   @override
@@ -329,6 +345,26 @@ class _BarItemCardState extends State<_BarItemCard> {
     _uploadLoadingNotifier.dispose();
     _uploadErrorNotifier.dispose();
     super.dispose();
+  }
+
+  void _inicializarParticipanteCriador() async {
+    final bdProfileController = getItBdProfileController<BdProfileController>();
+    await bdProfileController.loadProfiles('1');
+    
+    final profiles = bdProfileController.profilesNotifier.value ?? [];
+    final String barOpenPflId = (widget.item.bar_open_pfl_id ?? '').toString();
+
+    if (barOpenPflId.isNotEmpty) {
+      final criador = profiles.firstWhere(
+        (p) => p.pfl_id.toString() == barOpenPflId,
+      );
+
+      if (mounted) {
+        setState(() {
+          _participantesDivisao = [criador];
+        });
+      }
+    }
   }
 
   void _carregarTickets() {
@@ -339,6 +375,140 @@ class _BarItemCardState extends State<_BarItemCard> {
     _ticketController.loadTickets(barId, openDate, hldId);
   }
 
+  void _abrirDialogSelecionarParticipantes() async {
+    final bdProfileController = getItBdProfileController<BdProfileController>();
+    await bdProfileController.loadProfiles('1');
+
+    if (!mounted) return;
+
+    final todosPerfis = bdProfileController.profilesNotifier.value ?? [];
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _SelectMultipleProfilesDialog(
+        profiles: todosPerfis,
+        selectedProfiles: _participantesDivisao,
+        onConfirm: (List<VProfileModel> selecionados) {
+          setState(() {
+            _participantesDivisao = selecionados;
+          });
+        },
+      ),
+    );
+  }
+
+  void _confirmarRemocaoParticipante(VProfileModel pessoa) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Remover Participante'),
+        content: Text('Deseja realmente remover ${pessoa.pfl_full_name} da divisão dos gastos?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              setState(() {
+                _participantesDivisao.remove(pessoa);
+              });
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${pessoa.pfl_full_name} foi removido(a) da divisão.'),
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Gera os tickets para cada participante da divisão
+  Future<void> _gerarTickets() async {
+    if (_participantesDivisao.isEmpty) return;
+
+    final String barId = (widget.item.bar_id ?? widget.item.hqb_id ?? '').toString();
+    final String openDate = (widget.item.bar_open_date ?? '').toString();
+    final String hldId = (widget.hldId ?? '').toString();
+
+    double valor = totalGastos / _participantesDivisao.length;
+
+    for (final pessoa in _participantesDivisao) {
+      final tktId = await _ticketController.insertTickets(
+        hldId: hldId,
+        openDate: openDate,
+        nTable: '-1',
+        clienteName: pessoa.pfl_full_name,
+        pflId: pessoa.pfl_id.toString(),
+        barId: barId,
+      );
+      final ticketsItems = TicketsItemsModel(
+        tit_hld_id: hldId,
+        tit_tkt_id: tktId,
+        tit_pdt_id: '44',
+        tit_quantities: 1,
+        tit_unit_value: valor,
+        tit_value: valor,
+      );
+
+      await _ticketController.insertTicketsItems(
+        ticketsItems,
+        barId,
+        openDate,
+        hldId,
+      );
+    }
+
+    _carregarTickets();
+
+    setState(() {
+      _ticketsGerados = true;
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Tickets gerados com sucesso! Edição de participantes bloqueada.'),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  // Carrega comprovante associado à pessoa individualmente
+  Future<void> _anexarComprovantePessoa(VProfileModel pessoa) async {
+    final String barId = (widget.item.bar_id ?? widget.item.hqb_id ?? '').toString();
+    final String openDate = (widget.item.bar_open_date ?? '').toString();
+
+    final payload = {
+      'pfl_id': pessoa.pfl_id,
+      'barId': barId,
+      'openDate': openDate,
+      'hld_id': widget.hldId,
+    };
+
+    await _paymentService.selecionarAnexoEEnviar(
+      context: context,
+      payload: payload,
+    );
+
+    if (mounted) {
+      _carregarTickets();
+    }
+  }
+
   Future<void> _anexarComprovanteTicket(dynamic ticket) async {
     final String barId = (widget.item.bar_id ?? widget.item.hqb_id ?? '').toString();
     final String openDate = (widget.item.bar_open_date ?? '').toString();
@@ -346,7 +516,7 @@ class _BarItemCardState extends State<_BarItemCard> {
     final payload = {
       'tkt_id': ticket.tkt_id,
       'pfl_id': ticket.tkt_pfl_id,
-      'tkt_tst_id': '3', // Marcado como pago
+      'tkt_tst_id': '3',
       'barId': ticket.tkt_bar_id ?? barId,
       'openDate': ticket.tkt_bar_open_date ?? openDate,
       'valor': ticket.totalConsumo ?? 0.0,
@@ -612,6 +782,7 @@ class _BarItemCardState extends State<_BarItemCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // CABEÇALHO (Visível sempre: Nome, Data, Status, Editar e Expandir)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -652,7 +823,6 @@ class _BarItemCardState extends State<_BarItemCard> {
                     _buildStatusChip(status),
                     const SizedBox(width: 4),
 
-                    // Botão de Editar Registro Principal
                     IconButton(
                       icon: const Icon(Icons.edit, size: 20, color: Colors.indigo),
                       tooltip: 'Editar Registro',
@@ -665,11 +835,27 @@ class _BarItemCardState extends State<_BarItemCard> {
                         widget.onEditBar(temComprovante);
                       },
                     ),
+
+                    // Botão para expandir / recolher
+                    IconButton(
+                      icon: Icon(
+                        _isExpanded ? Icons.expand_less : Icons.expand_more,
+                        size: 24,
+                        color: Colors.grey.shade700,
+                      ),
+                      tooltip: _isExpanded ? 'Recolher' : 'Expandir',
+                      onPressed: () {
+                        setState(() {
+                          _isExpanded = !_isExpanded;
+                        });
+                      },
+                    ),
                   ],
                 ),
 
+                // PIX (Visível sempre na visualização retrátil)
                 if (pix.isNotEmpty) ...[
-                  const Divider(height: 20),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       const Icon(Icons.pix, size: 18, color: Colors.teal),
@@ -702,201 +888,436 @@ class _BarItemCardState extends State<_BarItemCard> {
                   ),
                 ],
 
-                const Divider(height: 20),
+                // CONTEÚDO EXPANSÍVEL (Tickets, Total e Divisão dos Gastos)
+                if (_isExpanded) ...[
+                  const Divider(height: 20),
 
-                ListenableBuilder(
-                  listenable: _ticketController.ticketNotifier,
-                  builder: (context, _) {
-                    final List<dynamic> tickets = _ticketController.ticketNotifier.value;
+                  ListenableBuilder(
+                    listenable: _ticketController.ticketNotifier,
+                    builder: (context, _) {
+                      final List<dynamic> todosTickets = _ticketController.ticketNotifier.value;
 
-                    // CÁLCULO DO TOTAL DOS TICKETS / ITENS
-                    final double totalGastos = tickets.fold<double>(
-                      0.0,
-                      (total, t) {
+                      // Separar os tickets normais de gastos dos tickets gerados para divisão (tit_pdt_id == '44')
+                      final ticketsGastos = todosTickets.where((t) {
                         final items = t.ticketsItems ?? [];
-                        final totalItem = items.first.tit_unit_value;
-                        // final totalItem = items.fold<double>(
-                        //   0.0,
-                        //   (sub, item) {
-                        //     // final int qtd = int.tryParse(item.tit_quantities?.toString() ?? '1') ?? 1;
-                        //     final double valorUnit = double.tryParse(item.tit_value?.toString() ?? '0') ?? 0.0;
-                        //     return sub + valorUnit;
-                        //   },
-                        // );
-                        return total + totalItem;
-                      },
-                    );
+                        return items.any((item) => item.tit_pdt_id?.toString() != '44');
+                      }).toList();
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.confirmation_number_outlined,
-                                    size: 18, color: Colors.indigo.shade700),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Tickets / Itens (${tickets.length})',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                    color: Colors.indigo.shade900,
+                      final ticketsDivisao = todosTickets.where((t) {
+                        final items = t.ticketsItems ?? [];
+                        return items.any((item) => item.tit_pdt_id?.toString() == '44');
+                      }).toList();
+
+                      // Cálculo do total de gastos ignorando itens da divisão (tit_pdt_id == '44')
+                      totalGastos = 0.0;
+                      for (final t in todosTickets) {
+                        final items = t.ticketsItems ?? [];
+                        for (final item in items) {
+                          if (item.tit_pdt_id?.toString() != '44') {
+                            final qtd = int.tryParse(item.tit_quantities?.toString() ?? '1') ?? 1;
+                            final valorUnit = double.tryParse(item.tit_unit_value?.toString() ?? '0') ?? 0.0;
+                            totalGastos += (valorUnit * qtd);
+                          }
+                        }
+                      }
+
+                      final bool jaGerouTickets = _ticketsGerados || ticketsDivisao.isNotEmpty;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.confirmation_number_outlined,
+                                      size: 18, color: Colors.indigo.shade700),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Tickets / Itens (${ticketsGastos.length})',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: Colors.indigo.shade900,
+                                    ),
                                   ),
+                                ],
+                              ),
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.indigo,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
+                                onPressed: _abrirDialogAdicionarTicket,
+                                icon: const Icon(Icons.add_circle_outline, size: 16),
+                                label: const Text('+ Ticket', style: TextStyle(fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+
+                          if (ticketsGastos.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6.0),
+                              child: Text(
+                                'Nenhum ticket/item adicionado.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontStyle: FontStyle.italic,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            )
+                          else ...[
+                            Column(
+                              children: [
+                                for (final t in ticketsGastos)
+                                  for (final item in (t.ticketsItems ?? []))
+                                    if (item.tit_pdt_id?.toString() != '44') ...[
+                                      Builder(
+                                        builder: (context) {
+                                          final int qtd = int.tryParse(item.tit_quantities?.toString() ?? '1') ?? 1;
+                                          final double valorUnit = double.tryParse(item.tit_unit_value?.toString() ?? '0') ?? 0.0;
+                                          final String itemDesc = item.pdt_name ?? item.tit_pdt_id?.toString() ?? 'Item';
+                                          final double valorTotal = valorUnit * qtd;
+
+                                          final String? comprovanteUrl = t.tkt_paiment_path;
+                                          final bool temComprovante = comprovanteUrl != null && comprovanteUrl.trim().isNotEmpty;
+
+                                          return Container(
+                                            margin: const EdgeInsets.symmetric(vertical: 3),
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: Colors.grey.shade300),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    '$qtd x $itemDesc',
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(valorTotal),
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.green.shade800,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+
+                                                IconButton(
+                                                  constraints: const BoxConstraints(),
+                                                  padding: const EdgeInsets.all(4),
+                                                  icon: Icon(
+                                                    temComprovante ? Icons.receipt_long : Icons.attach_file,
+                                                    size: 17,
+                                                    color: temComprovante ? Colors.teal : Colors.grey.shade600,
+                                                  ),
+                                                  tooltip: temComprovante ? 'Visualizar Comprovante' : 'Anexar Comprovante',
+                                                  onPressed: () {
+                                                    if (temComprovante) {
+                                                      _mostrarComprovante(context, t);
+                                                    } else {
+                                                      _anexarComprovanteTicket(t);
+                                                    }
+                                                  },
+                                                ),
+
+                                                IconButton(
+                                                  constraints: const BoxConstraints(),
+                                                  padding: const EdgeInsets.all(4),
+                                                  icon: Icon(
+                                                    Icons.edit,
+                                                    size: 17,
+                                                    color: temComprovante ? Colors.grey.shade400 : Colors.indigo,
+                                                  ),
+                                                  tooltip: temComprovante
+                                                      ? 'Não é possível editar ou apagar um ticket com comprovante'
+                                                      : 'Editar Ticket/Item',
+                                                  onPressed: temComprovante
+                                                      ? null
+                                                      : () => _abrirDialogEditarTicket(item),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
                               ],
                             ),
-                            TextButton.icon(
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.indigo,
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+
+                            const SizedBox(height: 10),
+
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.indigo.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.indigo.shade100),
                               ),
-                              onPressed: _abrirDialogAdicionarTicket,
-                              icon: const Icon(Icons.add_circle_outline, size: 16),
-                              label: const Text('+ Ticket', style: TextStyle(fontSize: 12)),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-
-                        if (tickets.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6.0),
-                            child: Text(
-                              'Nenhum ticket/item adicionado.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontStyle: FontStyle.italic,
-                                color: Colors.grey.shade600,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Total Gastos:',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.indigo,
+                                    ),
+                                  ),
+                                  Text(
+                                    NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(totalGastos),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green.shade900,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          )
-                        else ...[
-                          Column(
-                            children: [
-                              for (final t in tickets)
-                                for (final item in (t.ticketsItems ?? [])) ...[
-                                  Builder(
-                                    builder: (context) {
-                                      final int qtd = int.tryParse(item.tit_quantities?.toString() ?? '1') ?? 1;
-                                      final double valorUnit = double.tryParse(item.tit_unit_value?.toString() ?? '0') ?? 0.0;
-                                      final String itemDesc = item.pdt_name ?? item.tit_pdt_id?.toString() ?? 'Item';
-                                      final double valorTotal = valorUnit * qtd;
 
-                                      final String? comprovanteUrl = t.tkt_paiment_path;
-                                      final bool temComprovante = comprovanteUrl != null && comprovanteUrl.trim().isNotEmpty;
-
-                                      return Container(
-                                        margin: const EdgeInsets.symmetric(vertical: 3),
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: Colors.grey.shade300),
+                            // SECÇÃO: DIVISÃO DOS GASTOS
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(Icons.people_outline, size: 18, color: Colors.indigo.shade700),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'Divisão dos Gastos (${ticketsDivisao.isNotEmpty ? ticketsDivisao.length : _participantesDivisao.length})',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                              color: Colors.indigo.shade900,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      // Desabilita seleção/edição se já foram gerados tickets no BD
+                                      TextButton.icon(
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: jaGerouTickets ? Colors.grey : Colors.indigo,
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                         ),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                '$qtd x $itemDesc',
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w500,
+                                        onPressed: jaGerouTickets ? null : _abrirDialogSelecionarParticipantes,
+                                        icon: const Icon(Icons.person_add_alt_1, size: 16),
+                                        label: Text(
+                                          _participantesDivisao.isEmpty && ticketsDivisao.isEmpty ? 'Selecionar' : 'Editar',
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+
+                                  // Caso já existam tickets com tit_pdt_id == '44' salvos no BD, exibimos eles aqui
+                                  if (ticketsDivisao.isNotEmpty) ...[
+                                    Column(
+                                      children: ticketsDivisao.map((t) {
+                                        final String nome = (t.pfl_full_name ?? t.cliente_name ?? t.open_profile_name ?? 'Participante').toString();
+                                        final String? comprovanteUrl = t.tkt_paiment_path;
+                                        final bool temComprovante = comprovanteUrl != null && comprovanteUrl.trim().isNotEmpty;
+
+                                        double valorDivisao = 0.0;
+                                        final items = t.ticketsItems ?? [];
+                                        for (final item in items) {
+                                          if (item.tit_pdt_id?.toString() == '44') {
+                                            valorDivisao = double.tryParse((item.tit_value ?? item.tit_unit_value ?? '0').toString()) ?? 0.0;
+                                          }
+                                        }
+
+                                        return Container(
+                                          margin: const EdgeInsets.symmetric(vertical: 3),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: Colors.grey.shade300),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 12,
+                                                backgroundColor: Colors.indigo.shade100,
+                                                child: Text(
+                                                  nome.isNotEmpty ? nome[0].toUpperCase() : '?',
+                                                  style: const TextStyle(fontSize: 11, color: Colors.indigo),
                                                 ),
                                               ),
-                                            ),
-                                            Text(
-                                              NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(valorTotal),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  nome,
+                                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                                ),
+                                              ),
+                                              if (valorDivisao > 0) ...[
+                                                Text(
+                                                  NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(valorDivisao),
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.green.shade800,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                              ],
+                                              IconButton(
+                                                constraints: const BoxConstraints(),
+                                                padding: const EdgeInsets.all(4),
+                                                icon: Icon(
+                                                  temComprovante ? Icons.receipt_long : Icons.attach_file,
+                                                  size: 18,
+                                                  color: temComprovante ? Colors.teal : Colors.grey.shade600,
+                                                ),
+                                                tooltip: temComprovante ? 'Visualizar Comprovante' : 'Carregar Comprovante',
+                                                onPressed: () {
+                                                  if (temComprovante) {
+                                                    _mostrarComprovante(context, t);
+                                                  } else {
+                                                    _anexarComprovanteTicket(t);
+                                                  }
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ] else if (_participantesDivisao.isEmpty)
+                                    Text(
+                                      'Nenhum participante adicionado à divisão.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontStyle: FontStyle.italic,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    )
+                                  else ...[
+                                    // Lista de pessoas selecionadas manualmente antes de gerar os tickets
+                                    Column(
+                                      children: _participantesDivisao.map((p) {
+                                        return Container(
+                                          margin: const EdgeInsets.symmetric(vertical: 3),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: Colors.grey.shade300),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 12,
+                                                backgroundColor: Colors.indigo.shade100,
+                                                child: Text(
+                                                  p.pfl_full_name.isNotEmpty ? p.pfl_full_name[0].toUpperCase() : '?',
+                                                  style: const TextStyle(fontSize: 11, color: Colors.indigo),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  p.pfl_full_name,
+                                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                                ),
+                                              ),
+                                              IconButton(
+                                                constraints: const BoxConstraints(),
+                                                padding: const EdgeInsets.all(4),
+                                                icon: const Icon(Icons.attach_file, size: 18, color: Colors.teal),
+                                                tooltip: 'Carregar Comprovante',
+                                                onPressed: () => _anexarComprovantePessoa(p),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              IconButton(
+                                                constraints: const BoxConstraints(),
+                                                padding: const EdgeInsets.all(4),
+                                                icon: Icon(
+                                                  Icons.close,
+                                                  size: 18,
+                                                  color: jaGerouTickets ? Colors.grey : Colors.red.shade400,
+                                                ),
+                                                tooltip: jaGerouTickets
+                                                    ? 'Não é possível remover após gerar tickets'
+                                                    : 'Remover Pessoa',
+                                                onPressed: jaGerouTickets ? null : () => _confirmarRemocaoParticipante(p),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+
+                                    if (totalGastos > 0) ...[
+                                      const SizedBox(height: 10),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              'Valor por pessoa: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(totalGastos / _participantesDivisao.length)}',
                                               style: TextStyle(
-                                                fontSize: 13,
+                                                fontSize: 12,
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors.green.shade800,
                                               ),
                                             ),
-                                            const SizedBox(width: 4),
-
-                                            IconButton(
-                                              constraints: const BoxConstraints(),
-                                              padding: const EdgeInsets.all(4),
-                                              icon: Icon(
-                                                temComprovante ? Icons.receipt_long : Icons.attach_file,
-                                                size: 17,
-                                                color: temComprovante ? Colors.teal : Colors.grey.shade600,
-                                              ),
-                                              tooltip: temComprovante ? 'Visualizar Comprovante' : 'Anexar Comprovante',
-                                              onPressed: () {
-                                                if (temComprovante) {
-                                                  _mostrarComprovante(context, t);
-                                                } else {
-                                                  _anexarComprovanteTicket(t);
-                                                }
-                                              },
+                                          ),
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: jaGerouTickets ? Colors.grey : Colors.indigo,
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                              visualDensity: VisualDensity.compact,
                                             ),
-
-                                            IconButton(
-                                              constraints: const BoxConstraints(),
-                                              padding: const EdgeInsets.all(4),
-                                              icon: Icon(
-                                                Icons.edit,
-                                                size: 17,
-                                                color: temComprovante ? Colors.grey.shade400 : Colors.indigo,
-                                              ),
-                                              tooltip: temComprovante
-                                                  ? 'Não é possível editar ou apagar um ticket com comprovante'
-                                                  : 'Editar Ticket/Item',
-                                              onPressed: temComprovante
-                                                  ? null
-                                                  : () => _abrirDialogEditarTicket(item),
+                                            onPressed: jaGerouTickets ? null : _gerarTickets,
+                                            icon: const Icon(Icons.confirmation_number_outlined, size: 16),
+                                            label: Text(
+                                              jaGerouTickets ? 'Tickets Gerados' : 'Gerar Tickets',
+                                              style: const TextStyle(fontSize: 11),
                                             ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
                                 ],
-                            ],
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          // BARRINHA DE TOTAL DE GASTOS
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.indigo.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.indigo.shade100),
+                              ),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Total Gastos:',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.indigo,
-                                  ),
-                                ),
-                                Text(
-                                  NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(totalGastos),
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green.shade900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          ],
                         ],
-                      ],
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
           ),
@@ -969,6 +1390,171 @@ class _BarItemCardState extends State<_BarItemCard> {
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+}
+
+// ==========================================
+// DIALOG DE SELEÇÃO MÚLTIPLA DE PESSOAS
+// ==========================================
+class _SelectMultipleProfilesDialog extends StatefulWidget {
+  final List<VProfileModel> profiles;
+  final List<VProfileModel> selectedProfiles;
+  final Function(List<VProfileModel> selected) onConfirm;
+
+  const _SelectMultipleProfilesDialog({
+    required this.profiles,
+    required this.selectedProfiles,
+    required this.onConfirm,
+  });
+
+  @override
+  State<_SelectMultipleProfilesDialog> createState() => _SelectMultipleProfilesDialogState();
+}
+
+class _SelectMultipleProfilesDialogState extends State<_SelectMultipleProfilesDialog> {
+  late final Set<VProfileModel> _tempSelected;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _tempSelected = Set<VProfileModel>.from(widget.selectedProfiles);
+  }
+
+  void _toggleSelectAll(bool? selectAll, List<VProfileModel> filtered) {
+    setState(() {
+      if (selectAll == true) {
+        _tempSelected.addAll(filtered);
+      } else {
+        _tempSelected.removeAll(filtered);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredProfiles = widget.profiles.where((p) {
+      return p.pfl_full_name.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    final isAllSelected = filteredProfiles.isNotEmpty &&
+        filteredProfiles.every((p) => _tempSelected.contains(p));
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(
+        children: [
+          Icon(Icons.group_add_outlined, color: Colors.indigo.shade700),
+          const SizedBox(width: 8),
+          const Text(
+            'Divisão de Gastos',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              decoration: const InputDecoration(
+                hintText: 'Pesquisar pessoa...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${_tempSelected.length} selecionado(s)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade700,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => _toggleSelectAll(!isAllSelected, filteredProfiles),
+                  child: Text(
+                    isAllSelected ? 'Desmarcar todos' : 'Selecionar todos',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 1),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 300),
+              child: filteredProfiles.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text(
+                        'Nenhum participante encontrado.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: filteredProfiles.length,
+                      itemBuilder: (context, index) {
+                        final profile = filteredProfiles[index];
+                        final isSelected = _tempSelected.contains(profile);
+
+                        return CheckboxListTile(
+                          dense: true,
+                          activeColor: Colors.indigo,
+                          title: Text(
+                            profile.pfl_full_name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          value: isSelected,
+                          onChanged: (bool? checked) {
+                            setState(() {
+                              if (checked == true) {
+                                _tempSelected.add(profile);
+                              } else {
+                                _tempSelected.remove(profile);
+                              }
+                            });
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.indigo,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () {
+            widget.onConfirm(_tempSelected.toList());
+            Navigator.of(context).pop();
+          },
+          icon: const Icon(Icons.check, size: 18),
+          label: const Text('Confirmar'),
+        ),
+      ],
     );
   }
 }

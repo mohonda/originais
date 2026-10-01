@@ -6,7 +6,9 @@ import 'package:originais/services/my_supabase_client_service.dart';
 final getItBdFormaPagamentoController = GetIt.instance;
 
 void setupGetItBdFormaPagamentoController() {
-  getItBdFormaPagamentoController.registerLazySingleton<BdFormaPagamentoController>(
+  getItBdFormaPagamentoController
+  // .registerLazySingleton<BdFormaPagamentoController>(
+  .registerFactory<BdFormaPagamentoController>(
     () => BdFormaPagamentoController(),
   );
 }

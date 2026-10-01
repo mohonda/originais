@@ -8,7 +8,9 @@ import 'package:originais/services/my_supabase_client_service.dart';
 final getItBdVMensalidadesDistinctController = GetIt.instance;
 
 void setupGetItBdVMensalidadesDistinctController() {
-  getItBdVMensalidadesDistinctController.registerLazySingleton<BdVMensalidadesDistinctController>(
+  getItBdVMensalidadesDistinctController
+  // .registerLazySingleton<BdVMensalidadesDistinctController>(
+  .registerFactory<BdVMensalidadesDistinctController>(
     () => BdVMensalidadesDistinctController(),
   );
 }

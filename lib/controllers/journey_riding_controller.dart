@@ -7,7 +7,8 @@ import 'package:originais/models/journeyriding_model.dart';
 final getItBdJourneyRidingController = GetIt.instance;
 
 void setupGetItBdJourneyRidingController() {
-  getItBdJourneyRidingController.registerFactory<BdJourneyRidingController>(
+  getItBdJourneyRidingController
+  .registerFactory<BdJourneyRidingController>(
     () => BdJourneyRidingController(),
   );
 }

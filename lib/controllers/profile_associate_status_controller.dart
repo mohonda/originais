@@ -9,8 +9,9 @@ import 'package:originais/controllers/profile_controller.dart';
 final getItBdVProfileAssociateStatusController = GetIt.instance;
 
 void setupGetItBdVProfileAssociateStatusController() {
-  getItBdVProfileAssociateStatusController.registerFactory<BdVProfileAssociateStatusController>(
-    () => BdVProfileAssociateStatusController(),
+  getItBdVProfileAssociateStatusController
+    .registerFactory<BdVProfileAssociateStatusController>(
+      () => BdVProfileAssociateStatusController(),
   );
 }
 

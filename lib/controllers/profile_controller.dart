@@ -8,7 +8,9 @@ import 'package:originais/services/my_supabase_client_service.dart';
 final getItBdProfileController = GetIt.instance;
 
 void setupGetItProfileBdItemController() {
-  getItBdProfileController.registerLazySingleton<BdProfileController>(
+  getItBdProfileController
+  // .registerLazySingleton<BdProfileController>(
+  .registerFactory<BdProfileController>(
     () => BdProfileController(),
   );
 }

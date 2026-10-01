@@ -8,7 +8,8 @@ final getItBdHeadquartersBarController = GetIt.instance;
 
 void setupGetItBdHeadquartersBarController() {
   getItBdHeadquartersBarController
-      .registerLazySingleton<BdHeadquartersBarController>(
+      // .registerLazySingleton<BdHeadquartersBarController>(
+      .registerFactory<BdHeadquartersBarController>(
         () => BdHeadquartersBarController(),
       );
 }

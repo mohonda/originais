@@ -8,7 +8,9 @@ import 'package:originais/models/payment_value.dart';
 final getItBdPaymentValueController = GetIt.instance;
 
 void setupGetItBdPaymentValueController() {
-  getItBdPaymentValueController.registerLazySingleton<BdPaymentValueController>(
+  getItBdPaymentValueController
+  // .registerLazySingleton<BdPaymentValueController>(
+    .registerFactory<BdPaymentValueController>(
     () => BdPaymentValueController(),
   );
 }

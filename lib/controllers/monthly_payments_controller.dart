@@ -11,7 +11,8 @@ final getItbdMonthlyPaymentsController = GetIt.instance;
 
 void setupGetItBdMonthlyPaymentsController() {
   getItbdMonthlyPaymentsController
-      .registerLazySingleton<BdMonthlyPaymentsController>(
+    // .registerLazySingleton<BdMonthlyPaymentsController>(
+    .registerFactory<BdMonthlyPaymentsController>(
         () => BdMonthlyPaymentsController(),
       );
 }

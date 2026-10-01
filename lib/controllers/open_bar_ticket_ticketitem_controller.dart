@@ -7,7 +7,8 @@ final getItBdVProfilesSanctionsController = GetIt.instance;
 
 void setupGetItBdVProfilesSanctionsController() {
   getItBdVProfilesSanctionsController
-      .registerLazySingleton<OpenBarTicketTicketitemController>(
+    // .registerLazySingleton<OpenBarTicketTicketitemController>(
+    .registerFactory<OpenBarTicketTicketitemController>(
         () => OpenBarTicketTicketitemController(),
       );
 }
