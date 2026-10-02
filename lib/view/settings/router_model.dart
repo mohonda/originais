@@ -36,7 +36,7 @@ class RouterModel {
       icon: Icons.home_outlined,
       selectedIcon: Icons.home,
       path: '/dashboard',
-      builder: (context, state) => const Dashboard(),
+      builder: (context, state) => Dashboard(key: ValueKey(state.uri.toString()),),
     ),
     RouterModel (
       name: 'journalriding',
@@ -44,7 +44,7 @@ class RouterModel {
       icon: Icons.person_2_outlined,
       selectedIcon: Icons.person_2,
       path: '/journalriding',
-      builder: (context, state) => const JourneyRiding(),
+      builder: (context, state) => JourneyRiding(key: ValueKey(state.uri.toString()),),
     ),
     RouterModel (
       name: 'associates',
@@ -52,7 +52,7 @@ class RouterModel {
       icon: Icons.person_2_outlined,
       selectedIcon: Icons.person_2,
       path: '/associates',
-      builder: (context, state) => const Associates(),
+      builder: (context, state) => Associates(key: ValueKey(state.uri.toString()),),
     ),
     RouterModel (
       name: 'mensalidades',
@@ -62,7 +62,10 @@ class RouterModel {
       path: '/mensalidades',
       builder: (context, state) {
         final hldId = state.uri.queryParameters['hld_id'];
-        return MonthlyPayments(hldId: hldId);
+        return MonthlyPayments(
+          key: ValueKey(state.uri.toString()),
+          hldId: hldId,
+        );
       },
     ),
     RouterModel (
@@ -71,7 +74,7 @@ class RouterModel {
       icon: Icons.info_outline,
       selectedIcon: Icons.info,
       path: '/profile_screen',
-      builder: (context, state) => const Profile(),
+      builder: (context, state) => Profile(key: ValueKey(state.uri.toString()),),
     ),
     RouterModel (
       name: 'pitching_in',
@@ -95,6 +98,7 @@ class RouterModel {
         final hldId = state.uri.queryParameters['hld_id'];
         final tssId = state.uri.queryParameters['tss_id'];
         return MonthlyOperatingExpenses(
+          key: ValueKey(state.uri.toString()),
           pflId: pflId,
           hldId: hldId,
           tssId: tssId,
@@ -107,7 +111,7 @@ class RouterModel {
       icon: Icons.info_outline,
       selectedIcon: Icons.info,
       path: '/headquartersbar',
-      builder: (context, state) => const HeadquartersBar(),
+      builder: (context, state) => HeadquartersBar(key: ValueKey(state.uri.toString()),),
     ),
     // RouterModel (
     //   name: 'headquartersbar_opended',

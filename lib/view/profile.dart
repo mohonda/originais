@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // Importação necessária para formatação de data
 import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/view/default_appbar.dart';
@@ -25,6 +26,7 @@ class _ProfileState extends State<Profile> {
   final idController = TextEditingController();
   final fullNameController = TextEditingController();
   final nickNameController = TextEditingController();
+  final dataNascController = TextEditingController();
   final urlController = TextEditingController();
   final bioController = TextEditingController();
   final updatedAtController = TextEditingController();
@@ -59,6 +61,7 @@ class _ProfileState extends State<Profile> {
     idController.dispose();
     fullNameController.dispose();
     nickNameController.dispose();
+    dataNascController.dispose();
     urlController.dispose();
     bioController.dispose();
     updatedAtController.dispose();
@@ -73,6 +76,19 @@ class _ProfileState extends State<Profile> {
       hld_id = profile.hld_id;
       fullNameController.text = profile.pfl_full_name;
       nickNameController.text = profile.pfl_nick_name;
+
+      // Formata a data recebida do backend para pt_BR (dd/MM/yyyy)
+      if (profile.pfl_data_nasc != null && profile.pfl_data_nasc!.isNotEmpty) {
+        final parsedDate = DateTime.tryParse(profile.pfl_data_nasc!);
+        if (parsedDate != null) {
+          dataNascController.text = DateFormat('dd/MM/yyyy', 'pt_BR').format(parsedDate);
+        } else {
+          dataNascController.text = profile.pfl_data_nasc!;
+        }
+      } else {
+        dataNascController.text = '';
+      }
+
       urlController.text = profile.pfl_avatar_url;
       bioController.text = profile.pfl_bio;
       updatedAtController.text = profile.pfl_updated_at;
@@ -87,10 +103,43 @@ class _ProfileState extends State<Profile> {
 
     final isSame = (fullNameController.text == (currentProfile.pfl_full_name)) &&
         (nickNameController.text == (currentProfile.pfl_nick_name)) &&
+        (dataNascController.text == (currentProfile.pfl_data_nasc ?? '')) &&
         (urlController.text == (currentProfile.pfl_avatar_url)) &&
         (bioController.text == (currentProfile.pfl_bio));
 
     bdProfileController.changedNotifier(!isSame);
+  }
+
+  // ==========================================
+  // Função para abrir o seletor de data em pt_BR
+  Future<void> _selectDate(BuildContext context) async {
+    DateTime initialDate = DateTime.now();
+
+    // Tenta converter o texto existente em dd/MM/yyyy para DateTime
+    if (dataNascController.text.isNotEmpty) {
+      try {
+        initialDate = DateFormat('dd/MM/yyyy', 'pt_BR').parse(dataNascController.text);
+      } catch (_) {
+        final parsed = DateTime.tryParse(dataNascController.text);
+        if (parsed != null) initialDate = parsed;
+      }
+    }
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      locale: const Locale('pt', 'BR'), // Idioma do calendário em Português
+    );
+
+    if (picked != null) {
+      final formattedDate = DateFormat('dd/MM/yyyy', 'pt_BR').format(picked);
+      setState(() {
+        dataNascController.text = formattedDate;
+      });
+      onFieldChanged();
+    }
   }
 
   // ==========================================
@@ -105,8 +154,9 @@ class _ProfileState extends State<Profile> {
         nickNameController.text,
         urlController.text,
         bioController.text,
+        dataNascController.text,
       );
-    } finally{
+    } finally {
       if (mounted) {
         DefaultLoading.hideOverlay(context);
       }
@@ -255,7 +305,6 @@ class _ProfileState extends State<Profile> {
                         text: 'Sanctions',
                         iconMargin: EdgeInsets.only(bottom: 2),
                       ),
-                     
                     ],
                   ),
                   Expanded(
@@ -409,6 +458,21 @@ class _ProfileState extends State<Profile> {
                               ),
                               const SizedBox(height: distance),
                               TextFormField(
+                                controller: dataNascController,
+                                readOnly: true,
+                                onTap: () => _selectDate(context),
+                                decoration: InputDecoration(
+                                  labelText: 'Data de Nascimento:',
+                                  prefixIcon: const Icon(Icons.cake),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.calendar_month),
+                                    onPressed: () => _selectDate(context),
+                                  ),
+                                  border: const OutlineInputBorder(),
+                                ),
+                              ),
+                              const SizedBox(height: distance),
+                              TextFormField(
                                 controller: bioController,
                                 onChanged: (_) => onFieldChanged(),
                                 maxLines: 3,
@@ -436,7 +500,7 @@ class _ProfileState extends State<Profile> {
                               );
                             },
                             child: Container(
-                              height: 155,
+                              height: 225,
                               width: double.infinity,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
@@ -539,5 +603,4 @@ class _ProfileState extends State<Profile> {
       },
     );
   }
-
 }

@@ -124,6 +124,7 @@ class BdProfileController extends ChangeNotifier {
           pfl_nick_name: "",
           pfl_avatar_url: "",
           pfl_bio: "",
+          pfl_data_nasc: "",
         );
 
         await supabaseClient
@@ -148,6 +149,7 @@ class BdProfileController extends ChangeNotifier {
     String nickname,
     String avatarurl,
     String bio,
+    String dataNasc,
   ) async {
     try {
       loadingNotifier.value = true;
@@ -162,6 +164,7 @@ class BdProfileController extends ChangeNotifier {
         pfl_nick_name: nickname,
         pfl_avatar_url: avatarurl,
         pfl_bio: bio,
+        pfl_data_nasc: dataNasc,
       );
 
       await supabaseClient

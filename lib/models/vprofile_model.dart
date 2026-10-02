@@ -8,6 +8,7 @@ class VProfileModel {
   String pfl_avatar_url;
   String pfl_bio;
   String pfl_updated_at;
+  String pfl_data_nasc;
 
   String as_id;
   String as_desc;
@@ -33,6 +34,7 @@ class VProfileModel {
     required this.pfl_avatar_url,
     required this.pfl_bio,
     required this.pfl_updated_at,
+    required this.pfl_data_nasc,
 
     required this.as_id,
     required this.as_desc,
@@ -62,6 +64,7 @@ class VProfileModel {
       pfl_avatar_url: json['pfl_avatar_url'] as String? ?? '',
       pfl_bio: json['pfl_bio'] as String? ?? '',
       pfl_updated_at: json['pfl_updated_at'] as String? ?? '',
+      pfl_data_nasc: json['pfl_data_nasc'] as String? ?? '',
 
       as_id: json['as_id']?.toString() ?? '',
       as_desc: json['as_desc']?.toString() ?? '',
@@ -91,6 +94,7 @@ class VProfileModel {
       'pfl_avatar_url': pfl_avatar_url,
       'pfl_bio': pfl_bio,
       'pfl_updated_at': pfl_updated_at,
+      'pfl_data_nasc': pfl_data_nasc,
 
       'as_id': as_id,
       'as_desc': as_desc,

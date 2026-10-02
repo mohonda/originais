@@ -6,6 +6,7 @@ class ProfileModel {
   String pfl_nick_name;
   String pfl_avatar_url;
   String pfl_bio;
+  String pfl_data_nasc;
 
   // ==========================================
   ProfileModel ( {
@@ -15,7 +16,8 @@ class ProfileModel {
     required this.pfl_full_name,
     required this.pfl_nick_name,
     required this.pfl_avatar_url,
-    required this.pfl_bio
+    required this.pfl_bio,
+    required this.pfl_data_nasc
   } );
 
   // ==========================================
@@ -30,6 +32,7 @@ class ProfileModel {
       pfl_nick_name: json['pfl_nick_name'] as String? ?? '',
       pfl_avatar_url: json['pfl_avatar_url'] as String? ?? '',
       pfl_bio: json['pfl_bio'] as String? ?? '',
+      pfl_data_nasc: json['pfl_data_nasc'] as String? ?? '',
     );
   }
 
@@ -44,6 +47,7 @@ class ProfileModel {
       'pfl_nick_name': pfl_nick_name,
       'pfl_avatar_url': pfl_avatar_url,
       'pfl_bio': pfl_bio,
+      'pfl_data_nasc': pfl_data_nasc,
     };
   }
 

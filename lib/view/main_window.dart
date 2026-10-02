@@ -283,7 +283,12 @@ class _MainWindowState extends State<MainWindow> {
         SidebarXItem(
           icon: Icons.home_outlined,
           label: ' Dashboard',
-          onTap: () => _onItemTapped('dashboard', isMobile: isMobile),
+          onTap: () => _onItemTapped(
+            'dashboard', isMobile: isMobile,
+            queryParameters: {
+              'refresh': DateTime.now().millisecondsSinceEpoch.toString(),
+            },
+          ),
         ),
         SidebarXItem(
           icon: Icons.person_outline,
@@ -304,7 +309,12 @@ class _MainWindowState extends State<MainWindow> {
               );
             },
             label: '   Headquarters Bar',
-            onTap: () => _onItemTapped('headquartersbar', isMobile: isMobile),
+            onTap: () => _onItemTapped(
+              'headquartersbar', isMobile: isMobile,
+              queryParameters: {
+                'refresh': DateTime.now().millisecondsSinceEpoch.toString(),
+              },
+          ),
           ),
           SidebarXItem(
             iconBuilder: (selected, hovered) {
@@ -315,18 +325,31 @@ class _MainWindowState extends State<MainWindow> {
               );
             },
             label: '   Pitching in',
-            onTap: () => _onItemTapped('pitching_in', isMobile: isMobile, queryParameters: {'hld_id': hld_id}),
+            onTap: () => _onItemTapped('pitching_in', isMobile: isMobile, queryParameters: {
+              'hld_id': hld_id,
+              'refresh': DateTime.now().millisecondsSinceEpoch.toString(),
+            }),
           ),
         ],
         SidebarXItem(
           icon: Icons.person_outline,
           label: ' Profile',
-          onTap: () => _onItemTapped('profile_screen', isMobile: isMobile),
+          onTap: () => _onItemTapped(
+            'profile_screen', isMobile: isMobile,
+            queryParameters: {
+                'refresh': DateTime.now().millisecondsSinceEpoch.toString(),
+            },
+          ),
         ),
         SidebarXItem(
           icon: Icons.two_wheeler_outlined,
           label: ' Associates Status',
-          onTap: () => _onItemTapped('associates', isMobile: isMobile),
+          onTap: () => _onItemTapped(
+            'associates', isMobile: isMobile,
+            queryParameters: {
+                'refresh': DateTime.now().millisecondsSinceEpoch.toString(),
+            },
+          ),
         ),
         SidebarXItem(
           icon: Icons.payments_outlined,
@@ -351,21 +374,12 @@ class _MainWindowState extends State<MainWindow> {
             onTap: () => _onItemTapped(
                             'mensalidades',
                             isMobile: isMobile,
-                            queryParameters: {'hld_id': hld_id},
+                            queryParameters: {
+                              'hld_id': hld_id,
+                              'refresh': DateTime.now().millisecondsSinceEpoch.toString(),
+                            },
                           ),
           ),
-          // SidebarXItem(
-          //   iconBuilder: (selected, hovered) {
-          //     return const Icon(
-          //       Icons.subdirectory_arrow_right_rounded,
-          //       color: Colors.orangeAccent,
-          //       size: 20,
-          //     );
-          //   },
-          //   label: '   Monthly Generation',
-          //   onTap: () =>
-          //       _onItemTapped('monthlygeneration', isMobile: isMobile),
-          // ),
           SidebarXItem(
             iconBuilder: (selected, hovered) {
               return const Icon(
@@ -381,7 +395,8 @@ class _MainWindowState extends State<MainWindow> {
                 queryParameters: {
                   'pfl_id': pfl_id,
                   'hld_id': hld_id,
-                  'tss_id': '5'
+                  'tss_id': '5',
+                  'refresh': DateTime.now().millisecondsSinceEpoch.toString(),
                 },
               ),
           ),
@@ -406,7 +421,12 @@ class _MainWindowState extends State<MainWindow> {
               );
             },
             label: '   Journey Riding',
-            onTap: () => _onItemTapped('journalriding', isMobile: isMobile),
+            onTap: () => _onItemTapped(
+              'journalriding', isMobile: isMobile,
+               queryParameters: {
+                'refresh': DateTime.now().millisecondsSinceEpoch.toString(),
+              },
+            ),
           ),
         ],
       ],
