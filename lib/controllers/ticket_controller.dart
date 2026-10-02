@@ -7,8 +7,8 @@ import 'package:originais/models/ticket_model.dart';
 final getItTicketController = GetIt.instance;
 
 void setupGetItTicketController() {
-  // getItTicketController.registerLazySingleton<TicketController>(
-  getItTicketController.registerFactory<TicketController>(
+  getItTicketController.registerLazySingleton<TicketController>(
+  // getItTicketController.registerFactory<TicketController>(
     () => TicketController(),
   );
 }
@@ -192,6 +192,7 @@ class TicketController extends ChangeNotifier {
             .select('''*, vtickets_items(*)''')
             .eq('tkt_pfl_id', pfl_id)
             .eq('tkt_hld_id', hldId)
+            .neq('bar_tss_id', '5')
             .order('tkt_bar_open_date', ascending: false)
             .order('tkt_id', ascending: false)
       );

@@ -242,7 +242,9 @@ class HeadquartersBarOpenedState extends State<HeadquartersBarOpened> {
                                 'tkt_tst_id': tst_id,
                                 'barId': widget.barId,
                                 'openDate': widget.openDate,
+                                'valor': mesa.totalConsumo,
                                 'hld_id': widget.hld_id,
+                                'changeTitValue': false,
                               },
                             );
 

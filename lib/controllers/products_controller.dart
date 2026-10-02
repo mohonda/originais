@@ -8,8 +8,8 @@ final getItProductsController = GetIt.instance;
 
 void setupGetItProductsController() {
   getItProductsController
-    // .registerLazySingleton<ProductsController>(
-    .registerFactory<ProductsController>(
+    .registerLazySingleton<ProductsController>(
+    // .registerFactory<ProductsController>(
       () => ProductsController(),
   );
 }

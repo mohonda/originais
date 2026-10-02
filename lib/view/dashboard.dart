@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:originais/view/dashboard_widgetItens.dart';
 import 'package:originais/view/dashboard_widgetUsers.dart';
+import 'package:originais/view/dashboard_widget_bar.dart';
 import 'package:originais/view/default_appbar.dart';
 
 class Dashboard extends StatefulWidget {
@@ -56,7 +57,8 @@ class _Dashboard extends State<Dashboard> {
                           childAspectRatio: isWideScreen ? 1.8 : 1.3,
                           children: const [
                             DashboardWidgetUsers(),
-                            DashboardWidgetItens(),
+                            DashboardWidgetItens( hldId:'1', tssId:'5'),
+                            DashboardWidgetDespesasBar( hldId:'1', tssId:'1')
                             
                           ],
                         ),

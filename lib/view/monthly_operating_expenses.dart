@@ -158,6 +158,7 @@ class MonthlyOperatingExpensesState extends State<MonthlyOperatingExpenses> {
                                 'openDate': openDate,
                                 'valor': rawVal,
                                 'hld_id': widget.hldId,
+                                'changeTitValue': true,
                               },
                             );
                             

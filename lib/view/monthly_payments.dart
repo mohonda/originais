@@ -8,6 +8,7 @@ import 'package:originais/controllers/monthly_payments_controller.dart';
 import 'package:originais/controllers/payment_value_controller.dart';
 import 'package:originais/controllers/profile_controller.dart';
 import 'package:originais/controllers/ticket_controller.dart';
+import 'package:originais/controllers/ticket_receipt_image_service.dart';
 import 'package:originais/models/mensalidades_model.dart';
 import 'package:originais/models/vprofile_model.dart';
 import 'package:originais/view/default_snackbar.dart';
@@ -140,6 +141,11 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
   late final BdProfileController bdProfileController;
   late final TicketController ticketController;
 
+  // Controladores do serviço de upload/pagamento de comprovante
+  final loadingNotifier = ValueNotifier<bool>(false);
+  final errorNotifier = ValueNotifier<String?>(null);
+  late final TicketReceiptImageService paymentService;
+
   final String _searchQuery = '';
   String _filtroStatus = 'Todos';
 
@@ -175,6 +181,11 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
     ticketController =
         getItTicketController<TicketController>();
 
+    paymentService = TicketReceiptImageService(
+      loadingNotifier: loadingNotifier,
+      errorNotifier: errorNotifier,
+    );
+
     bdMonthlyPaymentsController.initRealtime(widget.hldId.toString());
 
     DefaultSnackbar.attachErrorListener(
@@ -197,7 +208,169 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
   void dispose() {
     bdMonthlyPaymentsController.errorNotifier.removeListener(_onErrorChanged);
     bdMonthlyPaymentsController.disposeRealtime();
+    loadingNotifier.dispose();
+    errorNotifier.dispose();
     super.dispose();
+  }
+
+  // ==========================================
+  void _irParaPagamento(BuildContext context, MensalidadesModel mensalidade) async {
+    // Mensalidades tratam-se do tipo 2 (com data e valor editáveis)
+    const bool isTipo2 = true;
+
+    DateTime dataPagamento =
+        DateTime.tryParse(mensalidade.tkt_bar_open_date) ?? DateTime.now();
+    double valorFinal =
+        double.tryParse(mensalidade.tit_unit_value.toString()) ?? 0.0;
+
+    final TextEditingController valorController = TextEditingController(
+      text: valorFinal.toStringAsFixed(2),
+    );
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Text(
+                'Pagamento: ${mensalidade.pfl_full_name.isNotEmpty ? mensalidade.pfl_full_name : 'Mensalidade #${mensalidade.tkt_id}'}',
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Confirme a data e o valor do pagamento antes de anexar o comprovante:',
+                      style: TextStyle(fontSize: 13, color: Colors.white70),
+                    ),
+                    const SizedBox(height: 16),
+                    InkWell(
+                      onTap: () async {
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: dataPagamento,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (pickedDate != null) {
+                          setDialogState(() {
+                            dataPagamento = pickedDate;
+                          });
+                        }
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'Data do Pagamento',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.calendar_today, size: 20),
+                        ),
+                        child: Text(
+                          '${dataPagamento.day.toString().padLeft(2, '0')}/${dataPagamento.month.toString().padLeft(2, '0')}/${dataPagamento.year}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: valorController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Valor do Pagamento (R\$)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.attach_money, size: 20),
+                      ),
+                      onChanged: (val) {
+                        final parsed =
+                            double.tryParse(val.replaceAll(',', '.'));
+                        if (parsed != null) {
+                          valorFinal = parsed;
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Comprovante/Foto confirma seu pagamento!',
+                      style: TextStyle(fontSize: 12, color: Colors.white54),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final String dataFormatada =
+                              '${dataPagamento.year}-${dataPagamento.month.toString().padLeft(2, '0')}-${dataPagamento.day.toString().padLeft(2, '0')}';
+
+                          final payload = {
+                            'tkt_id': mensalidade.tkt_id,
+                            'pfl_id': mensalidade.tkt_pfl_id,
+                            'tkt_tst_id': '3', // Alterado para Pago!
+                            'barId': mensalidade.tkt_bar_id,
+                            'openDate': dataFormatada,
+                            'valor': valorFinal,
+                            'hld_id': widget.hldId ?? mensalidade.tkt_hld_id,
+                            'changeTitValue': true,
+                          };
+
+                          await paymentService.selecionarAnexoEEnviar(
+                            context: context,
+                            payload: payload,
+                          );
+
+                          if (context.mounted) {
+                            if (errorNotifier.value == null) {
+                              Navigator.of(context).pop();
+                              loadData();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(errorNotifier.value!),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.add_a_photo,
+                          color: Colors.orangeAccent,
+                        ),
+                        label: const Text(
+                          'Anexar Comprovante / Foto',
+                          style: TextStyle(
+                            color: Colors.orangeAccent,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.indigoAccent),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   // ==========================================
@@ -393,62 +566,90 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
         onPressed: () => _abrirDialogGerarMensalidades(),
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body: ListenableBuilder(
-        listenable: Listenable.merge([
-          bdMonthlyPaymentsController.loadingNotifier,
-          bdMonthlyPaymentsController.errorNotifier,
-          bdMonthlyPaymentsController.monthlyPaymentsNotifier,
-        ]),
-        builder: (context, _) {
-          final isLoading = bdMonthlyPaymentsController.loadingNotifier.value;
-          final errorMessage = bdMonthlyPaymentsController.errorNotifier.value;
-          final lista = bdMonthlyPaymentsController.monthlyPaymentsNotifier.value;
+      body: Stack(
+        children: [
+          ListenableBuilder(
+            listenable: Listenable.merge([
+              bdMonthlyPaymentsController.loadingNotifier,
+              bdMonthlyPaymentsController.errorNotifier,
+              bdMonthlyPaymentsController.monthlyPaymentsNotifier,
+            ]),
+            builder: (context, _) {
+              final isLoading = bdMonthlyPaymentsController.loadingNotifier.value;
+              final errorMessage = bdMonthlyPaymentsController.errorNotifier.value;
+              final lista = bdMonthlyPaymentsController.monthlyPaymentsNotifier.value;
 
-          return Stack(
-            children: [
-              if (errorMessage != null && errorMessage.isNotEmpty && lista.isEmpty)
-                _buildErrorState(errorMessage)
-              else if (lista.isEmpty && !isLoading)
-                const Center(child: Text('Nenhuma mensalidade encontrada.'))
-              else if (lista.isEmpty && isLoading)
-                const Center(child: CircularProgressIndicator())
-              else
-                _buildTabContent(lista),
+              return Stack(
+                children: [
+                  if (errorMessage != null && errorMessage.isNotEmpty && lista.isEmpty)
+                    _buildErrorState(errorMessage)
+                  else if (lista.isEmpty && !isLoading)
+                    const Center(child: Text('Nenhuma mensalidade encontrada.'))
+                  else if (lista.isEmpty && isLoading)
+                    const Center(child: CircularProgressIndicator())
+                  else
+                    _buildTabContent(lista),
 
-              if (isLoading && lista.isNotEmpty)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    child: Center(
-                      child: Card(
-                        elevation: 6,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 24.0,
-                            vertical: 16.0,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircularProgressIndicator(),
-                              SizedBox(width: 16),
-                              Text(
-                                'Processando...',
-                                style: TextStyle(fontWeight: FontWeight.w600),
+                  if (isLoading && lista.isNotEmpty)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        child: Center(
+                          child: Card(
+                            elevation: 6,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24.0,
+                                vertical: 16.0,
                               ),
-                            ],
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(width: 16),
+                                  Text(
+                                    'Processando...',
+                                    style: TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
+                ],
+              );
+            },
+          ),
+
+          // Overlay visual de processamento de envio do comprovante
+          ValueListenableBuilder<bool>(
+            valueListenable: loadingNotifier,
+            builder: (context, isUploading, child) {
+              if (!isUploading) return const SizedBox.shrink();
+              return Container(
+                color: Colors.black54,
+                child: const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 12),
+                      Text(
+                        'Processando comprovante...',
+                        style: TextStyle(color: Colors.white, fontSize: 13),
+                      ),
+                    ],
                   ),
                 ),
-            ],
-          );
-        },
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -635,8 +836,8 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
         lista.where((m) => m.tkt_paiment_path.isNotEmpty).length;
 
     final double totalValorPago = lista.fold<double>(0.0, (soma, m) {
-      if (m.month.isNotEmpty) {
-        final double valor = double.tryParse(m.tit_value.toString()) ?? 0.0;
+      if (m.tkt_paiment_path.isNotEmpty) {
+        final double valor = double.tryParse(m.tit_unit_value.toString()) ?? 0.0;
         return soma + valor;
       }
       return soma;
@@ -948,11 +1149,7 @@ class _MonthlyPaymentsState extends State<MonthlyPayments> {
                                 vertical: 8,
                               ),
                             ),
-                            onPressed: () {
-                              debugPrint(
-                                'Ir para pagamento do perfil: ${mensalidade.pfl_full_name}',
-                              );
-                            },
+                            onPressed: () => _irParaPagamento(context, mensalidade),
                             icon: const Icon(Icons.payment, size: 16),
                             label: const Text(
                               'Pagar Agora',

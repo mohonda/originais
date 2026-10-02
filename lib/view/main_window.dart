@@ -286,6 +286,8 @@ class _MainWindowState extends State<MainWindow> {
           onTap: () => _onItemTapped(
             'dashboard', isMobile: isMobile,
             queryParameters: {
+              'hld_id': hld_id,
+              'tssId': '5',
               'refresh': DateTime.now().millisecondsSinceEpoch.toString(),
             },
           ),

@@ -138,7 +138,10 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
 
   // ==========================================
   void _irParaPagamento(BuildContext context, TicketsModel ticket) async {
-    final bool isTipo2 = ticket.bar_tss_id == '2';
+    bool isTipo2 = false;
+    if (ticket.bar_tss_id == '2') {
+      isTipo2 = true;
+    }
 
     DateTime dataPagamento =
         DateTime.tryParse(ticket.tkt_bar_open_date) ?? DateTime.now();
@@ -250,6 +253,7 @@ class _ProfileHeadquartersBarState extends State<ProfileHeadquartersBar> {
                             'valor':
                                 isTipo2 ? valorFinal : ticket.totalConsumo,
                             'hld_id': widget.hldId,
+                            'changeTitValue': isTipo2 ? true : false,
                           };
 
                           await paymentService.selecionarAnexoEEnviar(

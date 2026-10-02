@@ -314,15 +314,9 @@ class _BarItemCardState extends State<_BarItemCard> {
   final ValueNotifier<bool> _uploadLoadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String?> _uploadErrorNotifier = ValueNotifier<String?>(null);
 
-  // Estado para controlar a expansão/retração das informações detalhadas
   bool _isExpanded = false;
-
-  // Lista de perfis selecionados para a divisão dos gastos
   List<VProfileModel> _participantesDivisao = [];
-
-  // Estado para controlar se os tickets da divisão foram gerados
   bool _ticketsGerados = false;
-
   double totalGastos = 0.0;
 
   @override
@@ -382,12 +376,10 @@ class _BarItemCardState extends State<_BarItemCard> {
 
     if (!mounted) return;
 
-    // Coleta os IDs de quem já faz parte da divisão de gastos (seleção atual)
     final idsExistentes = _participantesDivisao
         .map((p) => p.pfl_id.toString())
         .toSet();
 
-    // Também inclui os IDs que já possuem tickets de divisão (tit_pdt_id == '44') no BD
     final todosTickets = _ticketController.ticketNotifier.value;
     for (final t in todosTickets) {
       final items = t.ticketsItems ?? [];
@@ -400,7 +392,6 @@ class _BarItemCardState extends State<_BarItemCard> {
       }
     }
 
-    // Filtra para exibir apenas perfis ativos com mensalidade que NÃO estão na lista de inclusão
     final perfisDisponiveis = (bdProfileController.profilesNotifier.value ?? [])
         .where((c) => c.as_ismonthlypayment == 'true')
         .where((c) => !idsExistentes.contains(c.pfl_id.toString()))
@@ -438,7 +429,7 @@ class _BarItemCardState extends State<_BarItemCard> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: Colors.redAccent,
               foregroundColor: Colors.white,
             ),
             onPressed: () {
@@ -461,11 +452,9 @@ class _BarItemCardState extends State<_BarItemCard> {
     );
   }
 
-// Gera os tickets para cada participante da divisão
   Future<void> _gerarTickets() async {
     if (_participantesDivisao.isEmpty) return;
 
-    // Diálogo de confirmação
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -492,7 +481,6 @@ class _BarItemCardState extends State<_BarItemCard> {
       ),
     );
 
-    // Cancela a execução se o usuário não confirmar
     if (confirm != true) return;
 
     final String barId = (widget.item.bar_id ?? widget.item.hqb_id ?? '').toString();
@@ -555,6 +543,7 @@ class _BarItemCardState extends State<_BarItemCard> {
       'openDate': ticket.tkt_bar_open_date ?? openDate,
       'valor': ticket.totalConsumo ?? 0.0,
       'hld_id': widget.hldId,
+      'changeTitValue': true,
     };
 
     await _paymentService.selecionarAnexoEEnviar(
@@ -586,7 +575,7 @@ class _BarItemCardState extends State<_BarItemCard> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.receipt_long, color: Colors.teal),
+            const Icon(Icons.receipt_long, color: Colors.orangeAccent),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -615,7 +604,7 @@ class _BarItemCardState extends State<_BarItemCard> {
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => Container(
                         height: 180,
-                        color: Colors.grey.shade200,
+                        color: Colors.black12,
                         child: const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -623,7 +612,7 @@ class _BarItemCardState extends State<_BarItemCard> {
                             SizedBox(height: 8),
                             Text(
                               'Erro ao carregar a imagem do comprovante.',
-                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                              style: TextStyle(color: Colors.white54, fontSize: 12),
                             ),
                           ],
                         ),
@@ -810,19 +799,25 @@ class _BarItemCardState extends State<_BarItemCard> {
         Card(
           elevation: 2,
           margin: const EdgeInsets.symmetric(vertical: 6),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: Colors.indigo.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(14.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // CABEÇALHO (Visível sempre: Nome, Data, Status, Editar e Expandir)
+                // CABEÇALHO
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     CircleAvatar(
-                      backgroundColor: Colors.indigo.shade100,
-                      child: const Icon(Icons.person, color: Colors.indigo),
+                      backgroundColor: Colors.indigo.withValues(alpha: 0.2),
+                      child: const Icon(Icons.person, color: Colors.indigoAccent),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -833,20 +828,19 @@ class _BarItemCardState extends State<_BarItemCard> {
                             name,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                              fontSize: 14,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Row(
                             children: [
-                              Icon(Icons.calendar_today,
-                                  size: 13, color: Colors.grey.shade600),
+                              const Icon(Icons.calendar_today, size: 12, color: Colors.white70),
                               const SizedBox(width: 4),
                               Text(
                                 dateStr,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey.shade600,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white70,
                                 ),
                               ),
                             ],
@@ -854,11 +848,11 @@ class _BarItemCardState extends State<_BarItemCard> {
                         ],
                       ),
                     ),
-                    _buildStatusChip(status),
+                    _buildStatusBadge(status),
                     const SizedBox(width: 4),
 
                     IconButton(
-                      icon: const Icon(Icons.edit, size: 20, color: Colors.indigo),
+                      icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blueAccent),
                       tooltip: 'Editar Registro',
                       onPressed: () {
                         final tickets = _ticketController.ticketNotifier.value;
@@ -876,12 +870,11 @@ class _BarItemCardState extends State<_BarItemCard> {
                       },
                     ),
 
-                    // Botão para expandir / recolher
                     IconButton(
                       icon: Icon(
                         _isExpanded ? Icons.expand_less : Icons.expand_more,
                         size: 24,
-                        color: Colors.grey.shade700,
+                        color: Colors.white70,
                       ),
                       tooltip: _isExpanded ? 'Recolher' : 'Expandir',
                       onPressed: () {
@@ -893,25 +886,26 @@ class _BarItemCardState extends State<_BarItemCard> {
                   ],
                 ),
 
-                // PIX (Visível sempre na visualização retrátil)
+                // PIX
                 if (pix.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.pix, size: 18, color: Colors.teal),
+                      const Icon(Icons.pix, size: 18, color: Colors.tealAccent),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'PIX: $pix',
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
+                            color: Colors.white70,
                             fontWeight: FontWeight.w500,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.copy, size: 18),
+                        icon: const Icon(Icons.copy, size: 18, color: Colors.white70),
                         tooltip: 'Copiar PIX',
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: pix));
@@ -928,7 +922,7 @@ class _BarItemCardState extends State<_BarItemCard> {
                   ),
                 ],
 
-                // CONTEÚDO EXPANSÍVEL (Tickets, Total e Divisão dos Gastos)
+                // CONTEÚDO EXPANSÍVEL
                 if (_isExpanded) ...[
                   const Divider(height: 20),
 
@@ -937,7 +931,6 @@ class _BarItemCardState extends State<_BarItemCard> {
                     builder: (context, _) {
                       final List<dynamic> todosTickets = _ticketController.ticketNotifier.value;
 
-                      // Separar os tickets normais de gastos dos tickets gerados para divisão (tit_pdt_id == '44')
                       final ticketsGastos = todosTickets.where((t) {
                         final items = t.ticketsItems ?? [];
                         return items.any((item) => item.tit_pdt_id?.toString() != '44');
@@ -948,7 +941,6 @@ class _BarItemCardState extends State<_BarItemCard> {
                         return items.any((item) => item.tit_pdt_id?.toString() == '44');
                       }).toList();
 
-                      // Cálculo do total de gastos ignorando itens da divisão (tit_pdt_id == '44')
                       totalGastos = 0.0;
                       for (final t in todosTickets) {
                         final items = t.ticketsItems ?? [];
@@ -971,23 +963,22 @@ class _BarItemCardState extends State<_BarItemCard> {
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.confirmation_number_outlined,
-                                      size: 18, color: Colors.indigo.shade700),
+                                  const Icon(Icons.confirmation_number_outlined,
+                                      size: 18, color: Colors.indigoAccent),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Tickets / Itens (${ticketsGastos.length})',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
-                                      color: Colors.indigo.shade900,
+                                      color: Colors.white70,
                                     ),
                                   ),
                                 ],
                               ),
-                              // Desabilita a adição de novos tickets caso a divisão já tenha sido gerada
                               TextButton.icon(
                                 style: TextButton.styleFrom(
-                                  foregroundColor: jaGerouTickets ? Colors.grey : Colors.indigo,
+                                  foregroundColor: jaGerouTickets ? Colors.grey : Colors.indigoAccent,
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   minimumSize: Size.zero,
                                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -1001,14 +992,14 @@ class _BarItemCardState extends State<_BarItemCard> {
                           const SizedBox(height: 6),
 
                           if (ticketsGastos.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 6.0),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 6.0),
                               child: Text(
                                 'Nenhum ticket/item adicionado.',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontStyle: FontStyle.italic,
-                                  color: Colors.grey.shade600,
+                                  color: Colors.white54,
                                 ),
                               ),
                             )
@@ -1032,8 +1023,9 @@ class _BarItemCardState extends State<_BarItemCard> {
                                             margin: const EdgeInsets.symmetric(vertical: 3),
                                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                             decoration: BoxDecoration(
+                                              color: Colors.black12,
                                               borderRadius: BorderRadius.circular(8),
-                                              border: Border.all(color: Colors.grey.shade300),
+                                              border: Border.all(color: Colors.indigo.withValues(alpha: 0.2)),
                                             ),
                                             child: Row(
                                               children: [
@@ -1048,10 +1040,10 @@ class _BarItemCardState extends State<_BarItemCard> {
                                                 ),
                                                 Text(
                                                   NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(valorTotal),
-                                                  style: TextStyle(
+                                                  style: const TextStyle(
                                                     fontSize: 13,
                                                     fontWeight: FontWeight.bold,
-                                                    color: Colors.green.shade800,
+                                                    color: Colors.greenAccent,
                                                   ),
                                                 ),
                                                 const SizedBox(width: 4),
@@ -1060,9 +1052,9 @@ class _BarItemCardState extends State<_BarItemCard> {
                                                   constraints: const BoxConstraints(),
                                                   padding: const EdgeInsets.all(4),
                                                   icon: Icon(
-                                                    temComprovante ? Icons.receipt_long : Icons.attach_file,
+                                                    temComprovante ? Icons.image_search : Icons.add_a_photo,
                                                     size: 17,
-                                                    color: temComprovante ? Colors.teal : Colors.grey.shade600,
+                                                    color: temComprovante ? Colors.orangeAccent : Colors.grey,
                                                   ),
                                                   tooltip: temComprovante ? 'Visualizar Comprovante' : 'Anexar Comprovante',
                                                   onPressed: () {
@@ -1074,16 +1066,15 @@ class _BarItemCardState extends State<_BarItemCard> {
                                                   },
                                                 ),
 
-                                                // Desabilita a edição de tickets/itens caso a divisão já tenha sido gerada ou se possui comprovante
                                                 IconButton(
                                                   constraints: const BoxConstraints(),
                                                   padding: const EdgeInsets.all(4),
                                                   icon: Icon(
-                                                    Icons.edit,
+                                                    Icons.edit_outlined,
                                                     size: 17,
                                                     color: (temComprovante || jaGerouTickets)
-                                                        ? Colors.grey.shade400
-                                                        : Colors.indigo,
+                                                        ? Colors.grey
+                                                        : Colors.blueAccent,
                                                   ),
                                                   tooltip: jaGerouTickets
                                                       ? 'Não é possível editar após gerar a divisão de gastos'
@@ -1108,9 +1099,9 @@ class _BarItemCardState extends State<_BarItemCard> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
-                                color: Colors.indigo.shade50,
+                                color: Colors.indigo.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.indigo.shade100),
+                                border: Border.all(color: Colors.indigo.withValues(alpha: 0.2)),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1120,29 +1111,29 @@ class _BarItemCardState extends State<_BarItemCard> {
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.indigo,
+                                      color: Colors.white70,
                                     ),
                                   ),
                                   Text(
                                     NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(totalGastos),
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.green.shade900,
+                                      color: Colors.greenAccent,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
 
-                            // SECÇÃO: DIVISÃO DOS GASTOS
+                            // DIVISÃO DOS GASTOS
                             const SizedBox(height: 12),
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
+                                color: Colors.black12,
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey.shade300),
+                                border: Border.all(color: Colors.indigo.withValues(alpha: 0.2)),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1152,22 +1143,21 @@ class _BarItemCardState extends State<_BarItemCard> {
                                     children: [
                                       Row(
                                         children: [
-                                          Icon(Icons.people_outline, size: 18, color: Colors.indigo.shade700),
+                                          const Icon(Icons.people_outline, size: 18, color: Colors.indigoAccent),
                                           const SizedBox(width: 6),
                                           Text(
                                             'Divisão dos Gastos (${ticketsDivisao.isNotEmpty ? ticketsDivisao.length : _participantesDivisao.length})',
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 13,
-                                              color: Colors.indigo.shade900,
+                                              color: Colors.white70,
                                             ),
                                           ),
                                         ],
                                       ),
-                                      // Desabilita seleção/edição de participantes se já foram gerados os tickets no BD
                                       TextButton.icon(
                                         style: TextButton.styleFrom(
-                                          foregroundColor: jaGerouTickets ? Colors.grey : Colors.indigo,
+                                          foregroundColor: jaGerouTickets ? Colors.grey : Colors.indigoAccent,
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           minimumSize: Size.zero,
                                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -1183,7 +1173,6 @@ class _BarItemCardState extends State<_BarItemCard> {
                                   ),
                                   const SizedBox(height: 6),
 
-                                  // Caso já existam tickets com tit_pdt_id == '44' salvos no BD, exibimos eles aqui
                                   if (ticketsDivisao.isNotEmpty) ...[
                                     Column(
                                       children: ticketsDivisao.map((t) {
@@ -1203,18 +1192,18 @@ class _BarItemCardState extends State<_BarItemCard> {
                                           margin: const EdgeInsets.symmetric(vertical: 3),
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: Colors.white,
+                                            color: Colors.black12,
                                             borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.grey.shade300),
+                                            border: Border.all(color: Colors.indigo.withValues(alpha: 0.15)),
                                           ),
                                           child: Row(
                                             children: [
                                               CircleAvatar(
                                                 radius: 12,
-                                                backgroundColor: Colors.indigo.shade100,
+                                                backgroundColor: Colors.indigo.withValues(alpha: 0.2),
                                                 child: Text(
                                                   nome.isNotEmpty ? nome[0].toUpperCase() : '?',
-                                                  style: const TextStyle(fontSize: 11, color: Colors.indigo),
+                                                  style: const TextStyle(fontSize: 11, color: Colors.indigoAccent),
                                                 ),
                                               ),
                                               const SizedBox(width: 8),
@@ -1227,10 +1216,10 @@ class _BarItemCardState extends State<_BarItemCard> {
                                               if (valorDivisao > 0) ...[
                                                 Text(
                                                   NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(valorDivisao),
-                                                  style: TextStyle(
+                                                  style: const TextStyle(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.bold,
-                                                    color: Colors.green.shade800,
+                                                    color: Colors.greenAccent,
                                                   ),
                                                 ),
                                                 const SizedBox(width: 4),
@@ -1239,9 +1228,9 @@ class _BarItemCardState extends State<_BarItemCard> {
                                                 constraints: const BoxConstraints(),
                                                 padding: const EdgeInsets.all(4),
                                                 icon: Icon(
-                                                  temComprovante ? Icons.receipt_long : Icons.attach_file,
+                                                  temComprovante ? Icons.image_search : Icons.add_a_photo,
                                                   size: 18,
-                                                  color: temComprovante ? Colors.teal : Colors.grey.shade600,
+                                                  color: temComprovante ? Colors.orangeAccent : Colors.grey,
                                                 ),
                                                 tooltip: temComprovante ? 'Visualizar Comprovante' : 'Carregar Comprovante',
                                                 onPressed: () {
@@ -1258,34 +1247,33 @@ class _BarItemCardState extends State<_BarItemCard> {
                                       }).toList(),
                                     ),
                                   ] else if (_participantesDivisao.isEmpty)
-                                    Text(
+                                    const Text(
                                       'Nenhum participante adicionado à divisão.',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontStyle: FontStyle.italic,
-                                        color: Colors.grey.shade600,
+                                        color: Colors.white54,
                                       ),
                                     )
                                   else ...[
-                                    // Lista de pessoas selecionadas manualmente antes de gerar os tickets
                                     Column(
                                       children: _participantesDivisao.map((p) {
                                         return Container(
                                           margin: const EdgeInsets.symmetric(vertical: 3),
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: Colors.white,
+                                            color: Colors.black12,
                                             borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.grey.shade300),
+                                            border: Border.all(color: Colors.indigo.withValues(alpha: 0.15)),
                                           ),
                                           child: Row(
                                             children: [
                                               CircleAvatar(
                                                 radius: 12,
-                                                backgroundColor: Colors.indigo.shade100,
+                                                backgroundColor: Colors.indigo.withValues(alpha: 0.2),
                                                 child: Text(
                                                   p.pfl_full_name.isNotEmpty ? p.pfl_full_name[0].toUpperCase() : '?',
-                                                  style: const TextStyle(fontSize: 11, color: Colors.indigo),
+                                                  style: const TextStyle(fontSize: 11, color: Colors.indigoAccent),
                                                 ),
                                               ),
                                               const SizedBox(width: 8),
@@ -1301,7 +1289,7 @@ class _BarItemCardState extends State<_BarItemCard> {
                                                 icon: Icon(
                                                   Icons.close,
                                                   size: 18,
-                                                  color: jaGerouTickets ? Colors.grey : Colors.red.shade400,
+                                                  color: jaGerouTickets ? Colors.grey : Colors.redAccent,
                                                 ),
                                                 tooltip: jaGerouTickets
                                                     ? 'Não é possível remover após gerar tickets'
@@ -1322,10 +1310,10 @@ class _BarItemCardState extends State<_BarItemCard> {
                                           Expanded(
                                             child: Text(
                                               'Valor por pessoa: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(totalGastos / _participantesDivisao.length)}',
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.green.shade800,
+                                                color: Colors.greenAccent,
                                               ),
                                             ),
                                           ),
@@ -1392,40 +1380,25 @@ class _BarItemCardState extends State<_BarItemCard> {
     );
   }
 
-  Widget _buildStatusChip(String status) {
-    Color color;
-    Color textColor;
-
-    switch (status.toLowerCase()) {
-      case 'pago':
-      case 'concluido':
-      case 'aprovado':
-        color = Colors.green.shade100;
-        textColor = Colors.green.shade800;
-        break;
-      case 'cancelado':
-      case 'rejeitado':
-        color = Colors.red.shade100;
-        textColor = Colors.red.shade800;
-        break;
-      default:
-        color = Colors.amber.shade100;
-        textColor = Colors.amber.shade900;
-        break;
-    }
+  Widget _buildStatusBadge(String status) {
+    bool isPago = status.toLowerCase() == 'pago' || status.toLowerCase() == 'concluido';
+    String label = isPago ? 'PAGO' : status.toUpperCase();
+    Color color = isPago ? Colors.greenAccent : Colors.orangeAccent;
+    Color bgColor = (isPago ? Colors.green : Colors.orange).withValues(alpha: 0.15);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 0.8),
       ),
       child: Text(
-        status.toUpperCase(),
+        label,
         style: TextStyle(
-          color: textColor,
-          fontSize: 11,
+          fontSize: 9,
           fontWeight: FontWeight.bold,
+          color: color,
         ),
       ),
     );
@@ -1433,172 +1406,7 @@ class _BarItemCardState extends State<_BarItemCard> {
 }
 
 // ==========================================
-// DIALOG DE SELEÇÃO MÚLTIPLA DE PESSOAS
-// ==========================================
-class _SelectMultipleProfilesDialog extends StatefulWidget {
-  final List<VProfileModel> profiles;
-  final List<VProfileModel> selectedProfiles;
-  final Function(List<VProfileModel> selected) onConfirm;
-
-  const _SelectMultipleProfilesDialog({
-    required this.profiles,
-    required this.selectedProfiles,
-    required this.onConfirm,
-  });
-
-  @override
-  State<_SelectMultipleProfilesDialog> createState() => _SelectMultipleProfilesDialogState();
-}
-
-class _SelectMultipleProfilesDialogState extends State<_SelectMultipleProfilesDialog> {
-  late final Set<VProfileModel> _tempSelected;
-  String _searchQuery = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _tempSelected = Set<VProfileModel>.from(widget.selectedProfiles);
-  }
-
-  void _toggleSelectAll(bool? selectAll, List<VProfileModel> filtered) {
-    setState(() {
-      if (selectAll == true) {
-        _tempSelected.addAll(filtered);
-      } else {
-        _tempSelected.removeAll(filtered);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final filteredProfiles = widget.profiles.where((p) {
-      return p.pfl_full_name.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
-
-    final isAllSelected = filteredProfiles.isNotEmpty &&
-        filteredProfiles.every((p) => _tempSelected.contains(p));
-
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
-        children: [
-          Icon(Icons.group_add_outlined, color: Colors.indigo.shade700),
-          const SizedBox(width: 8),
-          const Text(
-            'Divisão de Gastos',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-        ],
-      ),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: const InputDecoration(
-                hintText: 'Pesquisar pessoa...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${_tempSelected.length} selecionado(s)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade700,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => _toggleSelectAll(!isAllSelected, filteredProfiles),
-                  child: Text(
-                    isAllSelected ? 'Desmarcar todos' : 'Selecionar todos',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 1),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 300),
-              child: filteredProfiles.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text(
-                        'Nenhum participante encontrado.',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    )
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: filteredProfiles.length,
-                      itemBuilder: (context, index) {
-                        final profile = filteredProfiles[index];
-                        final isSelected = _tempSelected.contains(profile);
-
-                        return CheckboxListTile(
-                          dense: true,
-                          activeColor: Colors.indigo,
-                          title: Text(
-                            profile.pfl_full_name,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          value: isSelected,
-                          onChanged: (bool? checked) {
-                            setState(() {
-                              if (checked == true) {
-                                _tempSelected.add(profile);
-                              } else {
-                                _tempSelected.remove(profile);
-                              }
-                            });
-                          },
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.indigo,
-            foregroundColor: Colors.white,
-          ),
-          onPressed: () {
-            widget.onConfirm(_tempSelected.toList());
-            Navigator.of(context).pop();
-          },
-          icon: const Icon(Icons.check, size: 18),
-          label: const Text('Confirmar'),
-        ),
-      ],
-    );
-  }
-}
-
-// ==========================================
-// DIALOG DE ADICIONAR REGISTRO HEADQUARTERS BAR
+// DIÁLOGO: ADICIONAR PITCHING IN / BAR
 // ==========================================
 class _AddPitchingInDialog extends StatefulWidget {
   final BdProfileController bdProfileController;
@@ -1614,22 +1422,13 @@ class _AddPitchingInDialog extends StatefulWidget {
 }
 
 class _AddPitchingInDialogState extends State<_AddPitchingInDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _dataController = TextEditingController();
+  DateTime _dataSelecionada = DateTime.now();
+  VProfileModel? _perfilSelecionado;
   final TextEditingController _pixController = TextEditingController();
-  DateTime? _selectedDate;
-  VProfileModel? _selectedProfile;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedDate = DateTime.now();
-    _dataController.text = DateFormat('dd/MM/yyyy').format(_selectedDate!);
-  }
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
-    _dataController.dispose();
     _pixController.dispose();
     super.dispose();
   }
@@ -1637,104 +1436,61 @@ class _AddPitchingInDialogState extends State<_AddPitchingInDialog> {
   Future<void> _selecionarData(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      initialDate: _dataSelecionada,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2101),
     );
-
-    if (picked != null) {
+    if (picked != null && picked != _dataSelecionada) {
       setState(() {
-        _selectedDate = picked;
-        _dataController.text = DateFormat('dd/MM/yyyy').format(picked);
+        _dataSelecionada = picked;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final perfis = widget.bdProfileController.profilesNotifier.value ?? [];
+
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text(
-        'Adicionar Registro',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-      ),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
+      title: const Text('Novo Registro'),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
-                controller: _dataController,
-                readOnly: true,
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('Data: ${DateFormat('dd/MM/yyyy').format(_dataSelecionada)}'),
+                trailing: const Icon(Icons.calendar_today, color: Colors.indigoAccent),
                 onTap: () => _selecionarData(context),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<VProfileModel>(
+                value: _perfilSelecionado,
                 decoration: const InputDecoration(
-                  labelText: 'Data',
+                  labelText: 'Responsável',
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.calendar_today),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Informe a data';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              ValueListenableBuilder<List<VProfileModel>?>(
-                valueListenable: widget.bdProfileController.profilesNotifier,
-                builder: (context, profiles, _) {
-                  final activeProfiles = (profiles ?? [])
-                      .where((c) => c.as_ismonthlypayment == 'true')
-                      .toList();
-
-                  return DropdownButtonFormField<VProfileModel?>(
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Pagará para...',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person_outline),
-                    ),
-                    hint: const Text('Selecione a pessoa'),
-                    initialValue: _selectedProfile,
-                    items: activeProfiles.map(
-                      (p) => DropdownMenuItem<VProfileModel?>(
-                        value: p,
-                        child: Text(
-                          p.pfl_full_name,
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ),
-                    ).toList(),
-                    validator: (value) {
-                      if (value == null) {
-                        return 'Selecione quem receberá';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedProfile = value;
-                      });
-                    },
+                items: perfis.map((p) {
+                  return DropdownMenuItem<VProfileModel>(
+                    value: p,
+                    child: Text(p.pfl_full_name),
                   );
-                },
+                }).toList(),
+                onChanged: (val) => setState(() => _perfilSelecionado = val),
+                validator: (val) => val == null ? 'Selecione um responsável' : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _pixController,
                 decoration: const InputDecoration(
-                  labelText: 'PIX',
-                  hintText: 'Informe a chave PIX...',
+                  labelText: 'Chave PIX',
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.pix),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Informe o PIX';
-                  }
-                  return null;
-                },
+                validator: (val) =>
+                    (val == null || val.trim().isEmpty) ? 'Informe a chave PIX' : null,
               ),
             ],
           ),
@@ -1745,23 +1501,18 @@ class _AddPitchingInDialogState extends State<_AddPitchingInDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton.icon(
+        ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.indigo,
             foregroundColor: Colors.white,
           ),
           onPressed: () {
-            if (_formKey.currentState!.validate() && _selectedDate != null) {
-              widget.onConfirm(
-                _selectedDate!,
-                _selectedProfile,
-                _pixController.text.trim(),
-              );
+            if (_formKey.currentState?.validate() ?? false) {
+              widget.onConfirm(_dataSelecionada, _perfilSelecionado, _pixController.text);
               Navigator.of(context).pop();
             }
           },
-          icon: const Icon(Icons.check, size: 18),
-          label: const Text('Confirmar'),
+          child: const Text('Salvar'),
         ),
       ],
     );
@@ -1769,19 +1520,19 @@ class _AddPitchingInDialogState extends State<_AddPitchingInDialog> {
 }
 
 // ==========================================
-// DIALOG DE EDITAR / APAGAR REGISTRO HEADQUARTERS BAR
+// DIÁLOGO: EDITAR PITCHING IN / BAR
 // ==========================================
 class _EditPitchingInDialog extends StatefulWidget {
   final dynamic item;
   final bool hasReceipt;
   final bool jaGerouTickets;
-  final Function(DateTime data, String pix) onSave;
+  final Function(DateTime novaData, String novoPix) onSave;
   final VoidCallback onDelete;
 
   const _EditPitchingInDialog({
     required this.item,
-    this.hasReceipt = false,
-    this.jaGerouTickets = false,
+    required this.hasReceipt,
+    required this.jaGerouTickets,
     required this.onSave,
     required this.onDelete,
   });
@@ -1791,208 +1542,107 @@ class _EditPitchingInDialog extends StatefulWidget {
 }
 
 class _EditPitchingInDialogState extends State<_EditPitchingInDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _dataController = TextEditingController();
-  final TextEditingController _pixController = TextEditingController();
-  DateTime? _selectedDate;
+  late DateTime _dataSelecionada;
+  late TextEditingController _pixController;
 
   @override
   void initState() {
     super.initState();
-    if (widget.item.bar_open_date != null) {
-      _selectedDate = DateTime.tryParse(widget.item.bar_open_date.toString()) ?? DateTime.now();
-    } else {
-      _selectedDate = DateTime.now();
-    }
-    _dataController.text = DateFormat('dd/MM/yyyy').format(_selectedDate!);
-    _pixController.text = widget.item.bar_desc ?? '';
+    final dateStr = widget.item.bar_open_date?.toString();
+    _dataSelecionada = dateStr != null ? DateTime.tryParse(dateStr) ?? DateTime.now() : DateTime.now();
+    _pixController = TextEditingController(text: widget.item.bar_desc?.toString() ?? '');
   }
 
   @override
   void dispose() {
-    _dataController.dispose();
     _pixController.dispose();
     super.dispose();
   }
 
   Future<void> _selecionarData(BuildContext context) async {
-    if (widget.hasReceipt || widget.jaGerouTickets) return;
-
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      initialDate: _dataSelecionada,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2101),
     );
-
     if (picked != null) {
       setState(() {
-        _selectedDate = picked;
-        _dataController.text = DateFormat('dd/MM/yyyy').format(picked);
+        _dataSelecionada = picked;
       });
     }
   }
 
-  void _confirmarExclusao() {
-    if (widget.hasReceipt || widget.jaGerouTickets) return;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirmar Exclusão'),
-        content: const Text('Deseja realmente apagar este registro?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-              widget.onDelete();
-            },
-            child: const Text('Apagar'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final String profileName = widget.item.open_profile_name ?? 'Registro';
-    final bool bloqueadoDataOuExclusao = widget.hasReceipt || widget.jaGerouTickets;
-
-    String? helperData;
-    if (widget.jaGerouTickets) {
-      helperData = 'A data não pode ser alterada pois a divisão de gastos já foi gerada.';
-    } else if (widget.hasReceipt) {
-      helperData = 'A data não pode ser alterada pois já existe comprovativo anexado.';
-    }
-
-    String msgBloqueioExclusao = '';
-    if (widget.jaGerouTickets) {
-      msgBloqueioExclusao = 'Não é possível apagar um registro com divisão de gastos gerada';
-    } else if (widget.hasReceipt) {
-      msgBloqueioExclusao = 'Não é possível apagar um registro que possui comprovativo anexado';
-    }
-
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Editar Registro',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            profileName,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.indigo.shade700,
-              fontWeight: FontWeight.w600,
+      title: const Text('Editar Registro'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text('Data: ${DateFormat('dd/MM/yyyy').format(_dataSelecionada)}'),
+              trailing: const Icon(Icons.calendar_today, color: Colors.indigoAccent),
+              onTap: () => _selecionarData(context),
             ),
-          ),
-        ],
-      ),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _dataController,
-                readOnly: true,
-                enabled: !bloqueadoDataOuExclusao,
-                onTap: bloqueadoDataOuExclusao ? null : () => _selecionarData(context),
-                decoration: InputDecoration(
-                  labelText: 'Data',
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.calendar_today),
-                  helperText: helperData,
-                  helperMaxLines: 2,
-                  helperStyle: TextStyle(
-                    color: Colors.orange.shade900,
-                    fontSize: 11,
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Informe a data';
-                  }
-                  return null;
-                },
+            const SizedBox(height: 12),
+            TextField(
+              controller: _pixController,
+              decoration: const InputDecoration(
+                labelText: 'Chave PIX',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _pixController,
-                decoration: const InputDecoration(
-                  labelText: 'PIX',
-                  hintText: 'Informe a chave PIX...',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.pix),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Informe o PIX';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
       actions: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Tooltip(
-              message: msgBloqueioExclusao,
-              child: TextButton.icon(
-                style: TextButton.styleFrom(
-                  foregroundColor: bloqueadoDataOuExclusao ? Colors.grey : Colors.red,
-                ),
-                onPressed: bloqueadoDataOuExclusao ? null : _confirmarExclusao,
-                icon: const Icon(Icons.delete_outline, size: 20),
-                label: const Text('Apagar'),
-              ),
-            ),
-            Row(
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancelar'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    foregroundColor: Colors.white,
+        IconButton(
+          icon: const Icon(Icons.delete, color: Colors.redAccent),
+          tooltip: 'Excluir',
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Excluir Registro'),
+                content: const Text('Deseja realmente apagar este registro?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancelar'),
                   ),
-                  onPressed: () {
-                    if (_formKey.currentState!.validate() && _selectedDate != null) {
-                      widget.onSave(
-                        _selectedDate!,
-                        _pixController.text.trim(),
-                      );
-                      Navigator.of(context).pop();
-                    }
-                  },
-                  icon: const Icon(Icons.check, size: 18),
-                  label: const Text('Salvar'),
-                ),
-              ],
-            ),
-          ],
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.pop(context);
+                      widget.onDelete();
+                    },
+                    child: const Text('Excluir', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        const Spacer(),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.indigo,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () {
+            widget.onSave(_dataSelecionada, _pixController.text);
+            Navigator.of(context).pop();
+          },
+          child: const Text('Salvar'),
         ),
       ],
     );
@@ -2000,7 +1650,94 @@ class _EditPitchingInDialogState extends State<_EditPitchingInDialog> {
 }
 
 // ==========================================
-// DIALOG DE ADICIONAR TICKET & ITEM
+// DIÁLOGO: SELECIONAR MÚLTIPLOS PARTICIPANTES
+// ==========================================
+class _SelectMultipleProfilesDialog extends StatefulWidget {
+  final List<VProfileModel> profiles;
+  final List<VProfileModel> selectedProfiles;
+  final Function(List<VProfileModel> selecionados) onConfirm;
+
+  const _SelectMultipleProfilesDialog({
+    required this.profiles,
+    required this.selectedProfiles,
+    required this.onConfirm,
+  });
+
+  @override
+  State<_SelectMultipleProfilesDialog> createState() =>
+      _SelectMultipleProfilesDialogState();
+}
+
+class _SelectMultipleProfilesDialogState
+    extends State<_SelectMultipleProfilesDialog> {
+  late List<VProfileModel> _tempSelecionados;
+
+  @override
+  void initState() {
+    super.initState();
+    _tempSelecionados = List.from(widget.selectedProfiles);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('Adicionar Participantes'),
+      content: SizedBox(
+        width: double.maxFinite,
+        height: 300,
+        child: widget.profiles.isEmpty
+            ? const Center(child: Text('Nenhum participante disponível.'))
+            : ListView.builder(
+                shrinkWrap: true,
+                itemCount: widget.profiles.length,
+                itemBuilder: (context, index) {
+                  final item = widget.profiles[index];
+                  final isSelected = _tempSelecionados.any(
+                    (p) => p.pfl_id.toString() == item.pfl_id.toString(),
+                  );
+
+                  return CheckboxListTile(
+                    title: Text(item.pfl_full_name),
+                    value: isSelected,
+                    onChanged: (bool? checked) {
+                      setState(() {
+                        if (checked == true) {
+                          _tempSelecionados.add(item);
+                        } else {
+                          _tempSelecionados.removeWhere(
+                            (p) => p.pfl_id.toString() == item.pfl_id.toString(),
+                          );
+                        }
+                      });
+                    },
+                  );
+                },
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.indigo,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () {
+            widget.onConfirm(_tempSelecionados);
+            Navigator.of(context).pop();
+          },
+          child: const Text('Confirmar'),
+        ),
+      ],
+    );
+  }
+}
+
+// ==========================================
+// DIÁLOGO: ADICIONAR ITEM DO TICKET
 // ==========================================
 class _AddTicketItemDialog extends StatefulWidget {
   final String? hldId;
@@ -2018,19 +1755,15 @@ class _AddTicketItemDialog extends StatefulWidget {
 }
 
 class _AddTicketItemDialogState extends State<_AddTicketItemDialog> {
-  final _formKey = GlobalKey<FormState>();
+  ProductsModel? _produtoSelecionado;
   final TextEditingController _valorController = TextEditingController();
   final TextEditingController _qtdController = TextEditingController(text: '1');
-  
-  ProductsModel? _selectedProduct;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    widget.productsController.loadProductsFiltered(
-      widget.hldId.toString(),
-      '9',
-    );
+    widget.productsController.loadProdutos(widget.hldId ?? '');
   }
 
   @override
@@ -2044,150 +1777,90 @@ class _AddTicketItemDialogState extends State<_AddTicketItemDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Row(
-        children: [
-          Icon(Icons.confirmation_number_outlined, color: Colors.indigo),
-          SizedBox(width: 8),
-          Text(
-            'Novo Ticket / Item',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-        ],
-      ),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListenableBuilder(
-                listenable: Listenable.merge([
-                  widget.productsController.loadingNotifier,
-                  widget.productsController.errorNotifier,
-                  widget.productsController.productsFilteredNotifier,
-                ]),
-                builder: (context, _) {
-                  final isLoading = widget.productsController.loadingNotifier.value;
-                  final errorMsg = widget.productsController.errorNotifier.value;
-                  final produtos = widget.productsController.productsFilteredNotifier.value;
-
-                  if (isLoading) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16.0),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-
-                  if (errorMsg != null && errorMsg.isNotEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Text(
-                        errorMsg,
-                        style: const TextStyle(color: Colors.red, fontSize: 12),
-                      ),
-                    );
-                  }
-
-                  return DropdownButtonFormField<ProductsModel>(
-                    isExpanded: true,
+      title: const Text('Adicionar Item'),
+      content: ValueListenableBuilder<List<ProductsModel>>(
+        valueListenable: widget.productsController.productsNotifier,
+        builder: (context, produtos, _) {
+          return SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<ProductsModel>(
+                    value: _produtoSelecionado,
                     decoration: const InputDecoration(
-                      labelText: 'Selecione o Produto',
+                      labelText: 'Produto',
                       border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.shopping_bag_outlined),
                     ),
-                    value: _selectedProduct,
-                    hint: const Text('Escolha um item'),
-                    items: produtos.map((p) {
-                      return DropdownMenuItem<ProductsModel>(
-                        value: p,
-                        child: Text(
-                          '${p.pdt_name} - R\$ ${p.pdt_value_member.toString()}',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      );
-                    }).toList(),
-                    validator: (value) => value == null ? 'Selecione um produto' : null,
-                    onChanged: (product) {
+                    items: produtos
+                        .where((p) => p.pdt_id.toString() != '44')
+                        .map((p) => DropdownMenuItem(
+                              value: p,
+                              child: Text(p.pdt_name ?? ''),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
                       setState(() {
-                        _selectedProduct = product;
-                        if (product != null) {
-                          _valorController.text = product.pdt_value_member.toString();
+                        _produtoSelecionado = val;
+                        if (val?.pdt_value_member != null) {
+                          _valorController.text = val!.pdt_value_member.toString();
                         }
                       });
                     },
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _qtdController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Qtd',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.format_list_numbered),
-                      ),
-                      validator: (value) {
-                        if (value == null || int.tryParse(value) == null || int.parse(value) <= 0) {
-                          return 'Inválido';
-                        }
-                        return null;
-                      },
-                    ),
+                    validator: (val) => val == null ? 'Selecione um produto' : null,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _valorController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'Valor Unit. (R\$)',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.attach_money),
-                      ),
-                      validator: (value) {
-                        if (value == null || double.tryParse(value.replaceAll(',', '.')) == null) {
-                          return 'Informe o valor';
-                        }
-                        return null;
-                      },
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _qtdController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Quantidade',
+                      border: OutlineInputBorder(),
                     ),
+                    validator: (val) =>
+                        (val == null || int.tryParse(val) == null || int.parse(val) <= 0)
+                            ? 'Quantidade inválida'
+                            : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _valorController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Valor Unitário (R\$)',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (val) =>
+                        (val == null || double.tryParse(val) == null)
+                            ? 'Valor inválido'
+                            : null,
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton.icon(
+        ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.indigo,
             foregroundColor: Colors.white,
           ),
           onPressed: () {
-            if (_formKey.currentState!.validate() && _selectedProduct != null) {
-              final double valor = double.parse(_valorController.text.trim().replaceAll(',', '.'));
-              final int qtd = int.parse(_qtdController.text.trim());
-
-              widget.onConfirm(
-                _selectedProduct!.pdt_id,
-                valor,
-                qtd,
-              );
+            if (_formKey.currentState?.validate() ?? false) {
+              final double valor = double.parse(_valorController.text.replaceAll(',', '.'));
+              final int qtd = int.parse(_qtdController.text);
+              widget.onConfirm(_produtoSelecionado!.pdt_id.toString(), valor, qtd);
               Navigator.of(context).pop();
             }
           },
-          icon: const Icon(Icons.check, size: 18),
-          label: const Text('Adicionar'),
+          child: const Text('Adicionar'),
         ),
       ],
     );
@@ -2195,11 +1868,11 @@ class _AddTicketItemDialogState extends State<_AddTicketItemDialog> {
 }
 
 // ==========================================
-// DIALOG DE EDITAR / APAGAR TICKET & ITEM
+// DIÁLOGO: EDITAR ITEM DO TICKET
 // ==========================================
 class _EditTicketItemDialog extends StatefulWidget {
   final dynamic ticketItem;
-  final Function(String descricao, double valor, int quantidade) onSave;
+  final Function(String novaDescricao, double novoValor, int novaQuantidade) onSave;
   final VoidCallback onDelete;
 
   const _EditTicketItemDialog({
@@ -2213,167 +1886,95 @@ class _EditTicketItemDialog extends StatefulWidget {
 }
 
 class _EditTicketItemDialogState extends State<_EditTicketItemDialog> {
+  late TextEditingController _valorController;
+  late TextEditingController _qtdController;
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _descController;
-  late final TextEditingController _valorController;
-  late final TextEditingController _qtdController;
 
   @override
   void initState() {
     super.initState();
-    final item = widget.ticketItem;
-    _descController = TextEditingController(text: (item.pdt_name ?? item.tit_pdt_id ?? item.description ?? '').toString());
-    _valorController = TextEditingController(text: (item.tit_unit_value ?? item.tit_value ?? item.amount ?? '0').toString());
-    _qtdController = TextEditingController(text: (item.tit_quantities ?? item.qtd ?? '1').toString());
+    final double valor = double.tryParse((widget.ticketItem.tit_unit_value ?? widget.ticketItem.tit_value ?? '0').toString()) ?? 0.0;
+    final int qtd = int.tryParse((widget.ticketItem.tit_quantities ?? '1').toString()) ?? 1;
+
+    _valorController = TextEditingController(text: valor.toString());
+    _qtdController = TextEditingController(text: qtd.toString());
   }
 
   @override
   void dispose() {
-    _descController.dispose();
     _valorController.dispose();
     _qtdController.dispose();
     super.dispose();
   }
 
-  void _confirmarExclusao() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirmar Exclusão'),
-        content: const Text('Deseja realmente apagar este ticket/item?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-              widget.onDelete();
-            },
-            child: const Text('Apagar'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final String nomeProduto = widget.ticketItem.pdt_name ?? 'Item';
+
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text(
-        'Editar Ticket / Item',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-      ),
+      title: Text('Editar $nomeProduto'),
       content: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _descController,
-                readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: 'Descrição / Produto',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.label_outline),
-                ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _qtdController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Quantidade',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _qtdController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Qtd',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.format_list_numbered),
-                      ),
-                      validator: (value) {
-                        if (value == null || int.tryParse(value) == null || int.parse(value) <= 0) {
-                          return 'Inválido';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _valorController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'Valor Unit. (R\$)',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.attach_money),
-                      ),
-                      validator: (value) {
-                        if (value == null || double.tryParse(value.replaceAll(',', '.')) == null) {
-                          return 'Informe o valor';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
+              validator: (val) =>
+                  (val == null || int.tryParse(val) == null || int.parse(val) <= 0)
+                      ? 'Quantidade inválida'
+                      : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _valorController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Valor Unitário (R\$)',
+                border: OutlineInputBorder(),
               ),
-            ],
-          ),
+              validator: (val) =>
+                  (val == null || double.tryParse(val) == null)
+                      ? 'Valor inválido'
+                      : null,
+            ),
+          ],
         ),
       ),
       actions: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton.icon(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
-              onPressed: _confirmarExclusao,
-              icon: const Icon(Icons.delete_outline, size: 20),
-              label: const Text('Apagar'),
-            ),
-            Row(
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancelar'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      final double valor = double.parse(_valorController.text.trim().replaceAll(',', '.'));
-                      final int qtd = int.parse(_qtdController.text.trim());
-
-                      widget.onSave(
-                        _descController.text.trim(),
-                        valor,
-                        qtd,
-                      );
-                      Navigator.of(context).pop();
-                    }
-                  },
-                  icon: const Icon(Icons.check, size: 18),
-                  label: const Text('Salvar'),
-                ),
-              ],
-            ),
-          ],
+        IconButton(
+          icon: const Icon(Icons.delete, color: Colors.redAccent),
+          tooltip: 'Excluir Item',
+          onPressed: () {
+            Navigator.of(context).pop();
+            widget.onDelete();
+          },
+        ),
+        const Spacer(),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.indigo,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () {
+            if (_formKey.currentState?.validate() ?? false) {
+              final double valor = double.parse(_valorController.text.replaceAll(',', '.'));
+              final int qtd = int.parse(_qtdController.text);
+              widget.onSave(nomeProduto, valor, qtd);
+              Navigator.of(context).pop();
+            }
+          },
+          child: const Text('Salvar'),
         ),
       ],
     );

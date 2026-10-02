@@ -27,6 +27,7 @@ class TicketReceiptImageService extends BaseImageUploadService {
     final String openDate = payload?['openDate'];
     final double valor = payload?['valor'];
     final String hld_id = payload?['hld_id'];
+    final bool changeTitValue = payload?['changeTitValue'];
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final filePath = '${pfl_id}/${tkt_id}_tickets_$timestamp.${imageData.extension}';
@@ -55,6 +56,7 @@ class TicketReceiptImageService extends BaseImageUploadService {
     final String openDate = payload?['openDate'];
     final double valor = payload?['valor'];
     final String hld_id = payload?['hld_id'];
+    final bool changeTitValue = payload?['changeTitValue'];
 
     await supabaseClient
         .from('tickets')
@@ -65,12 +67,14 @@ class TicketReceiptImageService extends BaseImageUploadService {
         })
         .eq('tkt_id', tkt_id);
     
-    await supabaseClient
-        .from('tickets_items')
-        .update({
-          'tit_unit_value': valor
-        })
-        .eq('tit_tkt_id', tkt_id);
+    if (changeTitValue) {
+      await supabaseClient
+          .from('tickets_items')
+          .update({
+            'tit_unit_value': valor
+          })
+          .eq('tit_tkt_id', tkt_id);
+    }
     
     await ticketController.loadTickets( barId, openDate, hld_id );
   }
