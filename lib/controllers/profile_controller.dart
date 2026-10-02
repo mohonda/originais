@@ -9,8 +9,8 @@ final getItBdProfileController = GetIt.instance;
 
 void setupGetItProfileBdItemController() {
   getItBdProfileController
-  // .registerLazySingleton<BdProfileController>(
-  .registerFactory<BdProfileController>(
+  .registerLazySingleton<BdProfileController>(
+  // .registerFactory<BdProfileController>(
     () => BdProfileController(),
   );
 }

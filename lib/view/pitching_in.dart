@@ -94,6 +94,7 @@ class _PitchingInState extends State<PitchingIn> {
             pix.toString(),
             tssId,
           );
+          loadData();
 
           if (!mounted) return;
 
@@ -104,20 +105,19 @@ class _PitchingInState extends State<PitchingIn> {
               behavior: SnackBarBehavior.floating,
             ),
           );
-
-          loadData();
         },
       ),
     );
   }
 
-  void _abrirDialogEditarBar(dynamic item, bool temComprovante) {
+  void _abrirDialogEditarBar(dynamic item, bool temComprovante, bool jaGerouTickets) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => _EditPitchingInDialog(
         item: item,
         hasReceipt: temComprovante,
+        jaGerouTickets: jaGerouTickets,
         onSave: (DateTime novaData, String novoPix) async {
           final String barId = item.bar_id.toString();
 
@@ -277,7 +277,8 @@ class _PitchingInState extends State<PitchingIn> {
             item: item,
             hldId: widget.hldId,
             productsController: productsController,
-            onEditBar: (bool temComprovante) => _abrirDialogEditarBar(item, temComprovante),
+            onEditBar: (bool temComprovante, bool jaGerouTickets) =>
+                _abrirDialogEditarBar(item, temComprovante, jaGerouTickets),
           );
         },
       ),
@@ -292,7 +293,7 @@ class _BarItemCard extends StatefulWidget {
   final dynamic item;
   final String? hldId;
   final ProductsController productsController;
-  final void Function(bool temComprovante) onEditBar;
+  final void Function(bool temComprovante, bool jaGerouTickets) onEditBar;
 
   const _BarItemCard({
     super.key,
@@ -381,17 +382,42 @@ class _BarItemCardState extends State<_BarItemCard> {
 
     if (!mounted) return;
 
-    final todosPerfis = bdProfileController.profilesNotifier.value ?? [];
+    // Coleta os IDs de quem já faz parte da divisão de gastos (seleção atual)
+    final idsExistentes = _participantesDivisao
+        .map((p) => p.pfl_id.toString())
+        .toSet();
+
+    // Também inclui os IDs que já possuem tickets de divisão (tit_pdt_id == '44') no BD
+    final todosTickets = _ticketController.ticketNotifier.value;
+    for (final t in todosTickets) {
+      final items = t.ticketsItems ?? [];
+      final isDivisao = items.any((item) => item.tit_pdt_id?.toString() == '44');
+      if (isDivisao) {
+        final pflId = t.tkt_pfl_id?.toString();
+        if (pflId != null && pflId.isNotEmpty) {
+          idsExistentes.add(pflId);
+        }
+      }
+    }
+
+    // Filtra para exibir apenas perfis ativos com mensalidade que NÃO estão na lista de inclusão
+    final perfisDisponiveis = (bdProfileController.profilesNotifier.value ?? [])
+        .where((c) => c.as_ismonthlypayment == 'true')
+        .where((c) => !idsExistentes.contains(c.pfl_id.toString()))
+        .toList();
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => _SelectMultipleProfilesDialog(
-        profiles: todosPerfis,
-        selectedProfiles: _participantesDivisao,
-        onConfirm: (List<VProfileModel> selecionados) {
+        profiles: perfisDisponiveis,
+        selectedProfiles: const [],
+        onConfirm: (List<VProfileModel> novosSelecionados) {
           setState(() {
-            _participantesDivisao = selecionados;
+            _participantesDivisao = [
+              ..._participantesDivisao,
+              ...novosSelecionados,
+            ];
           });
         },
       ),
@@ -435,9 +461,39 @@ class _BarItemCardState extends State<_BarItemCard> {
     );
   }
 
-  // Gera os tickets para cada participante da divisão
+// Gera os tickets para cada participante da divisão
   Future<void> _gerarTickets() async {
     if (_participantesDivisao.isEmpty) return;
+
+    // Diálogo de confirmação
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Confirmar Geração'),
+        content: Text(
+          'Deseja realmente gerar os tickets da divisão de gastos para ${_participantesDivisao.length} participante(s)?\n\n'
+          'Após gerar, a alteração e edição dos itens ficarão bloqueadas.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Gerar Tickets'),
+          ),
+        ],
+      ),
+    );
+
+    // Cancela a execução se o usuário não confirmar
+    if (confirm != true) return;
 
     final String barId = (widget.item.bar_id ?? widget.item.hqb_id ?? '').toString();
     final String openDate = (widget.item.bar_open_date ?? '').toString();
@@ -480,33 +536,11 @@ class _BarItemCardState extends State<_BarItemCard> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Tickets gerados com sucesso! Edição de participantes bloqueada.'),
+        content: Text('Tickets gerados com sucesso! Edição bloqueada.'),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
       ),
     );
-  }
-
-  // Carrega comprovante associado à pessoa individualmente
-  Future<void> _anexarComprovantePessoa(VProfileModel pessoa) async {
-    final String barId = (widget.item.bar_id ?? widget.item.hqb_id ?? '').toString();
-    final String openDate = (widget.item.bar_open_date ?? '').toString();
-
-    final payload = {
-      'pfl_id': pessoa.pfl_id,
-      'barId': barId,
-      'openDate': openDate,
-      'hld_id': widget.hldId,
-    };
-
-    await _paymentService.selecionarAnexoEEnviar(
-      context: context,
-      payload: payload,
-    );
-
-    if (mounted) {
-      _carregarTickets();
-    }
   }
 
   Future<void> _anexarComprovanteTicket(dynamic ticket) async {
@@ -832,7 +866,13 @@ class _BarItemCardState extends State<_BarItemCard> {
                           final String? path = t.tkt_paiment_path;
                           return path != null && path.trim().isNotEmpty;
                         });
-                        widget.onEditBar(temComprovante);
+                        final bool ticketsDivisaoExist = tickets.any((t) {
+                          final items = t.ticketsItems ?? [];
+                          return items.any((item) => item.tit_pdt_id?.toString() == '44');
+                        });
+                        final bool jaGerou = _ticketsGerados || ticketsDivisaoExist;
+
+                        widget.onEditBar(temComprovante, jaGerou);
                       },
                     ),
 
@@ -944,14 +984,15 @@ class _BarItemCardState extends State<_BarItemCard> {
                                   ),
                                 ],
                               ),
+                              // Desabilita a adição de novos tickets caso a divisão já tenha sido gerada
                               TextButton.icon(
                                 style: TextButton.styleFrom(
-                                  foregroundColor: Colors.indigo,
+                                  foregroundColor: jaGerouTickets ? Colors.grey : Colors.indigo,
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   minimumSize: Size.zero,
                                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
-                                onPressed: _abrirDialogAdicionarTicket,
+                                onPressed: jaGerouTickets ? null : _abrirDialogAdicionarTicket,
                                 icon: const Icon(Icons.add_circle_outline, size: 16),
                                 label: const Text('+ Ticket', style: TextStyle(fontSize: 12)),
                               ),
@@ -1033,18 +1074,23 @@ class _BarItemCardState extends State<_BarItemCard> {
                                                   },
                                                 ),
 
+                                                // Desabilita a edição de tickets/itens caso a divisão já tenha sido gerada ou se possui comprovante
                                                 IconButton(
                                                   constraints: const BoxConstraints(),
                                                   padding: const EdgeInsets.all(4),
                                                   icon: Icon(
                                                     Icons.edit,
                                                     size: 17,
-                                                    color: temComprovante ? Colors.grey.shade400 : Colors.indigo,
+                                                    color: (temComprovante || jaGerouTickets)
+                                                        ? Colors.grey.shade400
+                                                        : Colors.indigo,
                                                   ),
-                                                  tooltip: temComprovante
-                                                      ? 'Não é possível editar ou apagar um ticket com comprovante'
-                                                      : 'Editar Ticket/Item',
-                                                  onPressed: temComprovante
+                                                  tooltip: jaGerouTickets
+                                                      ? 'Não é possível editar após gerar a divisão de gastos'
+                                                      : (temComprovante
+                                                          ? 'Não é possível editar ou apagar um ticket com comprovante'
+                                                          : 'Editar Ticket/Item'),
+                                                  onPressed: (temComprovante || jaGerouTickets)
                                                       ? null
                                                       : () => _abrirDialogEditarTicket(item),
                                                 ),
@@ -1118,7 +1164,7 @@ class _BarItemCardState extends State<_BarItemCard> {
                                           ),
                                         ],
                                       ),
-                                      // Desabilita seleção/edição se já foram gerados tickets no BD
+                                      // Desabilita seleção/edição de participantes se já foram gerados os tickets no BD
                                       TextButton.icon(
                                         style: TextButton.styleFrom(
                                           foregroundColor: jaGerouTickets ? Colors.grey : Colors.indigo,
@@ -1129,7 +1175,7 @@ class _BarItemCardState extends State<_BarItemCard> {
                                         onPressed: jaGerouTickets ? null : _abrirDialogSelecionarParticipantes,
                                         icon: const Icon(Icons.person_add_alt_1, size: 16),
                                         label: Text(
-                                          _participantesDivisao.isEmpty && ticketsDivisao.isEmpty ? 'Selecionar' : 'Editar',
+                                          _participantesDivisao.isEmpty && ticketsDivisao.isEmpty ? 'Selecionar' : 'Adicionar',
                                           style: const TextStyle(fontSize: 12),
                                         ),
                                       ),
@@ -1249,14 +1295,6 @@ class _BarItemCardState extends State<_BarItemCard> {
                                                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                                                 ),
                                               ),
-                                              IconButton(
-                                                constraints: const BoxConstraints(),
-                                                padding: const EdgeInsets.all(4),
-                                                icon: const Icon(Icons.attach_file, size: 18, color: Colors.teal),
-                                                tooltip: 'Carregar Comprovante',
-                                                onPressed: () => _anexarComprovantePessoa(p),
-                                              ),
-                                              const SizedBox(width: 4),
                                               IconButton(
                                                 constraints: const BoxConstraints(),
                                                 padding: const EdgeInsets.all(4),
@@ -1646,7 +1684,9 @@ class _AddPitchingInDialogState extends State<_AddPitchingInDialog> {
               ValueListenableBuilder<List<VProfileModel>?>(
                 valueListenable: widget.bdProfileController.profilesNotifier,
                 builder: (context, profiles, _) {
-                  final activeProfiles = profiles ?? [];
+                  final activeProfiles = (profiles ?? [])
+                      .where((c) => c.as_ismonthlypayment == 'true')
+                      .toList();
 
                   return DropdownButtonFormField<VProfileModel?>(
                     isExpanded: true,
@@ -1656,7 +1696,7 @@ class _AddPitchingInDialogState extends State<_AddPitchingInDialog> {
                       prefixIcon: Icon(Icons.person_outline),
                     ),
                     hint: const Text('Selecione a pessoa'),
-                    value: _selectedProfile,
+                    initialValue: _selectedProfile,
                     items: activeProfiles.map(
                       (p) => DropdownMenuItem<VProfileModel?>(
                         value: p,
@@ -1734,12 +1774,14 @@ class _AddPitchingInDialogState extends State<_AddPitchingInDialog> {
 class _EditPitchingInDialog extends StatefulWidget {
   final dynamic item;
   final bool hasReceipt;
+  final bool jaGerouTickets;
   final Function(DateTime data, String pix) onSave;
   final VoidCallback onDelete;
 
   const _EditPitchingInDialog({
     required this.item,
     this.hasReceipt = false,
+    this.jaGerouTickets = false,
     required this.onSave,
     required this.onDelete,
   });
@@ -1774,7 +1816,7 @@ class _EditPitchingInDialogState extends State<_EditPitchingInDialog> {
   }
 
   Future<void> _selecionarData(BuildContext context) async {
-    if (widget.hasReceipt) return;
+    if (widget.hasReceipt || widget.jaGerouTickets) return;
 
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -1792,7 +1834,7 @@ class _EditPitchingInDialogState extends State<_EditPitchingInDialog> {
   }
 
   void _confirmarExclusao() {
-    if (widget.hasReceipt) return;
+    if (widget.hasReceipt || widget.jaGerouTickets) return;
 
     showDialog(
       context: context,
@@ -1824,6 +1866,21 @@ class _EditPitchingInDialogState extends State<_EditPitchingInDialog> {
   @override
   Widget build(BuildContext context) {
     final String profileName = widget.item.open_profile_name ?? 'Registro';
+    final bool bloqueadoDataOuExclusao = widget.hasReceipt || widget.jaGerouTickets;
+
+    String? helperData;
+    if (widget.jaGerouTickets) {
+      helperData = 'A data não pode ser alterada pois a divisão de gastos já foi gerada.';
+    } else if (widget.hasReceipt) {
+      helperData = 'A data não pode ser alterada pois já existe comprovativo anexado.';
+    }
+
+    String msgBloqueioExclusao = '';
+    if (widget.jaGerouTickets) {
+      msgBloqueioExclusao = 'Não é possível apagar um registro com divisão de gastos gerada';
+    } else if (widget.hasReceipt) {
+      msgBloqueioExclusao = 'Não é possível apagar um registro que possui comprovativo anexado';
+    }
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -1854,15 +1911,13 @@ class _EditPitchingInDialogState extends State<_EditPitchingInDialog> {
               TextFormField(
                 controller: _dataController,
                 readOnly: true,
-                enabled: !widget.hasReceipt,
-                onTap: widget.hasReceipt ? null : () => _selecionarData(context),
+                enabled: !bloqueadoDataOuExclusao,
+                onTap: bloqueadoDataOuExclusao ? null : () => _selecionarData(context),
                 decoration: InputDecoration(
                   labelText: 'Data',
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.calendar_today),
-                  helperText: widget.hasReceipt
-                      ? 'A data não pode ser alterada pois já existe comprovativo anexado.'
-                      : null,
+                  helperText: helperData,
                   helperMaxLines: 2,
                   helperStyle: TextStyle(
                     color: Colors.orange.shade900,
@@ -1901,14 +1956,12 @@ class _EditPitchingInDialogState extends State<_EditPitchingInDialog> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Tooltip(
-              message: widget.hasReceipt
-                  ? 'Não é possível apagar um registro que possui comprovativo anexado'
-                  : '',
+              message: msgBloqueioExclusao,
               child: TextButton.icon(
                 style: TextButton.styleFrom(
-                  foregroundColor: widget.hasReceipt ? Colors.grey : Colors.red,
+                  foregroundColor: bloqueadoDataOuExclusao ? Colors.grey : Colors.red,
                 ),
-                onPressed: widget.hasReceipt ? null : _confirmarExclusao,
+                onPressed: bloqueadoDataOuExclusao ? null : _confirmarExclusao,
                 icon: const Icon(Icons.delete_outline, size: 20),
                 label: const Text('Apagar'),
               ),
@@ -1976,7 +2029,7 @@ class _AddTicketItemDialogState extends State<_AddTicketItemDialog> {
     super.initState();
     widget.productsController.loadProductsFiltered(
       widget.hldId.toString(),
-      '7',
+      '9',
     );
   }
 
